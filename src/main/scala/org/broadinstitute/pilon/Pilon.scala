@@ -4,7 +4,8 @@ import java.io.File
 
 object Pilon {
   // types of fixing we know about
-  val fixChoices = List('bases, 'gaps, 'local)	//'novel, 'breaks
+  val fixChoices = List('bases, 'gaps, 'local)
+  val experimentalFixChoices = List('breaks, 'novel)
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -55,6 +56,7 @@ object Pilon {
       case Nil => Nil
       case "--debug" :: tail =>
         debug = true
+        verbose = true
         optionParse(tail)
       case "--diploid" :: tail =>
         diploid = true
@@ -111,11 +113,14 @@ object Pilon {
       val fsym = Symbol(f)
       if (fsym == 'all) fixList = fixChoices
       else if (fsym == 'none) fixList = List.empty
-      else if (fixChoices contains fsym) 
-        fixList ::= fsym
+      else if (fixChoices contains fsym) fixList ::= fsym
+      else if (experimentalFixChoices contains fsym) {
+        println("Warning: experimental fix option " + f)
+        fixList ::= fsym 
+      }
       else {
-        println("WARNING: unknown fix option " + f)
-        fixList ::= fsym
+        println("Error: unknown fix option " + f)
+        sys.exit(1)
       }
     }
     fixList
@@ -145,17 +150,20 @@ object Pilon {
               Prefix for output files
            --vcf
               If specified, a vcf file will be generated
+           --tracks
+              This options will cause many track files (*.bed, *.wig) suitable for viewing in
+              IGV to be written.
+         CONTROL:
            --fix fixlist
               A comma-separated list of categories of issues to try to fix: 
               "bases": try to fix individual bases and small indels; 
               "gaps": try to fill gaps; 
               "local": try to detect and fix local misassemblies;
+              "all": all of the above (default);
+              "none": none of the above; new fasta file will not be written.
+    		  The following are experimental fix types:
               "breaks": allow local reassembly to open new gaps (with "local").
-              "all" (default) and "none" are also supported.
-           --tracks
-              This options will cause many track files (*.bed, *.wig) suitable for viewing in
-              IGV to be written.
-         CONTROL:
+              "novel": assemble novel sequence from unaligned non-jump reads.
            --targets targetlist
               Only process the specified target(s).  Targets are comma-separated, and each target
               is a fasta element name optionally followed by a base range.  
@@ -177,6 +185,6 @@ object Pilon {
            --verbose
               More verbose output.
            --debug
-              Debugging output.
+              Debugging output (implies verbose).
   """  
 }
