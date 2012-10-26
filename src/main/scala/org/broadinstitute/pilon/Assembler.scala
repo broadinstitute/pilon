@@ -122,24 +122,28 @@ class Assembler {
     var usedKmers = HashSet[String]()
     var paths : List[String] = List()
     var n = 0
+    
     for (kmer <- graph.keysIterator) {
       if (!(usedKmers contains kmer)) {
+        var dup = false
         val forward = pathForward(kmer)
         val reverse = pathReverse(kmer)
         val path = reverse + forward.substring(K)
         path.sliding(K) foreach { k =>
+          if (usedKmers contains kmer) 
+            dup = true
           usedKmers += k
           usedKmers += Bases.reverseComplement(k)
         }
-        if (path.length > Assembler.minNovel) {
+        if (!dup && path.length > Assembler.minNovel) {
           paths ::= path 
           println("novel " + path.length + " " + path)
         }
       }
       n += 1
-      if (n % 100000 == 0) print("..." + n)
+      //if (n % 100000 == 0) print("..." + n)
     }
-    println
+    //println
     paths
   }
   
