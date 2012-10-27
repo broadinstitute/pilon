@@ -46,7 +46,7 @@ class GapFiller(val region: GenomeRegion) {
     val (start, right, left, stop) = assembleIntoBreak(gap, reads)
     val solution = joinBreak(start, right, left, stop)
     if (solution != noSolution) {
-      println("Closed gap " + gap)
+      if (Pilon.debug) println("Closed gap " + gap)
       solution
     }
     else {
@@ -122,7 +122,7 @@ class GapFiller(val region: GenomeRegion) {
     	start = solution._1
     	
     	if (solution._2.length == 0 && solution._3.length == 0) {
-    	  if (Pilon.verbose) println("...no change")
+    	  if (Pilon.debug) println("...no change")
     	  noSolution
     	} else {
     	  if (Pilon.debug)
@@ -131,7 +131,7 @@ class GapFiller(val region: GenomeRegion) {
     	  solution
     	}
     } else {
-    	if (Pilon.verbose) println("...no break join")
+    	if (Pilon.debug) println("...no break join")
     	noSolution
     }
   }
@@ -179,7 +179,7 @@ class GapFiller(val region: GenomeRegion) {
       val flank = b.maxInsertSize
       reads ++= readsInInterval(b, region.name, reg.start - flank, reg.stop + flank)
     }
-    if (Pilon.verbose) 
+    if (Pilon.debug) 
       println("# Recruiting " + bamType.name + " reads: count=" + reads.length)
     reads
   }
@@ -194,7 +194,7 @@ class GapFiller(val region: GenomeRegion) {
       val (r1, r2) = pair
       !r1.getProperPairFlag
     }
-    if (Pilon.verbose) 
+    if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)
     mm2.values.toList
   }

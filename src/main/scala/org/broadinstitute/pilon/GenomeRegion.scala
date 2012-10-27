@@ -262,6 +262,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
     }
+    val nRef = ref contains 'N'
+    val nPatch = patch contains 'N'
+    if (nRef && !nPatch) print(" ClosedGap")
+    else if (nPatch && !nRef) print (" OpenedGap")
     println()
   }
     
@@ -286,22 +290,23 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val cBase = pu.baseCall.base
     kind match {
       case 'snp =>
-        print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase + " " +
-          //pu.baseCount.sums(pu.baseIndex(cBase)) + " " + pu.baseCount.sums(pu.baseIndex(rBase)) + " " + 
-          pu + endLine)
-
+        print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+        if (Pilon.debug) print(" " + pu + endLine)
+        print(endLine)
       case 'ins =>
-        print(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall + " " +
-          //pu.insertions + " " + (pu.count-pu.insertions) + " " + 
-          pu + endLine)
+        print(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall)
+        if (Pilon.debug) print(" " + pu + endLine)
+        print(endLine)
       case 'del =>
-        print(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + "." + " " +
-          //pu.deletions + " " + pu.baseCount.sums(pu.baseIndex(rBase)) + " " + 
-          pu + endLine)
+        print(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + ".")
+        if (Pilon.debug) print(" " + pu + endLine)
+        print(endLine)
       case 'amb =>
-        if (Pilon.verbose && rBase != cBase)
-          print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase + " " +
-            pu + endLine)
+        if (Pilon.verbose && rBase != cBase) {
+          print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+          if (Pilon.debug) print(" " + pu + endLine)
+          print(endLine)
+        }
     }
   }
 
@@ -309,7 +314,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (regions != Nil) {
       val totalSize: Int = (regions map { _.size }).sum
       print("# " + header + " n=" + regions.size + " bases=" + totalSize)
-      regions foreach { r => print("  " + r.start + "-" + r.stop) }
+      if (Pilon.debug) {
+    	regions foreach { r => print("  " + r.start + "-" + r.stop) }
+      }
       println
     }
   }
@@ -442,7 +449,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def ambiguousRegions = summaryRegions({ i: Int => ambiguous(i) }) filter { r => r.start != r.stop }
   def changeRegions = summaryRegions({ i: Int => changed(i) })
-  def gaps = summaryRegions({ i: Int => refBase(locus(i)) == 'N' })
+  def gaps = summaryRegions({ i: Int => refBase(locus(i)) == 'N' }) filter { _.size >= 10}
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
 
