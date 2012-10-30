@@ -54,10 +54,10 @@ class Assembler {
   }
   
   def pruneGraph(minCount: Int = Assembler.minDepth) = {
-    print("[prune " + graph.size)
+	if (Pilon.debug) print("[prune " + graph.size)
     for ((k, pu) <- graph.iterator)
       if (pu.count < minCount) graph -= k
-    print("->" + graph.size + "]")
+    if (Pilon.debug) print("->" + graph.size + "]")
   }
 
   def pathForward(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {

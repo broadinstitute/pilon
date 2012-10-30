@@ -257,15 +257,19 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
   
   def printFix(loc: Int, ref: String, patch: String) = {
-    print("fix: " + name + " " + loc + " -" + ref.length + " +" + patch.length)
+    def countNs(s: String) = s count {_ == 'N'}
+    val nRef = countNs(ref)
+    val nPatch = countNs(patch)
+    val nonGapRef = ref.length - nRef
+    val nonGapPatch = patch.length - nPatch
+    
+    print("fix: " + name + " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
     }
-    val nRef = ref contains 'N'
-    val nPatch = patch contains 'N'
-    if (nRef && !nPatch) print(" ClosedGap")
-    else if (nPatch && !nRef) print (" OpenedGap")
+    if (nRef > 0 && nPatch == 0) print(" ClosedGap")
+    else if (nPatch > 0 && nRef == 0) print (" OpenedGap")
     println()
   }
     
