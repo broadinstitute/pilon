@@ -33,7 +33,10 @@ object Pilon {
     println(Version.version)
     optionParse(args.toList)
 
-    if (bamFiles.length == 0 || genomePath == "") {
+    if (bamFiles.length == 0) {
+      println(usage)
+      sys.exit(0)
+    } else if (genomePath == "") {
       println("Must specify a --genome and one or more bam files (--frags, --jumps, or --unpaired)\n\n" + usage)
       sys.exit(1)
     }
