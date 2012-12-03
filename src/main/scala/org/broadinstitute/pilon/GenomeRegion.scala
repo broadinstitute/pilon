@@ -393,7 +393,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val start = index(locus)
       val before = newBases.slice(0, start)
       val after = newBases.slice(start + was.length, newBases.length)
-      val ref = newBases.slice(start, start + was.length).map(_.toChar).mkString("")
+      val ref = newBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
       if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
       newBases = before ++ (patch map { _.toByte }) ++ after
       //if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
@@ -502,7 +502,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def refBase(locus: Int) = {
     require(inRegion(locus), "can't fetch base outside region")
-    bases(locus - 1).toChar.toUpper
+    bases(locus - 1).toChar.toUpperCase
   }
 
   def refBases = {
