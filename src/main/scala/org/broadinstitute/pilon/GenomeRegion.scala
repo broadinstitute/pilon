@@ -391,12 +391,17 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (Pilon.debug) println("Fix " + fix)
       val (locus, was, patch) = fix
       val start = index(locus)
-      val before = newBases.slice(0, start)
-      val after = newBases.slice(start + was.length, newBases.length)
-      val ref = newBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
-      if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
-      newBases = before ++ (patch map { _.toByte }) ++ after
-      //if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
+      if (was.length == patch.length) {
+        for (i <- 0 until was.length)
+          newBases(start + i) = patch(i).toByte        
+      } else {
+    	val before = newBases.slice(0, start)
+        val after = newBases.slice(start + was.length, newBases.length)
+        val ref = newBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
+        if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
+        newBases = before ++ (patch map { _.toByte }) ++ after
+        //if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
+      }
     }
     newBases
   }
