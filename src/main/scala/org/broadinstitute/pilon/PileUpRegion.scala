@@ -118,14 +118,9 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           var insertion = bases.slice(readOffset, readOffset + len)
           val istr = baseString(insertion)
           var iloc = locus
-          //while (iloc - len > 0 &&
-          //  baseString(refBases.slice(iloc - len - 1, iloc - 1)) == istr) {
-          //  iloc -= len
-          //}
           var rloc = readOffset
-          while (iloc > 1 && rloc > 0 && refBases(iloc - 2) == insertion(len - 1)) {
+          while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
             iloc -= 1
-            rloc -= 1
             insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
           }
           if (valid && trusted(readOffset) && inRegion(iloc)) {
@@ -150,10 +145,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           if (valid && trusted(readOffset) && inRegion(dloc)) {
             pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset))
           }
-        //for (i <- 0 until len)
-        //  if (pair && trusted(rloc) && inRegion(dloc + i) ) {
-        //    pileups(index(dloc + i)).addDeletion(quals(rloc)) 
-        //  }
         case CigarOperator.M =>
           for (i <- 0 until len) {
             val rOff = readOffset + i
