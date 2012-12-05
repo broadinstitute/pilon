@@ -119,32 +119,30 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           val istr = baseString(insertion)
           var iloc = locus
           var rloc = readOffset
-          if (Pilon.debug) println("r=" + r + " iloc=" + iloc + " len=" + len)
-          while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
-        	if (Pilon.debug) println("r=" + r + " iloc=" + iloc + " len=" + len)
-            iloc -= 1
-            insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
-          }
           if (valid && trusted(readOffset) && inRegion(iloc)) {
+            while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
+              iloc -= 1
+              insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
+            }
             pileups(index(iloc)).addInsertion(insertion, quals(readOffset))
           }
         case CigarOperator.D =>
           var dloc = locus
           var rloc = readOffset
-          while (dloc > 1 && rloc > 0 && dloc + len - 2 < refBases.length && refBases(dloc - 2) == refBases(dloc + len - 2)) {
-            dloc -= 1
-            rloc -= 1
-            val base = bases(rloc).toChar
-            val qual = quals(rloc)
-            // as we slide the deletion, remove old base from pileup and
-            // add to end
-            if (trusted(rloc) && inRegion(dloc)) {
-              remove(dloc, base, qual, mq, valid)
-              if (inRegion(dloc + len))
-                add(dloc + len, base, qual, mq, valid)
+          if (valid && trusted(readOffset) && inRegion(dloc) && inRegion(dloc+len-1)) {
+            while (dloc > 1 && rloc > 0 && refBases(dloc - 2) == refBases(dloc + len - 2)) {
+              dloc -= 1
+              rloc -= 1
+              val base = bases(rloc).toChar
+              val qual = quals(rloc)
+              // as we slide the deletion, remove old base from pileup and
+              // add to end
+              if (trusted(rloc) && inRegion(dloc)) {
+                remove(dloc, base, qual, mq, valid)
+                if (inRegion(dloc + len))
+                  add(dloc + len, base, qual, mq, valid)
+              }
             }
-          }
-          if (valid && trusted(readOffset) && inRegion(dloc)) {
             pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset))
           }
         case CigarOperator.M =>
