@@ -119,7 +119,9 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           val istr = baseString(insertion)
           var iloc = locus
           var rloc = readOffset
+          if (Pilon.debug) println("r=" + r + " iloc=" + iloc + " len=" + len)
           while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
+        	if (Pilon.debug) println("r=" + r + " iloc=" + iloc + " len=" + len)
             iloc -= 1
             insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
           }
