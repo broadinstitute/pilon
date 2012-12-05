@@ -123,7 +123,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           //  iloc -= len
           //}
           var rloc = readOffset
-          while (iloc > 0 && rloc > 0 && refBases(iloc - 2) == insertion(len - 1)) {
+          while (iloc > 1 && rloc > 0 && refBases(iloc - 2) == insertion(len - 1)) {
             iloc -= 1
             rloc -= 1
             insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
@@ -134,7 +134,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
         case CigarOperator.D =>
           var dloc = locus
           var rloc = readOffset
-          while (dloc > 0 && rloc > 0 && refBases(dloc - 2) == refBases(dloc + len - 2)) {
+          while (dloc > 1 && rloc > 0 && refBases(dloc - 2) == refBases(dloc + len - 2)) {
             dloc -= 1
             rloc -= 1
             val base = bases(rloc).toChar
