@@ -134,7 +134,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
         case CigarOperator.D =>
           var dloc = locus
           var rloc = readOffset
-          while (dloc > 1 && rloc > 0 && refBases(dloc - 2) == refBases(dloc + len - 2)) {
+          while (dloc > 1 && rloc > 0 && dloc + len - 2 < refBases.length && refBases(dloc - 2) == refBases(dloc + len - 2)) {
             dloc -= 1
             rloc -= 1
             val base = bases(rloc).toChar
