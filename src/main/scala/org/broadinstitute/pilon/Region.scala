@@ -7,6 +7,8 @@ class Region(val name: String, val start: Int, val stop: Int) {
   def index(locus: Int) = locus - start
   def locus(index: Int) = start + index
   def size = stop + 1 - start
+  def midpoint = (start + stop) / 2
+
   def equals(other: Region) = 
     start == other.start && stop == other.stop && name == other.name
   def overlaps(other: Region) =

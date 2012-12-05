@@ -189,10 +189,14 @@ class GapFiller(val region: GenomeRegion) {
   def recruitFrags(reg: Region) = mateMapOfType(reg, 'frags).values.toList
 
   def recruitJumps(reg: Region) = {
+    val midpoint = region.midpoint
+
     val mm = mateMapOfType(reg, 'jumps)
+    
+    // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val mm2 = mm filter { pair =>  
       val (r1, r2) = pair
-      !r1.getProperPairFlag
+      (!r1.getReadUnmappedFlag) && r2.getReadUnmappedFlag
     }
     if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)
@@ -221,6 +225,7 @@ class GapFiller(val region: GenomeRegion) {
       }
       readMap += readName -> r
     }
+    
     mm
   }
 
