@@ -158,7 +158,7 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   
   def regionsToBed(regions: List[Region], name: String, writer: PrintWriter, rgb: String = "0,255,0") = {
     regions map {region: Region =>
-      List(region.name, region.start, region.stop, name, "0", "+", region.start, region.stop, rgb) mkString("\t")
+      List(region.name, region.start, region.stop, name, "0", "+", region.start-1, region.stop, rgb) mkString("\t")
     } foreach { writer.println(_) }
   }
   
