@@ -117,10 +117,10 @@ class PileUp {
     val indel = insertion || deletion
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10
-    def callString(insertionOk : Boolean = true) = {
-      if (insertionOk && insertion) insertCall
-      else if (deletion) deletionCall
-      else base + (if (!homo) "/" + altBase else "")
+    def callString(indelOk : Boolean = true) = {
+      if (indelOk && insertion) insertCall
+      else if (indelOk && deletion) deletionCall
+      else base.toString //+ (if (!homo) "/" + altBase else "")
     }
     def baseMatch(refBase: Char) {
       refBase == base	// TODO: handle IUPAC codes

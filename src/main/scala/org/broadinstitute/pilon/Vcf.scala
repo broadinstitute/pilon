@@ -20,6 +20,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##FILTER=<ID=LowCov,Description=\"Low Coverage of good reads at location\">")
     //writer.println("##FILTER=<ID=LowMQ,Description=\"Low mean mapping quality at location\">")
     writer.println("##FILTER=<ID=Amb,Description=\"Ambiguous evidence in haploid genome\">")
+    writer.println("##FILTER=<ID=Del,Description=\"This base is in a deletion or change event from another record\">")
     writer.println("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Valid read depth; some reads may have been filtered\">")
     writer.println("##INFO=<ID=TD,Number=1,Type=Integer,Description=\"Total read depth including bad pairs\">")
     writer.println("##INFO=<ID=PC,Number=1,Type=Integer,Description=\"Physical coverage of valid inserts across locus\">")
@@ -43,30 +44,31 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
 
   def close = writer.close
 
-  def writeRecord(region: GenomeRegion, locus: Int, pileUp: PileUp, insertionOk: Boolean = true): Unit = {
-    var loc = locus
-    val i = region.index(locus)
-
+  def writeRecord(region: GenomeRegion, index: Int,
+      embedded: Boolean = false, indelOk: Boolean = true): Unit = {
+    val locus = region.locus(index)
+    val pileUp = region.pileUpRegion(index)
     val bc = pileUp.baseCall
-    val bcString = bc.callString(insertionOk)
+    val bcString = bc.callString(indelOk)
     val baseDP = bc.baseSum.toInt //pileUp.baseCount.sums(bc.baseIndex)
     val altBaseDP = bc.altBaseSum.toInt //pileUp.baseCount.sums(bc.altBaseIndex)
     val depth = pileUp.depth.toInt
+    var loc = locus
     val (rBase, cBase, callType, refDP, altDP) = {
-      if (bc.deletion) {
-        loc = locus - 1
+      if (indelOk && bc.deletion) {
+        loc -= 1
         val rBase = region.refBase(loc)
         (rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
-      } else if (insertionOk && bc.insertion) {
-        loc = locus - 1
+      } else if (indelOk && bc.insertion) {
+        loc -= 1
         val rBase = region.refBase(loc)
         (rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
       } else if (bc.homo) {
-        val rBase = region.refBase(loc).toString
-        if (rBase == bcString || bcString == "N")
-          (rBase.toString, bcString, "0/0", baseDP, altBaseDP)
+        val rBase = region.refBase(loc)
+        if (rBase == bc.base || bcString == "N")
+          (rBase.toString, bc.base.toString, "0/0", baseDP, altBaseDP)
         else {
-          (rBase.toString, bcString, "1/1", altBaseDP, baseDP)
+          (rBase.toString, bc.base.toString, "1/1", altBaseDP, baseDP)
         }
       } else {
         val rBase = region.refBase(loc)
@@ -81,10 +83,11 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     if (depth < region.minDepth) filters ::= "LowCov"
     if (!bc.highConfidence && !bc.indel) filters ::= "LowConf"
     if (!Pilon.diploid && !bc.homo && !bc.indel) filters ::= "Amb"
+    if (embedded) filters ::= "Del"
     if (filters.isEmpty) filters ::= "PASS"
     val cBaseVcf = if (cBase == "N" || cBase == rBase) "." else cBase
     var line = region.name + tab + loc + tab + "." + tab + rBase + tab + cBaseVcf
-    line += tab + (if (bc.deletion) "." else bc.score.toString)
+    line += tab + (if (indelOk && bc.deletion) "." else bc.score.toString)
     val filter = filters.mkString(";")
     line += tab + filter
 
@@ -93,7 +96,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       case "0/1" => 1
       case "1/1" => 2
     }
-    var info = "DP=" + pileUp.depth
+    var info = "DP=" + (if (indelOk) pileUp.depth else pileUp.count)
     info += ";TD=" + (pileUp.depth + pileUp.badPair)
     info += ";BQ=" + pileUp.meanQual
     info += ";MQ=" + pileUp.meanMq
@@ -117,7 +120,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     //}
     line += tab + gt + tab + gtInfo
     writer.println(line)
-    if (insertionOk && bc.insertion) writeRecord(region, locus, pileUp, false)
+    if (indelOk && bc.indel) writeRecord(region, index, bc.deletion, false)
   }
 
   def writeFixRecord(region: GenomeRegion, fix: GenomeRegion.Fix) = {

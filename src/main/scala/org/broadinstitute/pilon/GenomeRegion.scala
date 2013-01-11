@@ -416,7 +416,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         for (j <- 0 until bigFixes.head._2.length) deleted(i+j) = true
         bigFixes = bigFixes.tail
       }
-      if (!deleted(i)) vcf.writeRecord(this, loc, pileUpRegion(i))
+      vcf.writeRecord(this, i, deleted(i))
     }
   }
 
