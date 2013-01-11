@@ -155,7 +155,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     // Pass 2: computed values
-    val baseCov = coverageDist.mean
+    val baseCov = coverageDist.median
     for (i <- 0 until size) {
       val n = coverage(i)
       val cn = if (baseCov > 0) (n / baseCov).round.toShort else 0.toShort
@@ -286,6 +286,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     prettyPrintRegions("Deletion?", possibleDeletions)
     prettyPrintRegions("CollapsedRepeat?", possibleCollapsedRepeats)
     prettyPrintRegions("Ambiguous", ambiguousRegions)
+
   }
 
   def printChange(i: Int, endLine: String = "\n") = {
@@ -462,7 +463,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
 
-  def lowCoverage(i: Int) = coverage(i) < coverageDist.moments(0) * .20
+  def lowCoverage(i: Int) = coverage(i) < coverageDist.mean * .10
   def lowCoverageRegions = summaryRegions(lowCoverage)
   def highClipping(i: Int) = clips(i) >= coverage(i)
   def clippingRegions = summaryRegions(highClipping)
@@ -481,6 +482,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       //println(r + " " + deltaFraction(index(r.start)) + " " + deltaFraction(index(r.stop)))
       deltaFraction(index(r.start)) >= 0.5 && deltaFraction(index(r.stop)) >= 0.5
     }
+  }
+  def duplicationEvents = {
+    
   }
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
