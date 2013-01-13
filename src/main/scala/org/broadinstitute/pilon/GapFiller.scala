@@ -8,7 +8,6 @@ import net.sf.samtools._
 object GapFiller {
   val K = 47
   val minDepth = 5
-  val minGap = 10
   val minExtend = 20
 }
 
@@ -30,7 +29,7 @@ class GapFiller(val region: GenomeRegion) {
       if (newStart >= break.start + GapFiller.minExtend || 
           newStop <= break.stop - GapFiller.minExtend) {
         if (Pilon.debug) println((break.start, break.stop, newStart, newStop))
-        val newGapLength = GapFiller.minGap //max (newStop - newStart)
+        val newGapLength = Pilon.minGap //max (newStop - newStart)
         val newGap = (1 to newGapLength) map {_ => "N"} mkString("")
         val seq = right + newGap + left
         if (Pilon.debug) println("S:" + seq.size + ": " + seq)
@@ -57,7 +56,7 @@ class GapFiller(val region: GenomeRegion) {
       if (newStart >= gap.start + GapFiller.minExtend || 
           newStop <= gap.stop - GapFiller.minExtend) {
         if (Pilon.debug) println((gap.start, gap.stop, newStart,newStop))
-        val newGapLength = GapFiller.minGap max (newStop - newStart)
+        val newGapLength = Pilon.minGap max (newStop - newStart)
         val newGap = (1 to newGapLength) map {_ => "N"} mkString("")
         val seq = right + newGap + left
         if (Pilon.debug) println("S:" + seq.size + ": " + seq)

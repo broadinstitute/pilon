@@ -22,6 +22,7 @@ object Pilon {
   var diploid = false
   var flank = 10
   var minMinDepth = 5
+  var minGap = 10
   var minDepth = 0.1
   var minQual = 0
   
@@ -81,6 +82,9 @@ object Pilon {
         optionParse(tail)
       case "--mindepth" :: value :: tail =>
         minDepth = value.toDouble
+        optionParse(tail)
+      case "--mingap" :: value :: tail =>
+        minGap = value.toInt
         optionParse(tail)
       case "--minqual" :: value :: tail =>
         minQual = value.toInt

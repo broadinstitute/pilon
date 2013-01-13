@@ -511,7 +511,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def refBase(locus: Int) = {
     require(inRegion(locus), "can't fetch base outside region")
-    bases(locus - 1).toChar.toUpperCase
+    bases(locus - 1).toChar.toUpper
   }
 
   def refBases = {
