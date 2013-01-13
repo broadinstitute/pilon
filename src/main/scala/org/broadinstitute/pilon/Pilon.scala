@@ -58,6 +58,10 @@ object Pilon {
     def isSwitch(s: String) = (s(0) == '-')
     list match {
       case Nil => Nil
+      case "--help" :: tail =>
+        println(usage)
+        print(help)
+        sys.exit(0)
       case "--debug" :: tail =>
         debug = true
         verbose = true
@@ -138,7 +142,10 @@ object Pilon {
   val usage = """
     Usage: pilon --genome genome.fasta [--frags frags.bam] [--jumps jumps.bam] [--unpaired unpaired.bam]
                  [...other options...]
-    
+           pilon --help for option details 
+"""
+
+  val help = """
          INPUTS:
            --genome genome.fasta
               The input genome we are trying to improve, which must be the reference used
