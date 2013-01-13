@@ -182,6 +182,8 @@ object Pilon {
               fraction < 1, then minimum depth is computed by multiplying this value by the mean
               coverage for the region, with a minumum value of 5 (default 0.1: min depth to call 
               is 10% of mean coverage or 5, whichever is greater).
+           --mingap
+              Minimum size for unclosed gaps (default 10)
            --minqual
               Minimum base quality to consider for pileups (default 0)
            --flank nbases
