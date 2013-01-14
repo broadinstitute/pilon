@@ -33,11 +33,17 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 	seqs map { _.getSequenceName } toSet
   }
   
-  lazy val header = reader.getFileHeader()
+  lazy val header = {
+    val r = reader
+    val h = r.getFileHeader()    
+    r.close
+    h
+  }
   lazy val sequenceDictionary = header.getSequenceDictionary()
   lazy val readGroups = header.getReadGroups()
   
   def printIndexStats() = BAMIndexMetaData.printIndexStats(bamFile)
+
 
   def getUnaligned = {
     val r = reader

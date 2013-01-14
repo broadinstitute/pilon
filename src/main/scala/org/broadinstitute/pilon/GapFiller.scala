@@ -211,7 +211,10 @@ class GapFiller(val region: GenomeRegion) {
   def recruitReads(reg: Region) = recruitLocalReads(reg) ++ recruitJumps(reg)
   
   def readsInInterval(bam: BamFile, name: String, start: Int, stop: Int) = {
-    bam.reader.queryOverlapping(name, start, stop).toList
+    val r = bam.reader
+    val reads = r.queryOverlapping(name, start, stop).toList
+    r.close
+    reads
   }
   
   def mateMap(reads: List[SAMRecord]) = {

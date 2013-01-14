@@ -54,12 +54,14 @@ class BamRegion (val bam: BamFile, val region: GenomeRegion)
     // that's figured out.
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
 	val radius = bam.maxInsertSize
-    val reads = bam.reader.queryOverlapping(name, 
+	val reader = bam.reader
+    val reads = reader.queryOverlapping(name, 
         (start - radius) max 0, (stop + radius) min contig.length)
     val readsBefore = pileUpRegion.readCount
     val covBefore = pileUpRegion.coverage
     
     pileUpRegion.addReads(reads, bases)
+    reader.close
     pileUpRegion.computePhysCov
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
