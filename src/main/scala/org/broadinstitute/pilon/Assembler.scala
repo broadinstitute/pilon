@@ -14,7 +14,7 @@ object Assembler {
   type KmerGraph = HashMap[Kmer, PileUp]
 }
 
-class Assembler {
+class Assembler(val minDepth: Int = Assembler.minDepth) {
   val K = Assembler.K
   val graph: Assembler.KmerGraph = HashMap()
   var nReads: Long = 0
@@ -69,7 +69,9 @@ class Assembler {
       } else {
         val pu = graph(startingKmer)
         val bc = pu.baseCall
-        if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
+        //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
+        if (pu.depth >= minDepth && 
+            (bc.homo || (Pilon.diploid && bc.majority))) {
           kmersVisited += startingKmer
           pathForward(anchor + bc.base, kmersVisited)
         } else {

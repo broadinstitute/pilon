@@ -72,7 +72,7 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def assembleIntoBreak(break: Region, reads: List[SAMRecord]) = {
-    val assembler = new Assembler
+    val assembler = new Assembler(region.minDepth)
     assembler.addReads(reads)
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
     if (Pilon.fixList contains 'novelbreaks) assembler.novel
@@ -107,7 +107,8 @@ class GapFiller(val region: GenomeRegion) {
     var start = startArg
     var stop = stopArg
     var interval = stop - start
-    val k = 2 * Assembler.K + 1
+    //val k = 2 * Assembler.K + 1
+    val k = Assembler.K
     
     var patch = properOverlap(forward, reverse, k)
     if (Pilon.debug) {

@@ -117,6 +117,7 @@ class PileUp {
     val indel = insertion || deletion
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10
+    val majority = baseSum > halfTotal
     def callString(indelOk : Boolean = true) = {
       if (indelOk && insertion) insertCall
       else if (indelOk && deletion) deletionCall
