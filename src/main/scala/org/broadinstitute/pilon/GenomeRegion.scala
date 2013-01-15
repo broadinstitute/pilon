@@ -12,6 +12,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   extends Region(contig.getName, start, stop) {
   require(stop <= contig.length, "GenomeRegion stop point must be within contig")
   val bases = contig.getBases
+  var fixedBases = refBases.clone
 
   var pileUpRegion: PileUpRegion = null
   var minDepth = Pilon.minMinDepth
@@ -172,6 +173,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   type FixList = List[GenomeRegion.Fix]
+  var snpFixList: FixList = List()
   var smallFixList: FixList = List()
   var bigFixList: FixList = List()
 
@@ -193,7 +195,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       kind match {
         case 'snp =>
           //newBases(i) = cBase.toByte
-          smallFixList ::= (locus(i), rBase.toString, cBase.toString)
+          snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'ins =>
           val insert = pu.insertCall
@@ -219,6 +221,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
     print("; " + ins + " small insertions totaling " + insBases + " bases")
     println("; " + dels + " small deletions totaling " + delBases + " bases")
+    
+    // fix SNPs prior to reassemblies...it helps!  We can't change coords here, though!
+    fixIssues(snpFixList)
 
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
       println("# Attempting to fill gaps")
@@ -235,7 +240,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       }
     }
 
-    val breaks = clippingRegions
+    val breaks = possibleBreaks //clippingRegions
     val filteredBreaks = breaks filter { !_.nearAny(gaps) }
     if ((Pilon.fixList contains 'local) && breaks.length > 0) {
       println("# Attempting to fix local continuity breaks")
@@ -254,6 +259,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         }
       }
     }
+    fixIssues(smallFixList ++ bigFixList)
   }
   
   def printFix(loc: Int, ref: String, patch: String) = {
@@ -383,9 +389,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     outList
   }
 
-  def fixIssues = {
-    var fixList = smallFixList ++ bigFixList
-    var newBases = refBases.clone
+  def fixIssues(fixList: FixList) = {
+    var newBases = fixedBases.clone
     val sortedFixes = fixList.sortWith({ (x, y) => x._1 < y._1 })
     val fixedFixes = fixFixList(sortedFixes)
     for (fix <- fixedFixes) {
@@ -463,12 +468,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
 
-  def lowCoverage(i: Int) = coverage(i) < coverageDist.mean * .10
+  def lowCoverage(i: Int) = coverage(i) < minDepth
   def lowCoverageRegions = summaryRegions(lowCoverage)
   def highClipping(i: Int) = clips(i) >= coverage(i)
   def clippingRegions = summaryRegions(highClipping)
 
-  def breakp(i: Int) = dipFraction(i) >= 1.0
+  def breakp(i: Int) = highClipping(i) || lowCoverage(i) // dipFraction(i) >= 1.0
   def possibleBreaks = summaryRegions(breakp)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0

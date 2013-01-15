@@ -86,7 +86,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	  } 
 	  if (Pilon.fixList.length > 0) {
 	    println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
-		val fixedRegions = reg._2 map { _.fixIssues }
+		val fixedRegions = reg._2 map { _.fixedBases }
         val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""		
 	    println("Writing updated " + name + " to " + fastaFile)
         writeFastaElement(fastaWriter, name + "|pilon", bases)
@@ -107,7 +107,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   
   def assembleNovel(bamFiles: List[BamFile]) = {
     println("Assembling novel sequence")
-    val assembler = new Assembler
+    val assembler = new Assembler()
     bamFiles filter {_.bamType != 'jumps} foreach { bam =>
       if (Pilon.verbose) print("# " + bam + " ")
       val reads = bam.getUnaligned
