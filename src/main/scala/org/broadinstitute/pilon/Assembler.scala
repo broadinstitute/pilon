@@ -70,7 +70,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         val pu = graph(startingKmer)
         val bc = pu.baseCall
         //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
-        if (pu.depth >= minDepth && 
+        if (pu.depth >= Assembler.minDepth && // TODO: fixed depth or computed?
             (bc.homo || (Pilon.diploid && bc.majority))) {
           kmersVisited += startingKmer
           pathForward(anchor + bc.base, kmersVisited)
