@@ -81,8 +81,8 @@ class GapFiller(val region: GenomeRegion) {
     val startOffset = 3 * k
     var start = (break.start - startOffset) max region.start
     var stop = (break.stop + 1 + startOffset) min region.stop
-    var forward = assembler.tryForward(region.genomeSubString(start, break.start - start))
-    var reverse = assembler.tryReverse(region.genomeSubString(break.stop + 1, stop - break.stop - 1))
+    var forward = assembler.tryForward(region.subString(start, break.start - start))
+    var reverse = assembler.tryReverse(region.subString(break.stop + 1, stop - break.stop - 1))
     /*
     // if we didn't make it back to the beginning, use old boundary
     if (start + forward.length < break.start) {
@@ -158,15 +158,15 @@ class GapFiller(val region: GenomeRegion) {
     var start = startArg
     var stop = stopArg
     var patch = patchArg
-    while (start < stop && patch.length > 0 && region.refBase(start) == patch(0)) {
+    while (start < stop && patch.length > 0 && region.baseAt(start) == patch(0)) {
     	start += 1
     	patch = patch.substring(1)
     }
-    while (start < stop && patch.length > 0 && region.refBase(stop-1) == patch(patch.length-1)) {
+    while (start < stop && patch.length > 0 && region.baseAt(stop-1) == patch(patch.length-1)) {
     	stop -= 1
     	patch = patch.substring(0, patch.length-1)
     }
-    (start, region.genomeSubString(start, stop-start), patch)
+    (start, region.subString(start, stop-start), patch)
   }
 
   

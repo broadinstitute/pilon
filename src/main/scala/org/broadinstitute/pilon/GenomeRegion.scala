@@ -11,8 +11,8 @@ object GenomeRegion {
 class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   extends Region(contig.getName, start, stop) {
   require(stop <= contig.length, "GenomeRegion stop point must be within contig")
-  val bases = contig.getBases
-  var fixedBases = refBases.clone
+  val contigBases = contig.getBases
+  var bases = refBases
 
   var pileUpRegion: PileUpRegion = null
   var minDepth = Pilon.minMinDepth
@@ -85,7 +85,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val center = if (locus >= halfWindow) locus - halfWindow else locus
       val bufIndex = locus % window
       val gcBase: Byte = {
-        val base = bases(locus).toChar
+        val base = contigBases(locus).toChar
         if (base == 'G' || base == 'C') 1 
         else if (base == 'A' || base == 'T') 0 
         else gcbuf(bufIndex)	//no-op for Ns, IUPAC, etc	
@@ -390,7 +390,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def fixIssues(fixList: FixList) = {
-    var newBases = fixedBases.clone
+    var newBases = bases.clone
     val sortedFixes = fixList.sortWith({ (x, y) => x._1 < y._1 })
     val fixedFixes = fixFixList(sortedFixes)
     for (fix <- fixedFixes) {
@@ -409,7 +409,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         //if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
       }
     }
-    newBases
+    bases = newBases
   }
 
   def writeVcf(vcf: Vcf) = {
@@ -514,22 +514,34 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     regions.reverse filter { !nearEdge(_) }
   }
 
+  
+  def baseAt(locus: Int) = {
+    require(inRegion(locus))
+    bases(index(locus)).toChar.toUpper
+  }
+  
+  def subString(locus: Int, n: Int) = {
+    require(inRegion(locus) && inRegion(locus + n - 1))
+    GenomeRegion.baseString(bases.slice(index(locus), index(locus+n)))
+  } 
+
   def refBase(locus: Int) = {
     require(inRegion(locus), "can't fetch base outside region")
-    bases(locus - 1).toChar.toUpper
+    //bases(index(locus)).toChar.toUpper
+    contigBases(locus - 1).toChar.toUpper
   }
-
+  
   def refBases = {
-    bases.slice(start - 1, stop)
+    contigBases.slice(start - 1, stop)
   }
 
-  def refSlice(a: Int, b: Int) = bases.slice(index(a), index(b))
+  def refSlice(a: Int, b: Int) = contigBases.slice(index(a), index(b))
   def refBases(a: Int, b: Int) = refSlice(a, b).toArray
 
-  def genomeSubString(locus: Int, n: Int) = {
+  def refSubString(locus: Int, n: Int) = {
     require(inRegion(locus) && inRegion(locus + n - 1))
-    GenomeRegion.baseString(bases.slice(locus - 1, locus + n - 1))
+    GenomeRegion.baseString(contigBases.slice(locus - 1, locus + n - 1))
   }
 
-  def apply(i: Int) = refBase(start + i)
+  //def apply(locus: Int) = bases(index(locus))
 }
