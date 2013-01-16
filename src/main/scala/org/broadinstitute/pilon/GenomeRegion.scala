@@ -141,7 +141,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       weightedMq(i) = pu.weightedMq.toByte
       clips(i) = pu.clips.toShort
 
-      if (n >= minDepth /*&& r != 'N'*/ ) {
+      if (n >= minDepth && r != 'N') {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
         else if (bc.insertion) addChange(i, 'ins, pu)
