@@ -234,7 +234,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           val old = if (ref != "") ref else "."
           val now = if (patch != "") patch else "."
           //println(name + " " + start + " fix " + ref.size + " " + old + " " + patch.size + " " + now)
-          printFix(start, ref, patch)
+          printFix(start, ref, patch, gap.size)
           bigFixList ::= (start, ref, patch)
         }
       }
@@ -253,7 +253,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           val old = if (ref != "") ref else "."
           val now = if (patch != "") patch else "."
           if (ref.length + patch.length >= 20) {
-            printFix(start, ref, patch)
+            printFix(start, ref, patch, 0)
         	bigFixList ::= (start, ref, patch)
           }
         }
@@ -262,7 +262,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
   
-  def printFix(loc: Int, ref: String, patch: String) = {
+  def printFix(loc: Int, ref: String, patch: String, gapSize: Int) = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
     val nPatch = countNs(patch)
@@ -274,7 +274,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
     }
-    if (nRef > 0 && nPatch == 0) print(" ClosedGap")
+    if (nRef == gapSize && nPatch == 0) print(" ClosedGap")
     else if (nPatch > 0 && nRef == 0) print (" OpenedGap")
     println()
   }
@@ -398,8 +398,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val (locus, was, patch) = fix
       val start = index(locus)
       if (was.length == patch.length) {
-        for (i <- 0 until was.length)
+        for (i <- 0 until was.length) {
+          val iNew = start + i
+          val ref = newBases(iNew)
+          if (newBases(iNew) != was(i)) 
+            println("Fix mismatch: loc=" + (locus+i) + " ref=" + ref + " was=" + was(i))
           newBases(start + i) = patch(i).toByte        
+        }
       } else {
     	val before = newBases.slice(0, start)
         val after = newBases.slice(start + was.length, newBases.length)
