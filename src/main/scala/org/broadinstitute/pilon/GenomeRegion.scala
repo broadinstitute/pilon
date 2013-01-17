@@ -141,7 +141,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       weightedMq(i) = pu.weightedMq.toByte
       clips(i) = pu.clips.toShort
 
-      if (n >= minDepth && r != 'N') {
+      if (n >= minDepth && r != 'N' && b != 'N') {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
         else if (bc.insertion) addChange(i, 'ins, pu)
@@ -274,8 +274,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
     }
-    if (nRef == gapSize && nPatch == 0) print(" ClosedGap")
-    else if (nPatch > 0 && nRef == 0) print (" OpenedGap")
+    if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
+    else if (gapSize == 0 && nPatch == 0) print(" BreakFix")
+    else if (nPatch > 0 && nRef == 0) print(" OpenedGap")
     println()
   }
     
