@@ -77,8 +77,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	    r.initializePileUps
 	    bamFiles foreach { r.processBam(_) }
 	    r.postProcess
-	    r.identifyIssues
-   	    if (Pilon.vcf) {
+	    if (Pilon.fixList.length > 0 || Pilon.vcf)
+	      r.identifyIssues
+	    if (Pilon.vcf) {
    	      println("Writing " + name + " VCF to " + vcf.file)
    	      r.writeVcf(vcf)
    	    }
