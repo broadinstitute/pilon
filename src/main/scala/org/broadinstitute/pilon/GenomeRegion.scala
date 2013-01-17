@@ -468,7 +468,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
 
-  def lowCoverage(i: Int) = coverage(i) < minDepth
+  def lowCoverage(i: Int) = coverage(i) < Pilon.minMinDepth
   def lowCoverageRegions = summaryRegions(lowCoverage)
   def highClipping(i: Int) = clips(i) >= coverage(i)
   def clippingRegions = summaryRegions(highClipping)
