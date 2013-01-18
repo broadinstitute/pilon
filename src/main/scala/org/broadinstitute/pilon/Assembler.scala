@@ -59,35 +59,48 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       if (pu.count < minCount) graph -= k
     if (Pilon.debug) print("->" + graph.size + "]")
   }
+  
+  def kmerPathString(kmers: List[String]) = {
+    val path = kmers.reverse
+    path.head + (path.tail map {_.last}).mkString("")
+  }
 
   def pathForward(kmers: List[String]): List[String] = {
     val kmer = kmers.head
     if (graph contains kmer) {
-      val seen0 = kmers contains kmer
+      val seen0 = kmers.tail count {_ == kmer}
       val pu = graph(kmer)
       val bc = pu.baseCall
       val prefix = kmer.substring(1)
       //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
-      if (pu.depth < Assembler.minDepth) { // TODO: fixed depth or computed?
+      //if (Pilon.debug) println("pFw:" + kmer + " " + pu) 
+      if (seen0 > 1) {
+    	  if (Pilon.debug) println("pFw:twice " + pu) 
+          kmers
+      } else if (pu.depth < Assembler.minDepth) { // TODO: fixed depth or computed?
         // not enough depth to move forward
+    	if (Pilon.debug) println("pFw: " + pu) 
         kmers
       } else if (bc.homo) {
         val newKmer = prefix + bc.base
-        // if we get to a kmer we've seen before, and there's only one way
-        // forward, we punt
-        if (seen0) kmers else pathForward(newKmer :: kmers)
+        pathForward(newKmer :: kmers)
       } else {
         val newKmer1 = prefix + bc.base
         val newKmer2 = prefix + bc.altBase
-        if (seen0) {
+        if (seen0 > 0) {
           // if we've been here before and we have two ways forward, let's see
           // what we've explored
           val seen1 = kmers contains newKmer1
           val seen2 = kmers contains newKmer2
+          if (Pilon.debug) println("pFw: " + seen0 + " " + seen1 + " " + seen2)
           if (seen1) {
             // we've already taken 1st branch, so try extending with 2nd 
             // if we haven't already
-            if (seen2) kmers else pathForward(newKmer2 :: kmers)
+            if (seen2) {
+       	      if (Pilon.debug) println("pFw:s1+2 " + pu) 
+              kmers
+            } else 
+              pathForward(newKmer2 :: kmers)
           } else if (seen2) {
             // likewise, if we've been through 2nd, try 1st if we haven't
             pathForward(newKmer1 :: kmers)
@@ -98,27 +111,30 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
           }
         } else {
           // we haven't been here, but two ways forward: try both and take longest extention
+       	  if (Pilon.debug) println("pFw:fork " + pu) 
           val path1 = pathForward(newKmer1 :: kmers)
           val path2 = pathForward(newKmer2 :: kmers)
           if (path1.length >= path2.length) path1 else path2
         }
       }
-    } else kmers	// we're off the graph, so punt!
+    } else {
+      if (Pilon.debug) println("pFw:off ")
+      kmers	// we're off the graph, so punt! 
+    }
   }
   
-  def newPathForward(startingKmer: String) : String = {
+  def pathForward(startingKmer: String) : String = {
     require(startingKmer.length == K, "starting kmer must be size K")
-    val path = pathForward(List(startingKmer)).reverse
-    val bases = path.head + ((path tail) map {_.last}).mkString
-    if (Pilon.debug) println("newPathForward: " + bases)
+    val path = pathForward(List(startingKmer))
+    val bases = kmerPathString(path)
+    if (Pilon.debug) println("pFw:" + bases.length + " " + bases)
     bases
   }
 
-  def pathForward(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {
+  def pathForwardOld(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {
     val startingKmer = anchor.slice(anchor.length - K, anchor.length)
     if (graph contains startingKmer) {
       if (kmersVisited contains startingKmer) {
-        if (Pilon.debug) println(anchor.length + ":" + anchor + " <loop>")
         anchor
       } else {
         val pu = graph(startingKmer)
@@ -127,21 +143,20 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         if (pu.depth >= Assembler.minDepth && // TODO: fixed depth or computed?
           (bc.homo || (Pilon.diploid && bc.majority))) {
           kmersVisited += startingKmer
-          pathForward(anchor + bc.base, kmersVisited)
+          pathForwardOld(anchor + bc.base, kmersVisited)
         } else {
-          if (Pilon.debug) println(anchor.length + ":" + anchor + " " + pu)
           anchor
         }
       }
     } else {
-      if (Pilon.debug) println(anchor.length + ":" + anchor + " <off graph>")
       anchor
     }
   }
 
   def pathReverse(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {
     val rcAnchor = Bases.reverseComplement(anchor)
-    val path = pathForward(rcAnchor, kmersVisited)
+    //val path = pathForward(rcAnchor, kmersVisited)
+    val path = pathForward(rcAnchor)
     Bases.reverseComplement(path)
   }
 
@@ -153,8 +168,9 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       val start = anchor.slice(offset, offset + K)
       val path = pathForward(start)
       if (Pilon.debug) {
-    	  val path2 = newPathForward(start)
-    	  println("newPathFoward:" + path2.length + " " + path2)
+    	  val pathOld = pathForwardOld(start)
+    	  if (pathOld.length != path.length)
+    	    println("pFw: new " + path.length + " old " + pathOld.length)
       } 
       val fullPath = anchor.slice(0, offset) + path
       // If we make it sufficiently beyond our starting point, call it good

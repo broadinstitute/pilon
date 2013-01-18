@@ -395,7 +395,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val sortedFixes = fixList.sortWith({ (x, y) => x._1 < y._1 })
     val fixedFixes = fixFixList(sortedFixes)
     for (fix <- fixedFixes) {
-      if (Pilon.debug) println("Fix " + fix)
+      //if (Pilon.debug) println("Fix " + fix)
       val (locus, was, patch) = fix
       val start = index(locus)
       if (was.length == patch.length) {
