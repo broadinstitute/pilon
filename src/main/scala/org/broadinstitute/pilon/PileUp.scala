@@ -8,7 +8,7 @@ class PileUp {
   //var mqSum = new BaseSum
   //var qmqSum = new BaseSum
   var mqSum = 0
-  var qmqSum = 0
+  var qSum = 0
   var physCov = 0
   var insertSize = 0
   var badPair = 0
@@ -34,11 +34,11 @@ class PileUp {
   def indexBase(i: Int) : Char = "ACGT"(i)
   
   def weightedMq = {
-    roundDiv(qmqSum, qualSum.sum)
+    roundDiv(qualSum.sum, qSum)
   }
- 
+
   def weightedQual = {
-    roundDiv(qmqSum, mqSum)
+    roundDiv(qualSum.sum, mqSum)
   }
   
   def meanQual = {
@@ -58,7 +58,7 @@ class PileUp {
     	baseCount.add(bi)
     	qualSum.add(bi, qual * mq1)
     	mqSum += mq1
-    	qmqSum += qual * mq1
+    	qSum += qual
     }
   }
 
@@ -70,7 +70,7 @@ class PileUp {
     	baseCount.remove(bi)
     	qualSum.remove(bi, qual * mq1)
     	mqSum -= mq1
-    	qmqSum -= qual * mq1
+    	qSum -= qual
     }
   }
   
