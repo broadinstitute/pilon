@@ -177,7 +177,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     }
 
     readCount += 1
-    require(valid && r.getReferenceIndex == r.getMateReferenceIndex, "valid pair with reference mismatch " + r)
+    if (valid)
+      require(r.getReferenceIndex == r.getMateReferenceIndex, "valid pair with reference mismatch " + r)
     physCovIncr(aStart, aEnd, insert, paired, valid)
   }
 
