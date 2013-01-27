@@ -28,12 +28,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   //var lowConfidence = new Array[Boolean](size)
 
   // sumary stats
-  val badCoverage = new Array[Short](size)
-  val clips = new Array[Short](size)
+  val badCoverage = new Array[Int](size)
+  val clips = new Array[Int](size)
   val copyNumber = new Array[Short](size)
-  val coverage = new Array[Short](size)
-  val insertSize = new Array[Short](size)
-  val physCoverage = new Array[Short](size)
+  val coverage = new Array[Int](size)
+  val insertSize = new Array[Int](size)
+  val physCoverage = new Array[Int](size)
   val weightedQual = new Array[Byte](size)
   val weightedMq = new Array[Byte](size)
 
@@ -444,7 +444,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     maxDeltaLoc
   }
 
-  def delta(i: Int, values: Array[Short], radius: Int = 100) = {
+  def delta(i: Int, values: Array[Int], radius: Int = 100) = {
     val left = values(0 max (i - radius))
     val right = values((size - 1) min (i + radius))
     val center = values(i)
@@ -456,7 +456,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def deltaPhysicalCoverage(i: Int, radius: Int = 1000) = delta(i, physCoverage, radius)
 
-  def dip(i: Int, values: Array[Short], radius: Int = 100) = {
+  def dip(i: Int, values: Array[Int], radius: Int = 100) = {
     val left = values(0 max (i - radius))
     val right = values((size - 1) min (i + radius))
     val center = values(i)
