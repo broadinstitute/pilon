@@ -133,10 +133,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val r = refBase(i + start)
       //val minDepth = meanCoverage * 25 / 100
       val loc = locus(i)
-      coverage(i) = n.toShort
-      badCoverage(i) = pu.badPair.toShort
-      physCoverage(i) = pu.physCov.toShort
-      insertSize(i) = pu.insertSize.toShort
+      coverage(i) = n.toInt
+      badCoverage(i) = pu.badPair
+      physCoverage(i) = pu.physCov
+      insertSize(i) = pu.insertSize
       weightedQual(i) = pu.weightedQual.toByte
       weightedMq(i) = pu.weightedMq.toByte
       clips(i) = pu.clips.toShort
