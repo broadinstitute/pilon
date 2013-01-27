@@ -89,7 +89,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val length = r.getReadLength
     val bases = r.getReadBases
     val paired = r.getReadPairedFlag
-    val valid = (!paired || r.getProperPairFlag)
+    val valid = ((r.getProperPairFlag && r.getReferenceIndex == r.getMateReferenceIndex) || !paired)
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
     val aEnd = r.getAlignmentEnd
@@ -177,8 +177,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     }
 
     readCount += 1
-    if (valid)
-      require(r.getReferenceIndex == r.getMateReferenceIndex, "valid pair with reference mismatch " + r)
     physCovIncr(aStart, aEnd, insert, paired, valid)
   }
 
