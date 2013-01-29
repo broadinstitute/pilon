@@ -99,6 +99,23 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         gc(index(locus)) = count.toByte
     }
   }
+  
+  def smooth(input: Array[Int], window: Int) = {
+    val result = new Array[Int](input.size)
+    var accum = 0
+    val half = window / 2
+    for (i <- 0 until input.size) {
+      accum += input(i)
+      if (i > window) {
+        accum -= input(i-window)
+        val smoothed = (accum + half) / window
+        result(i-half) = smoothed
+      }
+    }
+    for (i <- 0 until window - half) result(i) = result(window-half)
+    for (i <- result.size - half until result.size) result(i) = result(result.size-half-1)
+    result
+  }
 
   computeGc()
 
@@ -157,8 +174,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Pass 2: computed values
     val baseCov = coverageDist.median
+    val smoothCoverage = smooth(coverage, pileUpRegion.meanReadLength * 2)
     for (i <- 0 until size) {
-      val n = coverage(i)
+      val n = smoothCoverage(i)
       val cn = if (baseCov > 0) (n / baseCov).round.toShort else 0.toShort
       copyNumber(i) = cn
     }
@@ -225,6 +243,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     // fix SNPs prior to reassemblies...it helps!  We can't change coords here, though!
     fixIssues(snpFixList)
 
+    
+    val duplications = duplicationEvents
+    if (duplications.size > 0) {
+      for (d <- duplications) println("Possible duplication event: start " + d.start + " end " + d.stop + " size " + d.size)
+    }
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
       println("# Attempting to fill gaps")
       for (gap <- gaps) {
@@ -464,9 +487,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def nearEdge(r: Region, radius: Int = 100) = r.start - start < radius || stop - r.stop < radius
-  def deltaFraction(i: Int) = deltaCoverage(i) / coverageDist.mean
+  def deltaFraction(i: Int) = deltaCoverage(i) / coverageDist.median
   def dipCoverage(i: Int, radius: Int = 100) = dip(i, coverage, radius)
-  def dipFraction(i: Int) = dipCoverage(i) / coverageDist.mean
+  def dipFraction(i: Int) = dipCoverage(i) / coverageDist.median
 
   def ambiguousRegions = summaryRegions({ i: Int => ambiguous(i) }) filter { r => r.start != r.stop }
   def changeRegions = summaryRegions({ i: Int => changed(i) })
@@ -494,9 +517,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       deltaFraction(index(r.start)) >= 0.5 && deltaFraction(index(r.stop)) >= 0.5
     }
   }
+  
   def duplicationEvents = {
+    val smoothCoverage = smooth(coverage, 1000)
+    val median = coverageDist.median
+    val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 1000) 
+    //highCopyNumberRegions filter {_.size > 10000}
+    regions filter {_.size > 10000}
     
-  }
+    }
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
     var regions = List[Region]()

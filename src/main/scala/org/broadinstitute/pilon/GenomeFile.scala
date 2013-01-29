@@ -77,8 +77,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	    r.initializePileUps
 	    bamFiles foreach { r.processBam(_) }
 	    r.postProcess
-	    if (Pilon.fixList.length > 0 || Pilon.vcf)
+	    if (Pilon.fixList.length > 0 || Pilon.vcf) {
+	      println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
 	      r.identifyIssues
+	    }
 	    if (Pilon.vcf) {
    	      println("Writing " + name + " VCF to " + vcf.file)
    	      r.writeVcf(vcf)
@@ -86,7 +88,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	    r.finalizePileUps
 	  } 
 	  if (Pilon.fixList.length > 0) {
-	    println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
 		val fixedRegions = reg._2 map { _.bases }
         val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""		
 	    println("Writing updated " + name + " to " + fastaFile)
