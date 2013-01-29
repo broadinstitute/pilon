@@ -23,6 +23,7 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     badCoverageTrack("BadCoverage.wig")
     badCoverageTrackSD("BadCoverageSD.wig")
     deltaCoverageTrack("DeltaCoverage.wig")
+    fragCoverageTrack("FragCoverage.wig")
     physicalCoverageTrack("PhysicalCoverage.wig")
     physicalCoverageTrackSD("PhysicalCoverageSD.wig")
     gcTrack("GC.wig")
@@ -52,6 +53,11 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   def coverageTrack(file: String) = {
     makeTrack(file, "Coverage",
         { (r: GenomeRegion, i: Int) => r.coverage(i) })
+  }
+
+  def fragCoverageTrack(file: String) = {
+    makeTrack(file, "Frag Coverage",
+        { (r: GenomeRegion, i: Int) => r.fragCoverage(i) })
   }
 
   def coverageTrackSD(file: String) = {

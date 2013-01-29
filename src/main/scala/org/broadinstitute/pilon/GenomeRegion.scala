@@ -34,6 +34,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   val coverage = new Array[Int](size)
   val insertSize = new Array[Int](size)
   val physCoverage = new Array[Int](size)
+  val fragCoverage = new Array[Int](size)
   val weightedQual = new Array[Byte](size)
   val weightedMq = new Array[Byte](size)
 
@@ -49,6 +50,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   lazy val physCoverageDist = new NormalDistribution(physCoverage, 2)
   lazy val coverageDist = new NormalDistribution(coverage, 2)
+  lazy val fragCoverageDist = new NormalDistribution(fragCoverage, 2)
   lazy val badCoverageDist = new NormalDistribution(badCoverage, 2)
   lazy val insertSizeDist = new NormalDistribution(insertSize, 2)
   lazy val weightedMqDist = new NormalDistribution(weightedMq, 2)
@@ -130,6 +132,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     println("Total Reads: " + nReads + ", Coverage: " + meanCoverage + ", minDepth: " + minDepth)
+    println("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
 
     if (nReads == 0) {
       return
@@ -173,10 +176,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     // Pass 2: computed values
-    val baseCov = coverageDist.median
-    val smoothCoverage = smooth(coverage, pileUpRegion.meanReadLength * 2)
+    val baseCov = fragCoverageDist.median
+    val smoothCov = smooth(fragCoverage, 200)
     for (i <- 0 until size) {
-      val n = smoothCoverage(i)
+      val n = smoothCov(i)
       val cn = if (baseCov > 0) (n / baseCov).round.toShort else 0.toShort
       copyNumber(i) = cn
     }
@@ -185,8 +188,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def processBam(bam: BamFile) = {
     print(bam.bamType.name + " " + bam.bamFile)
-    //val br = new BamRegion(bam, this)
+    // This is a real kludge...
+    val covBefore = new Array[Int](size)
+    if (bam.bamType != 'jumps)
+      for (i <- 0 until size) 
+        covBefore(i) = pileUpRegion.pileups(i).depth.toInt
     bam.process(this)
+    if (bam.bamType != 'jumps)
+      for (i <- 0 until size) 
+        fragCoverage(i) += pileUpRegion.pileups(i).depth.toInt - covBefore(i)
     bams ::= bam
   }
 
