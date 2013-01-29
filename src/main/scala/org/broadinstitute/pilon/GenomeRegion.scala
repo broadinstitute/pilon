@@ -529,13 +529,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
   
   def duplicationEvents = {
-    val smoothCoverage = smooth(coverage, 1000)
-    val median = coverageDist.median
-    val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 1000) 
-    //highCopyNumberRegions filter {_.size > 10000}
+    val smoothCoverage = smooth(fragCoverage, 1000)
+    val median = fragCoverageDist.median
+    //val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 1000) 
+    val regions = summaryRegions({ i: Int => smoothCoverage(i)/median > 1 }, 1000) 
     regions filter {_.size > 10000}
     
-    }
+  }
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
     var regions = List[Region]()
