@@ -132,7 +132,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     println("Total Reads: " + nReads + ", Coverage: " + meanCoverage + ", minDepth: " + minDepth)
-    println("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
+    //println("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
 
     if (nReads == 0) {
       return
@@ -256,7 +256,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     
     val duplications = duplicationEvents
     if (duplications.size > 0) {
-      for (d <- duplications) println("Possible duplication event: start " + d.start + " end " + d.stop + " size " + d.size)
+      for (d <- duplications) println("Large collapsed region: start " + d.start + " end " + d.stop + " size " + d.size)
     }
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
       println("# Attempting to fill gaps")
@@ -529,10 +529,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
   
   def duplicationEvents = {
-    val smoothCoverage = smooth(fragCoverage, 1000)
-    val median = fragCoverageDist.median
-    //val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 1000) 
-    val regions = summaryRegions({ i: Int => smoothCoverage(i)/median > 1 }, 1000) 
+    //val smoothCoverage = smooth(fragCoverage, 1000)
+    //val median = fragCoverageDist.median
+    //val regions = summaryRegions({ i: Int => smoothCoverage(i)/median > 1.5 }, 1000) 
+    val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 2000) 
     regions filter {_.size > 10000}
     
   }
