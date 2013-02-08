@@ -29,6 +29,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##INFO=<ID=QD,Number=1,Type=Integer,Description=\"Variant confidence/quality by depth\">")
     writer.println("##INFO=<ID=BC,Number=4,Type=Integer,Description=\"Count of As, Cs, Gs, Ts at locus\">")
     writer.println("##INFO=<ID=QP,Number=4,Type=Integer,Description=\"Percentage of As, Cs, Gs, Ts weighted by Q & MQ at locus\">")
+    writer.println("##INFO=<ID=IC,Number=1,Type=Integer,Description=\"Number of reads with insertion here\">")
     writer.println("##INFO=<ID=DC,Number=1,Type=Integer,Description=\"Number of reads with deletion here\">")
     writer.println("##INFO=<ID=XC,Number=1,Type=Integer,Description=\"Number of reads clipped here\">")
     writer.println("##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Allele count in genotypes, for each ALT allele, in the same order as listed\">")
@@ -106,6 +107,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     info += ";BC=" + pileUp.baseCount
     info += ";QP=" + pileUp.qualSum.toStringPct
     info += ";PC=" + pileUp.physCov
+    info += ";IC=" + pileUp.insertions
     info += ";DC=" + pileUp.deletions
     info += ";XC=" + pileUp.clips
     info += ";AC=" + ac
