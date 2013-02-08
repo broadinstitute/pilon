@@ -267,7 +267,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           val old = if (ref != "") ref else "."
           val now = if (patch != "") patch else "."
           //println(name + " " + start + " fix " + ref.size + " " + old + " " + patch.size + " " + now)
-          printFix(start, ref, patch, gap.size)
+          printFix(gap, start, ref, patch, gap.size)
           bigFixList ::= (start, ref, patch)
         }
       }
@@ -278,15 +278,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if ((Pilon.fixList contains 'local) && breaks.length > 0) {
       println("# Attempting to fix local continuity breaks")
       //val breaks = possibleBreaks
-
+      
       for (break <- filteredBreaks) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fixBreak(break)
+     	printFix(break, start, ref, patch, 0)
         if (start > 0) {
           val old = if (ref != "") ref else "."
           val now = if (patch != "") patch else "."
           if (ref.length + patch.length >= 20) {
-            printFix(start, ref, patch, 0)
         	bigFixList ::= (start, ref, patch)
           }
         }
@@ -295,21 +295,25 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
   
-  def printFix(loc: Int, ref: String, patch: String, gapSize: Int) = {
+  def printFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int) = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
     val nPatch = countNs(patch)
     val nonGapRef = ref.length - nRef
     val nonGapPatch = patch.length - nPatch
+    val locStr = if (loc > 0) loc.toString else reg.start.toString + "-" + reg.stop.toString
     
-    print("fix: " + name + " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
+    print("fix: " + name + " " + locStr + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
     }
-    if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
+    if (loc == 0) print(" NoSolution")
+    else if (gapSize == 0 && ref.length == 0 && patch.length == 0) print(" NoChange")
+    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
     else if (gapSize == 0 && nPatch == 0) print(" BreakFix")
     else if (nPatch > 0 && nRef == 0) print(" OpenedGap")
+    else print(" NoClue")
     println()
   }
     

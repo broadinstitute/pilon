@@ -15,7 +15,7 @@ class GapFiller(val region: GenomeRegion) {
   val noSolution = (0, "", "")
 
   def fixBreak(break: Region) = {
-    if (Pilon.verbose) println("# Fix break " + break)
+    if (Pilon.verbose) println("#fixBreak: " + break)
     val reads = if (break.size < 100) recruitLocalReads(break) else recruitReads(break)
     //val reads = recruitReads(break)
     var (start, right, left, stop) = assembleIntoBreak(break, reads)
@@ -125,7 +125,7 @@ class GapFiller(val region: GenomeRegion) {
     	
     	if (solution._2.length == 0 && solution._3.length == 0) {
     	  if (Pilon.debug) println("...no change")
-    	  noSolution
+    	  solution
     	} else {
     	  if (Pilon.debug)
     	    println("...start=" + start + " ref=(" + solution._2.length + ")" + solution._2 
