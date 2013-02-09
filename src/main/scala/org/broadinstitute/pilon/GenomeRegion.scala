@@ -167,7 +167,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         else if (bc.insertion) addChange(i, 'ins, pu)
         else if (bc.deletion) {
           addChange(i, 'del, pu)
-          for (j <- 1 until pu.deletionCall.length) deleted(i + j) = true
+          for (j <- 1 until pu.deletionCall.length) {
+            deleted(i + j) = true
+            pileUpRegion(i + j).deletions += pu.deletions
+          }
         } else if (b != r) {
           if (homo) addChange(i, 'snp, pu)
           else addChange(i, 'amb, pu)
@@ -301,9 +304,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nPatch = countNs(patch)
     val nonGapRef = ref.length - nRef
     val nonGapPatch = patch.length - nPatch
-    val locStr = if (loc > 0) loc.toString else reg.start.toString + "-" + reg.stop.toString
-    
-    print("fix: " + name + " " + locStr + " -" + nonGapRef + " +" + nonGapPatch)
+    val regStr = reg.start.toString + "(" + reg.size.toString + ")"
+    val regType = if (gapSize > 0) "gap" else "break"
+    print("fix " + regType + ": " + name + " " + regStr +
+        " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
@@ -513,7 +517,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def lowCoverage(i: Int) = coverage(i) < Pilon.minMinDepth
   def lowCoverageRegions = summaryRegions(lowCoverage)
-  def highClipping(i: Int) = clips(i) >= coverage(i)
+  def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && clips(i) >= coverage(i) / 2
   def clippingRegions = summaryRegions(highClipping)
 
   def breakp(i: Int) = highClipping(i) || lowCoverage(i) // dipFraction(i) >= 1.0

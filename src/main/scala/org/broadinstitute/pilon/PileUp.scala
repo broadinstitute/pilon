@@ -139,8 +139,9 @@ class PileUp {
   def insertCall = indelCall(insertionList)
   def deletionCall = indelCall(deletionList)
   
-  def indelCall(indelList: List[Array[Byte]]) = {
+  def indelCall(indelList: List[Array[Byte]]): String = {
     val map = Map.empty[String, Int]
+    if (indelList.isEmpty) return ""
     for (indel <- indelList) {
       val indelStr = indel.toSeq map {_.toChar} mkString  ""
       map(indelStr) = map.getOrElse(indelStr, 0) + 1
