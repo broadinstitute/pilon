@@ -518,7 +518,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def lowCoverage(i: Int) = coverage(i) < Pilon.minMinDepth
   def lowCoverageRegions = summaryRegions(lowCoverage)
-  def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 30
+  def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 33
   def clippingRegions = summaryRegions(highClipping)
 
   def breakp(i: Int) = highClipping(i) || lowCoverage(i) // dipFraction(i) >= 1.0

@@ -6,8 +6,6 @@ import net.sf.samtools._
 
 
 object GapFiller {
-  val K = 47
-  val minDepth = 5
   val minExtend = 20
 }
 

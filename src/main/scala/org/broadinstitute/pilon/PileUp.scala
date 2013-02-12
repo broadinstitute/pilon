@@ -114,8 +114,8 @@ class PileUp {
     val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
     val homo = homoScore >= heteroScore
     val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0 
-    val insertion = insPct >= 50 && insertCall != ""
-    val deletion = delPct >= 50 && deletionCall != ""
+    val insertion = depth >= Pilon.minMinDepth && insPct >= 33 && insertCall != ""
+    val deletion = depth >= Pilon.minMinDepth && delPct >= 33 && deletionCall != ""
     val indel = insertion || deletion
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10
