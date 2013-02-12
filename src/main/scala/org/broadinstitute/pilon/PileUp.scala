@@ -1,6 +1,7 @@
 package org.broadinstitute.pilon
 
 import scala.collection.mutable.Map
+import Utils._
 
 class PileUp {
   var baseCount = new BaseSum
@@ -86,15 +87,16 @@ class PileUp {
     deletions += 1 
   }
   
-  def roundDiv(n: Long, d: Long) = if (d > 0) (n + d/2) / d else 0
-  def pct(n: Long, d: Long) = roundDiv(100 * n, d)
+  //def roundDiv(n: Long, d: Long) = if (d > 0) (n + d/2) / d else 0
+  //def pct(n: Long, d: Long) = roundDiv(100 * n, d)
   def insPct = pct(insertions, count)
   def delPct = pct(deletions, count + deletions)
   def indelPct = insPct + delPct
   def qualPct = {
     val (base, max, sum) = qualSum.maxBase
     pct(max, sum)
-  }
+  }  
+  def clipPct = pct(clips, depth)
   
   class BaseCall {
     val n = count

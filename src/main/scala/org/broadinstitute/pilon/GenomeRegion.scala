@@ -2,6 +2,7 @@ package org.broadinstitute.pilon
 
 import collection.mutable.Map
 import net.sf.picard.reference._
+import Utils._
 
 object GenomeRegion {
   def baseString(b: Array[Byte]) = b map { _.toChar } mkString ("")
@@ -165,7 +166,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
         else if (bc.insertion) addChange(i, 'ins, pu)
-        else if (bc.deletion) {
+        else if ((!deleted(i)) && bc.deletion) {
           addChange(i, 'del, pu)
           for (j <- 1 until pu.deletionCall.length) {
             deleted(i + j) = true
@@ -517,7 +518,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def lowCoverage(i: Int) = coverage(i) < Pilon.minMinDepth
   def lowCoverageRegions = summaryRegions(lowCoverage)
-  def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && clips(i) >= coverage(i) / 2
+  def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 30
   def clippingRegions = summaryRegions(highClipping)
 
   def breakp(i: Int) = highClipping(i) || lowCoverage(i) // dipFraction(i) >= 1.0

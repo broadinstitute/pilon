@@ -65,9 +65,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     path.head + (path.tail map {_.last}).mkString("")
   }
 
-  def pathForward(kmers: List[String]): List[String] = {
+  def pathForward(kmers: List[String], target: String): List[String] = {
     val kmer = kmers.head
-    if (graph contains kmer) {
+    if (target.indexOf(kmer) >= 0) {
+      kmers
+    } else if (graph contains kmer) {
       val seen0 = kmers.tail count {_ == kmer}
       val pu = graph(kmer)
       val bc = pu.baseCall
@@ -83,7 +85,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         kmers
       } else if (bc.homo) {
         val newKmer = prefix + bc.base
-        pathForward(newKmer :: kmers)
+        pathForward(newKmer :: kmers, target)
       } else {
         val newKmer1 = prefix + bc.base
         val newKmer2 = prefix + bc.altBase
@@ -100,10 +102,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
        	      if (Pilon.debug) println("pFw:s1+2 " + pu) 
               kmers
             } else 
-              pathForward(newKmer2 :: kmers)
+              pathForward(newKmer2 :: kmers, target)
           } else if (seen2) {
             // likewise, if we've been through 2nd, try 1st if we haven't
-            pathForward(newKmer1 :: kmers)
+            pathForward(newKmer1 :: kmers, target)
           } else {
             // shouldn't happen; if we've seen this kmer, we should have moved forward
             assert(false, "shouldn't happen")
@@ -112,9 +114,14 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         } else {
           // we haven't been here, but two ways forward: try both and take longest extention
        	  if (Pilon.debug) println("pFw:fork " + pu) 
-          val path1 = pathForward(newKmer1 :: kmers)
-          val path2 = pathForward(newKmer2 :: kmers)
-          if (path1.length >= path2.length) path1 else path2
+          val path1 = pathForward(newKmer1 :: kmers, target)
+          val path2 = pathForward(newKmer2 :: kmers, target)
+          val hit1 = target.indexOf(path1.head) >= 0
+          val hit2 = target.indexOf(path2.head) >= 0
+          if (hit1 && !hit2) path1 
+          else if (hit2 && !hit1) path2
+          else if (path1.length >= path2.length) path1
+          else path2
         }
       }
     } else {
@@ -123,9 +130,9 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     }
   }
   
-  def pathForward(startingKmer: String) : String = {
+  def pathForward(startingKmer: String, target: String = "") : String = {
     require(startingKmer.length == K, "starting kmer must be size K")
-    val path = pathForward(List(startingKmer))
+    val path = pathForward(List(startingKmer), target)
     val bases = kmerPathString(path)
     if (Pilon.debug) println("pFw:" + bases.length + " " + bases)
     bases
@@ -153,20 +160,20 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     }
   }
 
-  def pathReverse(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {
+  def pathReverse(anchor: String, target: String = ""): String = {
     val rcAnchor = Bases.reverseComplement(anchor)
     //val path = pathForward(rcAnchor, kmersVisited)
     val path = pathForward(rcAnchor)
     Bases.reverseComplement(path)
   }
 
-  def tryForward(anchor: String): String = {
+  def tryForward(anchor: String, target: String = ""): String = {
     var longest = ""
     var longestFull = ""
     for (offset <- 0 until (anchor.length, K)) {
       if (Pilon.debug) print("tryForward o=" + offset + " ")
       val start = anchor.slice(offset, offset + K)
-      val path = pathForward(start)
+      val path = pathForward(start, target)
       if (Pilon.debug) {
     	  val pathOld = pathForwardOld(start)
     	  if (pathOld.length != path.length)
@@ -185,11 +192,18 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     longestFull
   }
 
-  def tryReverse(anchor: String) = {
+  def tryReverse(anchor: String, target: String = "") = {
     if (Pilon.debug) print("tryReverse ")
     val rcAnchor = Bases.reverseComplement(anchor)
-    val path = tryForward(rcAnchor)
+    val rcTarget = Bases.reverseComplement(target)
+    val path = tryForward(rcAnchor, rcTarget)
     Bases.reverseComplement(path)
+  }
+  
+  def bridge(left: String, right: String) = {
+    val pathForward = tryForward(left, right.substring(right.length - K))
+    val pathReverse = tryReverse(right, left.substring(0, K))
+    (pathForward, pathReverse)
   }
 
   def novel: List[String] = {
