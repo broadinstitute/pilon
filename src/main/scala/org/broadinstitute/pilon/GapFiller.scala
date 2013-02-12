@@ -75,8 +75,7 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
     if (Pilon.fixList contains 'novelbreaks) assembler.novel
 
-    val k = assembler.K
-    val startOffset = 3 * k
+    val startOffset = breakRadius
     var start = (break.start - startOffset) max region.start
     var stop = (break.stop + 1 + startOffset) min region.stop
     val left = region.subString(start, break.start - start)
@@ -101,7 +100,7 @@ class GapFiller(val region: GenomeRegion) {
     */
     (start, forward, reverse, stop)
   }
-  
+
 
   
   def joinBreak(startArg: Int, forward: String, reverse: String, stopArg: Int) = {
@@ -171,6 +170,13 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   
+  def breakRadius = {
+    val minRadius = 3 * Assembler.K
+    val inserts = region.bamsOfType('frags) map {bam => bam.insertSizeMean /*+ bam.insertSizeSigma*/}
+    val insertMean = if (inserts.length > 0) (inserts.sum / inserts.length).round.toInt else 0
+    minRadius max insertMean
+  }
+    
   type MateMap = Map[SAMRecord, SAMRecord]
 
   
@@ -199,7 +205,9 @@ class GapFiller(val region: GenomeRegion) {
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val mm2 = mm filter { pair =>  
       val (r1, r2) = pair
-      (!r1.getReadUnmappedFlag) && r2.getReadUnmappedFlag
+      val r1mapped = (!r1.getReadUnmappedFlag) &&  r2.getReadUnmappedFlag
+      val r1dir = (r1.getAlignmentStart < midpoint) ^ r1.getReadNegativeStrandFlag
+      r1mapped && r1dir
     }
     if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)

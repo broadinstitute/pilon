@@ -67,7 +67,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
 
   def pathForward(kmers: List[String], target: String): List[String] = {
     val kmer = kmers.head
-    if (target.indexOf(kmer) >= 0) {
+    if (target.indexOf(kmer) >= 99999999) {
       kmers
     } else if (graph contains kmer) {
       val seen0 = kmers.tail count {_ == kmer}
@@ -170,7 +170,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   def tryForward(anchor: String, target: String = ""): String = {
     var longest = ""
     var longestFull = ""
-    for (offset <- 0 until (anchor.length, K)) {
+    for (offset <- List(0, K, 2*K)) {
       if (Pilon.debug) print("tryForward o=" + offset + " ")
       val start = anchor.slice(offset, offset + K)
       val path = pathForward(start, target)
