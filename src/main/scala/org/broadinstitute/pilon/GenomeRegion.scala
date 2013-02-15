@@ -444,7 +444,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         for (i <- 0 until was.length) {
           val iNew = start + i
           val ref = newBases(iNew).toChar.toUpper
-          if (newBases(iNew) != was(i)) 
+          if (ref != was(i)) 
             println("Fix mismatch: loc=" + (locus+i) + " ref=" + ref + " was=" + was(i))
           newBases(start + i) = patch(i).toByte        
         }
