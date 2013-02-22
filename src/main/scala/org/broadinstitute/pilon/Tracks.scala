@@ -32,7 +32,8 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     pctBadTrack("PctBad.wig")
     weightedQualTrack("WeightedQual.wig")
     weightedMqTrack("WeightedMq.wig")
-    clippedAlignmentTrack("ClippedAlignments.wig")    
+    clippedAlignmentTrack("ClippedAlignments.wig")
+    //kmerCopyNumberTrack("KmerCopyNumber.wig")
   }
   
   def changesTrack(file: String) = {
@@ -48,6 +49,11 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   def copyNumberTrack(file: String) = {
     makeTrack(file, "Copy Number", 
         { (r: GenomeRegion, i: Int) => r.copyNumber(i) - 1 })
+  }
+  
+  def kmerCopyNumberTrack(file: String) = {
+    makeTrack(file, "Kmer Copy Number", 
+        { (r: GenomeRegion, i: Int) => (r.kmerCopyNumber(i) - 1) max 0})
   }
   
   def coverageTrack(file: String) = {

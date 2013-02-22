@@ -46,7 +46,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     else changed(loc) = true
     changeMap += (loc -> (kind, pu))
   }
-
+  
   def changeList = changeMap.keys.toList.sorted
 
   lazy val physCoverageDist = new NormalDistribution(physCoverage, 2)
@@ -57,6 +57,24 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   lazy val weightedMqDist = new NormalDistribution(weightedMq, 2)
 
   val gc = new Array[Byte](size)
+
+  def kmerCopyNumber = {
+    // really lame quick & dirty implementation, doesn't do rc, 
+    // only for this contig, etc
+    println("kcn start")
+    val seq = (bases map {_.toChar toUpper}) mkString("")
+	val k = Assembler.K
+	val halfK = k / 2
+    val kcn = new Array[Int](size)
+    var kc = Map[String, Int]()
+    val kmers = seq.sliding(k).toArray
+    for (kmer <- kmers)
+      kc(kmer) = kc.getOrElse(kmer, 0) + 1
+    for (i <- 0 until kmers.size)
+      kcn(i + halfK) = kc(kmers(i))
+    println("kcn end")
+    kcn
+  }
 
   //val bams = Map.empty[Symbol, BamRegion]
   var bams = List[BamFile]()
@@ -180,7 +198,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     // Pass 2: computed values
-    val baseCov = fragCoverageDist.median
+    val baseCov = fragCoverageDist.mean
+    println("Frag cov mean=" + baseCov + ", median=" + fragCoverageDist.median)
     val smoothCov = smooth(fragCoverage, 200)
     for (i <- 0 until size) {
       val n = smoothCov(i)
@@ -268,11 +287,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fillGap(gap)
         if (start > 0) {
-          val old = if (ref != "") ref else "."
-          val now = if (patch != "") patch else "."
-          //println(name + " " + start + " fix " + ref.size + " " + old + " " + patch.size + " " + now)
-          printFix(gap, start, ref, patch, gap.size)
           bigFixList ::= (start, ref, patch)
+          printFix(gap, start, ref, patch, gap.size)
         }
       }
     }
@@ -286,14 +302,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       for (break <- filteredBreaks) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fixBreak(break)
+        if (start > 0 && ref.length + patch.length >= 20) {
+         	bigFixList ::= (start, ref, patch)
+        } else print ("# ")
      	printFix(break, start, ref, patch, 0)
-        if (start > 0) {
-          val old = if (ref != "") ref else "."
-          val now = if (patch != "") patch else "."
-          if (ref.length + patch.length >= 20) {
-        	bigFixList ::= (start, ref, patch)
-          }
-        }
       }
     }
     fixIssues(smallFixList ++ bigFixList)
