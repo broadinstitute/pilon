@@ -227,7 +227,7 @@ class GapFiller(val region: GenomeRegion) {
     reads
   }
   
-  def mateMap(reads: List[SAMRecord]) = {
+  def mateMap(reads: List[SAMRecord], digDeep: Boolean = false) = {
     val readMap = Map.empty[String, SAMRecord]
     val mm: MateMap = Map.empty
     for (r <- reads) {
@@ -236,10 +236,14 @@ class GapFiller(val region: GenomeRegion) {
         val mate = readMap(readName)
         mm += r -> mate
         mm += mate -> r
-      }
-      readMap += readName -> r
+      } else readMap += readName -> r
     }
-    
+    if (digDeep) {
+      for ((name, read) <- readMap)
+        if (!(mm contains read)) mm += read -> null
+    }
+    if (Pilon.debug) println("mm: " + mm.size/2 + "/" + readMap.size + 
+        " " + Utils.pct(mm.size/2, readMap.size) + "%")
     mm
   }
 

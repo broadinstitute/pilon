@@ -68,13 +68,13 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
     
-    for (r <- reads) {
-    	val loc = r.getAlignmentStart
+    for (read <- reads) {
+    	val loc = read.getAlignmentStart
     	if (Pilon.verbose && printInterval > 0 && loc > lastLoc + printInterval) {
     	  lastLoc = printInterval * (loc / printInterval)
     	  print("..." + lastLoc)
     	}
-    	val insertSize = pileUpRegion.addRead(r, region.contigBases)
+    	val insertSize = pileUpRegion.addRead(read, region.contigBases)
     	if (insertSize > huge) {
     		if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
     	} 
