@@ -279,7 +279,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     
     val duplications = duplicationEvents
     if (duplications.size > 0) {
-      for (d <- duplications) println("Large collapsed region: start " + d.start + " end " + d.stop + " size " + d.size)
+      for (d <- duplications) println("Large collapsed region: start " + d + " size " + d.size)
     }
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
       println("# Attempting to fill gaps")
