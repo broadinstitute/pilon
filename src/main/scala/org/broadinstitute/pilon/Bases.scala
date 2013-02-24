@@ -1,6 +1,7 @@
 package org.broadinstitute.pilon
 
 object Bases {
+  // values chosen such that x^3 is the complementary base
   val A = 0
   val C = 1
   val G = 2

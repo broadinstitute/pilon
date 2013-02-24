@@ -52,7 +52,19 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     r.close
     reads
   }
+  
+  def loadReads = {
+    val r = reader
+    println("reading " + path)
+    val reads = r.iterator.toArray
+    println(reads.size + " reads")
+    r.close
+    val mm = mateMap(reads)
+    reads
+  }
 
+  val allReads = if (Pilon.debug) loadReads else null
+  
   def process(region: GenomeRegion, printInterval: Int = 100000) : Unit = {
 
 	val pileUpRegion = region.pileUpRegion
@@ -80,11 +92,15 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     		if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
     	} 
     	if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
+    	
+    	// if it's not a proper pair but both ends are mapped, it's a stray mate
+    	if (!(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
+    	  strayMateMap.addRead(read)
     }
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
-    
+    strayMateMap.printDebug
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
   }
   
@@ -114,29 +130,34 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     if (insertSizeCount >= 1000) (insertSizeMean + 3 * insertSizeSigma).round.toInt
     else BamFile.maxInsertSizes(bamType)    
   }
-
-  type MateMap = Map[SAMRecord, SAMRecord]
   
-  def mateMap(reads: List[SAMRecord], digDeep: Boolean = false) = {
-    val readMap = Map.empty[String, SAMRecord]
-    val mm: MateMap = Map.empty
-    for (r <- reads) {
-      val readName = r.getReadName
+  class MateMap(reads: Seq[SAMRecord] = Nil) {
+    val readMap = Map[String, SAMRecord]()
+    val mateMap = Map[SAMRecord, SAMRecord]()
+    var n = 0
+    
+    addReads(reads)
+    
+    def addReads(reads: Seq[SAMRecord]) = for (r <- reads) addRead(r)
+    
+    def addRead(read: SAMRecord) = {
+      val readName = read.getReadName
       if (readMap contains readName) {
         val mate = readMap(readName)
-        mm += r -> mate
-        mm += mate -> r
-      } else readMap += readName -> r
+        readMap -= readName
+        mateMap += read -> mate
+        mateMap += mate -> read
+      } else readMap += readName -> read
+      n += 1
     }
-    if (digDeep) {
-      for ((name, read) <- readMap)
-        if (!(mm contains read)) mm += read -> null
-    }
-    if (Pilon.debug) println("mm: " + mm.size/2 + "/" + readMap.size + 
-        " " + Utils.pct(mm.size/2, readMap.size) + "%")
-    mm
+    
+    def printDebug = println("mm: " + n + " " + readMap.size + "/" + mateMap.size/2)
   }
-
+  
+  val strayMateMap = new MateMap()
+  
+  def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
+  
   def readsInInterval(name: String, start: Int, stop: Int) = {
     val r = reader
     val reads = r.queryOverlapping(name, start, stop).toList
