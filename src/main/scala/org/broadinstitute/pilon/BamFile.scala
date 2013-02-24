@@ -1,5 +1,6 @@
 package org.broadinstitute.pilon
 
+import collection.mutable.Map
 import java.io.File
 import scala.collection.JavaConversions._
 import net.sf.samtools._
@@ -112,6 +113,59 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     """Returns reasonable max insert size for this bam, either computed or defaulted"""
     if (insertSizeCount >= 1000) (insertSizeMean + 3 * insertSizeSigma).round.toInt
     else BamFile.maxInsertSizes(bamType)    
+  }
+
+  type MateMap = Map[SAMRecord, SAMRecord]
+  
+  def mateMap(reads: List[SAMRecord], digDeep: Boolean = false) = {
+    val readMap = Map.empty[String, SAMRecord]
+    val mm: MateMap = Map.empty
+    for (r <- reads) {
+      val readName = r.getReadName
+      if (readMap contains readName) {
+        val mate = readMap(readName)
+        mm += r -> mate
+        mm += mate -> r
+      } else readMap += readName -> r
+    }
+    if (digDeep) {
+      for ((name, read) <- readMap)
+        if (!(mm contains read)) mm += read -> null
+    }
+    if (Pilon.debug) println("mm: " + mm.size/2 + "/" + readMap.size + 
+        " " + Utils.pct(mm.size/2, readMap.size) + "%")
+    mm
+  }
+
+  def readsInInterval(name: String, start: Int, stop: Int) = {
+    val r = reader
+    val reads = r.queryOverlapping(name, start, stop).toList
+    r.close
+    reads
+  }
+
+  def recruitReads(region: Region) = {
+    val flank = maxInsertSize
+    readsInInterval(region.name, region.start - flank, region.stop + flank) 
+  }
+  
+  def recruitBadMates(region: Region) = {
+    val midpoint = region.midpoint
+    val mm = mateMap(recruitReads(region))
+    
+    // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
+    val mm2 = mm filter { pair =>  
+      val (r1, r2) = pair
+      val r1mapped = (!r1.getReadUnmappedFlag) &&  r2.getReadUnmappedFlag
+      val rc = r1.getReadNegativeStrandFlag
+      val before = r1.getAlignmentStart < midpoint
+      val after = r1.getAlignmentEnd > midpoint
+      val r1dir = (before && !rc) || (after && rc)
+      r1mapped && r1dir
+    }
+    if (Pilon.debug) 
+      println("# Filtered jumps " + mm2.size + "/" + mm.size)
+    mm2.values.toList
   }
   
   override def toString() = path

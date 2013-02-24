@@ -177,80 +177,34 @@ class GapFiller(val region: GenomeRegion) {
     minRadius max insertMean
   }
     
-  type MateMap = Map[SAMRecord, SAMRecord]
-
-  
-  
   def recruitReadsOfType(reg: Region, bamType: Symbol) = {
     val bams = region.bamsOfType(bamType)
     var reads = List[SAMRecord]()
     for (b <- bams) {
-      val flank = b.maxInsertSize
-      reads ++= readsInInterval(b, region.name, reg.start - flank, reg.stop + flank)
+      reads ++= b.recruitReads(reg)
     }
     if (Pilon.debug) 
       println("# Recruiting " + bamType.name + " reads: count=" + reads.length)
     reads
   }
 
-  def mateMapOfType(reg: Region, bamType: Symbol) = mateMap(recruitReadsOfType(reg, bamType))
-  
-  def recruitFrags(reg: Region) = mateMapOfType(reg, 'frags).values.toList
+  //def recruitFrags(reg: Region) = mateMapOfType(reg, 'frags).values.toList
+  def recruitFrags(reg: Region) = recruitReadsOfType(reg, 'frags)
 
   def recruitJumps(reg: Region) = {
-    val midpoint = region.midpoint
-
-    val mm = mateMapOfType(reg, 'jumps)
-    
-    // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
-    val mm2 = mm filter { pair =>  
-      val (r1, r2) = pair
-      val r1mapped = (!r1.getReadUnmappedFlag) &&  r2.getReadUnmappedFlag
-      val r1dir = (r1.getAlignmentStart < midpoint) ^ r1.getReadNegativeStrandFlag
-      r1mapped && r1dir
+    var reads = List[SAMRecord]()
+    for (b <- region.bamsOfType('jumps)) {
+      reads ++= b.recruitBadMates(reg)
     }
     if (Pilon.debug) 
-      println("# Filtered jumps " + mm2.size + "/" + mm.size)
-    mm2.values.toList
+      println("# Recruiting jump bad mates: count=" + reads.length)
+    reads
   }
-  
+
   def recruitUnpaired(reg: Region) = recruitReadsOfType(reg, 'unpaired)
 
   def recruitLocalReads(reg: Region) = recruitFrags(reg) ++ recruitUnpaired(reg)
 
   def recruitReads(reg: Region) = recruitLocalReads(reg) ++ recruitJumps(reg)
-  
-  def readsInInterval(bam: BamFile, name: String, start: Int, stop: Int) = {
-    val r = bam.reader
-    val reads = r.queryOverlapping(name, start, stop).toList
-    r.close
-    reads
-  }
-  
-  def mateMap(reads: List[SAMRecord], digDeep: Boolean = false) = {
-    val readMap = Map.empty[String, SAMRecord]
-    val mm: MateMap = Map.empty
-    for (r <- reads) {
-      val readName = r.getReadName
-      if (readMap contains readName) {
-        val mate = readMap(readName)
-        mm += r -> mate
-        mm += mate -> r
-      } else readMap += readName -> r
-    }
-    if (digDeep) {
-      for ((name, read) <- readMap)
-        if (!(mm contains read)) mm += read -> null
-    }
-    if (Pilon.debug) println("mm: " + mm.size/2 + "/" + readMap.size + 
-        " " + Utils.pct(mm.size/2, readMap.size) + "%")
-    mm
-  }
-
-  def mateMapForInterval(bam: BamFile, name: String, start: Int, stop: Int) = {
-    val readMap = Map.empty[String, SAMRecord]
-    val reads = readsInInterval(bam, name, start, stop)
-    mateMap(reads)
-  }
   
 }
