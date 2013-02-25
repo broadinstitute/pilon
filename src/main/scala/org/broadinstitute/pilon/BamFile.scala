@@ -101,8 +101,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
-    strayMateMap.printDebug
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
+    if (strays) strayMateMap.printDebug
   }
   
   var insertSizeSum = 0.0
@@ -160,8 +160,10 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     	   readMap -= name
     	   mateMap += read -> mate
     	   mateMap += mate -> read
+    	   nStrays += 1
     	 }
       }
+      if (Pilon.debug) println("mm +" + nStrays + " strays")
     }
     
     def lookup(read: SAMRecord): SAMRecord = mateMap.getOrElse(read, null)
@@ -188,18 +190,22 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   def recruitBadMates(region: Region) = {
     val midpoint = region.midpoint
     val mateMap = new MateMap(recruitReads(region)) 
-    val mm = mateMap.mateMap
-    if (Pilon.debug) mateMap.printDebug
-    mateMap.addStrays
-    if (Pilon.debug) { 
-      print("stray ")
-      mateMap.printDebug 
+
+    if (Pilon.fixList contains 'strays) {
+      if (Pilon.debug) mateMap.printDebug
+      mateMap.addStrays
+      if (Pilon.debug) { 
+        print("stray ")
+        mateMap.printDebug 
+      }
     }
     
+    val mm = mateMap.mateMap
+
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val mm2 = mm filter { pair =>  
       val (r1, r2) = pair
-      val r1mapped = (!r1.getReadUnmappedFlag) &&  r2.getReadUnmappedFlag
+      val r1mapped = !(r1.getReadUnmappedFlag || r1.getProperPairFlag)
       val rc = r1.getReadNegativeStrandFlag
       val before = r1.getAlignmentStart < midpoint
       val after = r1.getAlignmentEnd > midpoint
