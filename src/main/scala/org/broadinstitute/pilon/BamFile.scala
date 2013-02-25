@@ -80,6 +80,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val covBefore = pileUpRegion.coverage
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
+    val strays = Pilon.fixList contains 'strays
     
     for (read <- reads) {
     	val loc = read.getAlignmentStart
@@ -94,7 +95,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     	if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
     	
     	// if it's not a proper pair but both ends are mapped, it's a stray mate
-    	if (!(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
+    	if (strays && !(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
     	  strayMateMap.addRead(read)
     }
     r.close
@@ -151,6 +152,20 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       n += 1
     }
     
+    def addStrays = {
+      var nStrays = 0
+      for ((name, read) <- readMap) {
+    	 val mate = strayMateMap.lookup(read)
+    	 if (mate != null) {
+    	   readMap -= name
+    	   mateMap += read -> mate
+    	   mateMap += mate -> read
+    	 }
+      }
+    }
+    
+    def lookup(read: SAMRecord): SAMRecord = mateMap.getOrElse(read, null)
+    
     def printDebug = println("mm: " + n + " " + readMap.size + "/" + mateMap.size/2)
   }
   
@@ -172,7 +187,14 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def recruitBadMates(region: Region) = {
     val midpoint = region.midpoint
-    val mm = mateMap(recruitReads(region))
+    val mateMap = new MateMap(recruitReads(region)) 
+    val mm = mateMap.mateMap
+    if (Pilon.debug) mateMap.printDebug
+    mateMap.addStrays
+    if (Pilon.debug) { 
+      print("stray ")
+      mateMap.printDebug 
+    }
     
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val mm2 = mm filter { pair =>  
