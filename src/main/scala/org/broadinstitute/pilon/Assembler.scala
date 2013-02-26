@@ -76,7 +76,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       val prefix = kmer.substring(1)
       //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
       //if (Pilon.debug) println("pFw:" + kmer + " " + pu) 
-      if (seen0 > 1) {
+      if (seen0 > 1 || forks > 10) {
     	  if (Pilon.debug) println("pFw:twice " + pu + " " + forks) 
           kmers
       } else if (pu.depth < Assembler.minDepth) { // TODO: fixed depth or computed?
