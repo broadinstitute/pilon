@@ -181,7 +181,7 @@ class GapFiller(val region: GenomeRegion) {
     val bams = region.bamsOfType(bamType)
     var reads = List[SAMRecord]()
     for (b <- bams) {
-      reads ++= b.recruitReads(reg)
+      reads ++= b.recruitFlankReads(reg)
     }
     if (Pilon.debug) 
       println("# Recruiting " + bamType.name + " reads: count=" + reads.length)

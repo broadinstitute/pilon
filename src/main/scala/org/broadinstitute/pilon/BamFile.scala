@@ -80,7 +80,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val covBefore = pileUpRegion.coverage
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
-    val strays = Pilon.fixList contains 'strays
+    val strays = Pilon.strays
     
     for (read <- reads) {
     	val loc = read.getAlignmentStart
@@ -102,7 +102,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
-    if (strays) strayMateMap.printDebug
+    if (strays && Pilon.debug) strayMateMap.printDebug
   }
   
   var insertSizeSum = 0.0
@@ -153,17 +153,20 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     }
     
     def addStrays = {
+      for (mate <- findStrays) {
+        val name = mate.getReadName
+        val read = readMap(name)
+ 	    readMap -= name
+   	    mateMap += read -> mate
+   	    mateMap += mate -> read
+   	  }
+    }
+    
+    def findStrays = {
       var nStrays = 0
-      for ((name, read) <- readMap) {
-    	 val mate = strayMateMap.lookup(read)
-    	 if (mate != null) {
-    	   readMap -= name
-    	   mateMap += read -> mate
-    	   mateMap += mate -> read
-    	   nStrays += 1
-    	 }
-      }
-      if (Pilon.debug) println("mm +" + nStrays + " strays")
+      val mates = (readMap map {pair => strayMateMap.lookup(pair._2)}) filter {_ != null} toList;
+      if (Pilon.debug) println("findStrays: " + mates.length)
+      mates
     }
     
     def lookup(read: SAMRecord): SAMRecord = mateMap.getOrElse(read, null)
@@ -175,29 +178,42 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
-  def readsInInterval(name: String, start: Int, stop: Int) = {
+  def readsInRegion(region: Region) = {
     val r = reader
-    val reads = r.queryOverlapping(name, start, stop).toList
+    val reads = r.queryOverlapping(region.name, region.start, region.stop).toList
     r.close
     reads
   }
 
-  def recruitReads(region: Region) = {
+  def recruitFlankReads(region: Region) = {
+    val flanks = flankRegion(region)
+    var reads = readsInRegion(flanks) 
+    if (Pilon.debug) println("readsInRegion flanks: " + flanks + " " + reads.length + " reads")
+    if (Pilon.strays) {
+      val mm = new MateMap(reads)
+      if (Pilon.debug) mm.printDebug
+      reads ++= mm.findStrays
+      if (Pilon.debug) mm.printDebug
+    }
+    reads      
+  }
+  
+  def flankRegion(region: Region) = {
     val flank = maxInsertSize
-    readsInInterval(region.name, region.start - flank, region.stop + flank) 
+    new Region(region.name, 
+              (region.start - flank) max 1, 
+              (region.stop + flank))
   }
   
   def recruitBadMates(region: Region) = {
     val midpoint = region.midpoint
-    val mateMap = new MateMap(recruitReads(region)) 
+    val flanks = flankRegion(region)
+    val mateMap = new MateMap(readsInRegion(flanks)) 
 
-    if (Pilon.fixList contains 'strays) {
+    if (Pilon.strays) {
       if (Pilon.debug) mateMap.printDebug
       mateMap.addStrays
-      if (Pilon.debug) { 
-        print("stray ")
-        mateMap.printDebug 
-      }
+      if (Pilon.debug) mateMap.printDebug 
     }
     
     val mm = mateMap.mateMap
@@ -207,10 +223,13 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       val (r1, r2) = pair
       val r1mapped = !(r1.getReadUnmappedFlag || r1.getProperPairFlag)
       val rc = r1.getReadNegativeStrandFlag
-      val before = r1.getAlignmentStart < midpoint
-      val after = r1.getAlignmentEnd > midpoint
+      val start = r1.getAlignmentStart
+      val end = r1.getAlignmentEnd
+      val before = start < midpoint
+      val after = end > midpoint
       val r1dir = (before && !rc) || (after && rc)
-      r1mapped && r1dir
+      val inRegion = flanks.inRegion(start) || flanks.inRegion(end)
+      r1mapped && r1dir && inRegion
     }
     if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)

@@ -5,7 +5,7 @@ import java.io.File
 object Pilon {
   // types of fixing we know about
   val fixChoices = List('bases, 'gaps, 'local, 'breaks)
-  val experimentalFixChoices = List('novel, 'strays)
+  val experimentalFixChoices = List('novel)
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -25,6 +25,7 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
+  var strays = false
   
   // for logging to output files
   var commandArgs = Array[String]()
@@ -110,6 +111,9 @@ object Pilon {
         optionParse(tail)
       case "--verbose" :: tail =>
         verbose = true
+        optionParse(tail)
+      case "--strays" :: tail =>
+        strays = true
         optionParse(tail)
       case option :: tail =>
         println("Unknown option " + option)
