@@ -53,18 +53,6 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     reads
   }
   
-  def loadReads = {
-    val r = reader
-    println("reading " + path)
-    val reads = r.iterator.toArray
-    println(reads.size + " reads")
-    r.close
-    val mm = mateMap(reads)
-    reads
-  }
-
-  val allReads = if (Pilon.debug) loadReads else null
-  
   def process(region: GenomeRegion, printInterval: Int = 100000) : Unit = {
 
 	val pileUpRegion = region.pileUpRegion
