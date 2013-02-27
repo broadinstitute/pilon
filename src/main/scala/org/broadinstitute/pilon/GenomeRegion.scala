@@ -542,7 +542,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (dipFraction(i) >= 1.2) || (pctBad(i) >= 50)
-  def possibleBreaks = summaryRegions(breakp, 250)
+  def possibleBreaks = summaryRegions(breakp)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
   def possibleInsertions = summaryRegions(insertionp)
