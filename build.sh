@@ -2,7 +2,7 @@
 
 tmp=Version.scala.tmp
 date=`date`
-svn=`svnversion`
+svn=`svn info |grep 'Rev:' | sed -e 's/.*: //'`
 f=`find . -name Version.scala`
 cp -p $f $tmp
 sed -e "s/\(date.*=\).*/\\1 \"$date\"/"  -e "s/\(svn.*=\).*/\\1 \"$svn\"/" <$tmp >$f
