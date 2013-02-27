@@ -23,6 +23,7 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     badCoverageTrack("BadCoverage.wig")
     badCoverageTrackSD("BadCoverageSD.wig")
     deltaCoverageTrack("DeltaCoverage.wig")
+    dipCoverageTrack("DipCoverage.wig")
     fragCoverageTrack("FragCoverage.wig")
     physicalCoverageTrack("PhysicalCoverage.wig")
     physicalCoverageTrackSD("PhysicalCoverageSD.wig")
@@ -86,6 +87,11 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   def deltaCoverageTrack(file: String, radius: Int = 100) = {
     makeTrack(file, "Delta Coverage", 
         { (r: GenomeRegion, i: Int) => r.deltaCoverage(i, radius) })
+  }
+
+  def dipCoverageTrack(file: String, radius: Int = 100) = {
+    makeTrack(file, "Dip Coverage", 
+        { (r: GenomeRegion, i: Int) => r.dipCoverage(i, radius) })
   }
     
   def physicalCoverageTrack(file: String) = {
@@ -191,10 +197,12 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     	  regionsToBed(r.changeRegions, "X", writer, "255,0,0") }
     	regions foreach { r: GenomeRegion =>
     	  regionsToBed(r.possibleInsertions, "I", writer, "255,255,0") }
-      regions foreach { r: GenomeRegion =>
-        regionsToBed(r.possibleDeletions, "D", writer, "255,0,255") }
-      regions foreach { r: GenomeRegion =>
-        regionsToBed(r.gaps, "G", writer, "32,32,32") }
+        regions foreach { r: GenomeRegion =>
+          regionsToBed(r.possibleDeletions, "D", writer, "255,0,255") }
+        regions foreach { r: GenomeRegion =>
+          regionsToBed(r.gaps, "G", writer, "32,32,32") }
+        regions foreach { r: GenomeRegion =>
+          regionsToBed(r.possibleBreaks, "B", writer, "0,255,255") }
     }
     writer.close()       
   }

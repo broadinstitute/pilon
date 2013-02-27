@@ -302,10 +302,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       for (break <- filteredBreaks) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fixBreak(break)
-        if (start > 0 && ref.length + patch.length >= 20) {
+        if (start > 0 && (ref.length max patch.length) > 10) {
          	bigFixList ::= (start, ref, patch)
-        } else print ("# ")
-     	printFix(break, start, ref, patch, 0)
+         	printFix(break, start, ref, patch, 0)
+        } else if (Pilon.verbose || start == 0) {
+          print ("# ")
+          printFix(break, start, ref, patch, 0)
+        }
       }
     }
     fixIssues(smallFixList ++ bigFixList)
@@ -518,12 +521,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def nearEdge(r: Region, radius: Int = 100) = r.start - start < radius || stop - r.stop < radius
-  def deltaFraction(i: Int) = deltaCoverage(i) / coverageDist.median
+  def deltaFraction(i: Int) = deltaCoverage(i) / coverageDist.mean
   def dipCoverage(i: Int, radius: Int = 100) = dip(i, coverage, radius)
-  def dipFraction(i: Int) = dipCoverage(i) / coverageDist.median
+  def dipFraction(i: Int) = dipCoverage(i) / coverageDist.mean
 
   def ambiguousRegions = summaryRegions({ i: Int => ambiguous(i) }) filter { r => r.start != r.stop }
-  def changeRegions = summaryRegions({ i: Int => changed(i) })
+  def changeRegions = summaryRegions({ i: Int => changed(i) || deleted(i) }, 1)
   def gaps = summaryRegions({ i: Int => refBase(locus(i)) == 'N' }) filter { _.size >= 10}
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
@@ -532,9 +535,14 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def lowCoverageRegions = summaryRegions(lowCoverage)
   def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 33
   def clippingRegions = summaryRegions(highClipping)
+  def pctBad(i: Int) = {
+    val good = coverage(i)
+    val bad = badCoverage(i)
+    pct(bad, good + bad)
+  }
 
-  def breakp(i: Int) = highClipping(i) || lowCoverage(i) // dipFraction(i) >= 1.0
-  def possibleBreaks = summaryRegions(breakp)
+  def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (dipFraction(i) >= 1.2) || (pctBad(i) >= 50)
+  def possibleBreaks = summaryRegions(breakp, 250)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
   def possibleInsertions = summaryRegions(insertionp)
