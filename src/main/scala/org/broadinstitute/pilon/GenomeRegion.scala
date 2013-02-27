@@ -509,7 +509,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //(left - center).abs + (right - center).abs
   }
 
-  def deltaCoverage(i: Int, radius: Int = 100) = delta(i, coverage, radius)
+  def deltaCoverage(i: Int, radius: Int = 100) = delta(i, fragCoverage, radius)
 
   def deltaPhysicalCoverage(i: Int, radius: Int = 1000) = delta(i, physCoverage, radius)
 
@@ -521,9 +521,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def nearEdge(r: Region, radius: Int = 100) = r.start - start < radius || stop - r.stop < radius
-  def deltaFraction(i: Int) = deltaCoverage(i) / coverageDist.mean
-  def dipCoverage(i: Int, radius: Int = 100) = dip(i, coverage, radius)
-  def dipFraction(i: Int) = dipCoverage(i) / coverageDist.mean
+  def deltaFraction(i: Int) = deltaCoverage(i) / fragCoverageDist.mean
+  def dipCoverage(i: Int, radius: Int = 100) = dip(i, fragCoverage, radius)
+  def dipFraction(i: Int) = dipCoverage(i) / fragCoverageDist.mean
 
   def ambiguousRegions = summaryRegions({ i: Int => ambiguous(i) }) filter { r => r.start != r.stop }
   def changeRegions = summaryRegions({ i: Int => changed(i) || deleted(i) }, 1)
