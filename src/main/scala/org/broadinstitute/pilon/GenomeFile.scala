@@ -61,6 +61,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
   def processRegions(bamFiles: List[BamFile]) = {
     bamFiles foreach validateBam
+
+    if (Pilon.strays) 
+      for (bam <- bamFiles) bam.buildStrayMateMap
+
     val fastaFile = Pilon.outputFile(".fasta")
 	val fastaWriter = if (Pilon.fixList.length > 0) 
 	  new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))

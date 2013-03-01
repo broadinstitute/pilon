@@ -68,7 +68,6 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val covBefore = pileUpRegion.coverage
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
-    val strays = Pilon.strays
     
     for (read <- reads) {
     	val loc = read.getAlignmentStart
@@ -82,15 +81,11 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     	} 
     	if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
     	
-    	// if it's not a proper pair but both ends are mapped, it's a stray mate
-    	if (strays && !(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
-    	  strayMateMap.addRead(read)
     }
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
-    if (strays && Pilon.debug) strayMateMap.printDebug
   }
   
   var insertSizeSum = 0.0
@@ -165,6 +160,18 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   val strayMateMap = new MateMap()
   
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
+  
+  def buildStrayMateMap = {
+    val r = reader
+   	// if it's not a proper pair but both ends are mapped, it's a stray mate
+    print("Mapping stray pairs in " + bamFile + "...")
+    for (read <- r.iterator)
+      if (!(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
+        strayMateMap.addRead(read)
+    strayMateMap.printDebug
+    r.close
+    strayMateMap
+  }
   
   def readsInRegion(region: Region) = {
     val r = reader
