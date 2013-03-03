@@ -20,6 +20,7 @@ class Region(val name: String, val start: Int, val stop: Int) {
     other.name == name && 
       (overlaps(other) || (other.stop - start).abs <= distance || (other.start - stop).abs <= distance)
   def nearAny(others: List[Region]) = others.exists({_.near(this)})
-  override def toString = "<Region " + name + ":" + start + "-" + stop + ">"
+  override def toString = 
+    "<Region " + name + ":" + start + (if (size == 1) "" else "-" + stop + ">")
 }
 
