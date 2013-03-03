@@ -26,7 +26,7 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
-  var strays = false
+  var strays = true
   
   // for logging to output files
   var commandArgs = Array[String]()
@@ -36,6 +36,10 @@ object Pilon {
     println(Version.version)
     optionParse(args.toList)
 
+    // Stray computation is expensive up front, so only turn it on
+    // if we're doing local reassembly
+    strays &= (fixList contains 'gaps) || (fixList contains 'local)
+    
     if (bamFiles.length == 0) {
       println(usage)
       sys.exit(0)
@@ -116,8 +120,8 @@ object Pilon {
       case "--verbose" :: tail =>
         verbose = true
         optionParse(tail)
-      case "--strays" :: tail =>
-        strays = true
+      case "--nostrays" :: tail =>
+        strays = false
         optionParse(tail)
       case option :: tail =>
         println("Unknown option " + option)
