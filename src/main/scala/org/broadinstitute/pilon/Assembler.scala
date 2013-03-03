@@ -170,7 +170,9 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   def tryForward(anchor: String, target: String = ""): String = {
     var longest = ""
     var longestFull = ""
-    for (offset <- List(0, K, 2*K)) {
+    val anchorK = anchor.length / K
+    for (offsetK <- 0 until (anchorK min 2)) {
+      val offset = K * offsetK
       if (Pilon.debug) print("tryForward o=" + offset + " ")
       val start = anchor.slice(offset, offset + K)
       val path = pathForward(start, target)
