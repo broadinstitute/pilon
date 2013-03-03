@@ -26,6 +26,7 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
+  var pf = false
   var strays = true
   
   // for logging to output files
@@ -105,6 +106,9 @@ object Pilon {
       case "--output" :: value :: tail =>
         prefix = value
         optionParse(tail)
+      case "--pf" :: value :: tail =>
+        pf = true
+        optionParse(tail)
       case "--targets" :: value :: tail =>
         targets = value
         optionParse(tail)
@@ -180,6 +184,8 @@ object Pilon {
               This options will cause many track files (*.bed, *.wig) suitable for viewing in
               IGV to be written.
          CONTROL:
+           --diploid
+              Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
               A comma-separated list of categories of issues to try to fix: 
               "bases": try to fix individual bases and small indels; 
@@ -190,11 +196,23 @@ object Pilon {
     		  The following are experimental fix types:
               "breaks": allow local reassembly to open new gaps (with "local").
               "novel": assemble novel sequence from unaligned non-jump reads.
+           --pf
+              Only include reads which pass quality filtering by sequencing instrument.
            --targets targetlist
               Only process the specified target(s).  Targets are comma-separated, and each target
               is a fasta element name optionally followed by a base range.  
               Example: "scaffold00001,scaffold00002:10000-20000" would result in processing all of
               scaffold00001 and coordinates 10000-20000 of scaffold00002.
+           --verbose
+              More verbose output.
+           --debug
+              Debugging output (implies verbose).
+         HEURISTICS:
+           --flank nbases
+              Controls how much of the well-aligned reads will be used; this many bases at each
+              end of the good reads will be ignored (default 10).
+           --gapmargin
+              Closed gaps must be within this number of bases of true size to be closed (1000)
            --mindepth depth
               Variants (snps and indels) will only be called if there is coverage of good pairs
               at this depth or more; if this value is >= 1, it is an absolute depth, if it is a
@@ -205,16 +223,5 @@ object Pilon {
               Minimum size for unclosed gaps (default 10)
            --minqual
               Minimum base quality to consider for pileups (default 0)
-           --flank nbases
-              Controls how much of the well-aligned reads will be used; this many bases at each
-              end of the good reads will be ignored (default 10).
-           --diploid
-              Sample is from diploid organism; affects calling of heterozygous SNPs
-           --gapmargin
-              Closed gaps must be within this number of bases of true size to be closed (1000)
-           --verbose
-              More verbose output.
-           --debug
-              Debugging output (implies verbose).
   """  
 }

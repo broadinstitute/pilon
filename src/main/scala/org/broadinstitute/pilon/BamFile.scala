@@ -75,12 +75,13 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     	  lastLoc = printInterval * (loc / printInterval)
     	  print("..." + lastLoc)
     	}
-    	val insertSize = pileUpRegion.addRead(read, region.contigBases)
-    	if (insertSize > huge) {
+    	if ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) {
+    	  val insertSize = pileUpRegion.addRead(read, region.contigBases)
+    	  if (insertSize > huge) {
     		if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
-    	} 
-    	if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
-    	
+    	  } 
+    	  if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
+    	}
     }
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
