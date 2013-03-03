@@ -365,20 +365,20 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     kind match {
       case 'snp =>
         print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
-        if (Pilon.debug) print(" " + pu + endLine)
+        if (Pilon.debug) print(" " + pu)
         print(endLine)
       case 'ins =>
         print(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall)
-        if (Pilon.debug) print(" " + pu + endLine)
+        if (Pilon.debug) print(" " + pu)
         print(endLine)
       case 'del =>
         print(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + ".")
-        if (Pilon.debug) print(" " + pu + endLine)
+        if (Pilon.debug) print(" " + pu)
         print(endLine)
       case 'amb =>
         if (Pilon.verbose && rBase != cBase) {
           print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
-          if (Pilon.debug) print(" " + pu + endLine)
+          if (Pilon.debug) print(" " + pu)
           print(endLine)
         }
     }
