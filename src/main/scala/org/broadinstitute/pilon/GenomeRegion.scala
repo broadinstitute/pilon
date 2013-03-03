@@ -245,9 +245,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val cBase = pu.baseCall.base
       kind match {
         case 'snp =>
-          //newBases(i) = cBase.toByte
           snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
+        case 'amb =>
+          snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+          amb += 1
         case 'ins =>
           val insert = pu.insertCall
           smallFixList ::= (locus(i), "", insert)
@@ -258,13 +260,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           smallFixList ::= (locus(i), "", deletion)
           dels += 1
           delBases += deletion.length
-        case 'amb =>
-          smallFixList ::= (locus(i), rBase.toString, cBase.toString)
-          amb += 1
-        case _ =>
       }
       if (Pilon.verbose) printChange(i)
     }
+    
+    // Report small changes
+    print("Corrected ")
     if (Pilon.diploid) print((snps + amb) + " snps")
     else {
       print(snps + " snps; ")
@@ -273,14 +274,17 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     print("; " + ins + " small insertions totaling " + insBases + " bases")
     println("; " + dels + " small deletions totaling " + delBases + " bases")
     
-    // fix SNPs prior to reassemblies...it helps!  We can't change coords here, though!
-    fixIssues(snpFixList)
-
-    
+    // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0) {
-      for (d <- duplications) println("Large collapsed region: start " + d + " size " + d.size)
+      for (d <- duplications) println("Large collapsed region: " + d + " size " + d.size)
     }
+    
+    // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
+    // We can't change coords here, though, so no indels!
+    fixIssues(snpFixList)
+
+    // Try to fill gaps
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
       println("# Attempting to fill gaps")
       for (gap <- gaps) {
@@ -293,13 +297,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       }
     }
 
-    val breaks = possibleBreaks //clippingRegions
-    val filteredBreaks = breaks filter { !_.nearAny(gaps) }
+    // Try to reassemble around possible contiguity breaks
+    val breaks = possibleBreaks filter { !_.nearAny(gaps) }
     if ((Pilon.fixList contains 'local) && breaks.length > 0) {
       println("# Attempting to fix local continuity breaks")
-      //val breaks = possibleBreaks
-      
-      for (break <- filteredBreaks) {
+      for (break <- breaks) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fixBreak(break)
         if (start > 0 && (ref.length max patch.length) > 10) {
@@ -311,6 +313,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         }
       }
     }
+
+    // Apply the bigger fixes
     fixIssues(smallFixList ++ bigFixList)
   }
   
@@ -390,32 +394,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
   }
 
-
-  def fixFixListX(inList: FixList, outList: FixList = Nil): FixList = {
-    """Remove overlaps, keeping larger fix"""
-    inList match {
-      case fix1 :: fix2 :: tail => {
-        val region1 = new Region(name, fix1._1, fix1._1 + fix1._2.length - 1)
-        val region2 = new Region(name, fix2._1, fix2._1 + fix2._2.length - 1)
-        if (region1.overlaps(region2)) {
-          //println("fixFixList overlap: " + (region1, region2))
-          if (region1.size > region2.size)
-            fixFixListX(fix1 :: tail, outList)
-          else
-            fixFixListX(fix2 :: tail, outList)
-        } else
-          fixFixListX(fix2 :: tail, fix1 :: outList)
-      }
-      case fix1 :: Nil =>
-        fix1 :: outList
-      case Nil =>
-        outList
-    }
-  }
-
   def fixFixList(inList: FixList): FixList = {
-    """Remove overlaps, keeping larger fix"""
-    var fixes = inList
+    """Sort and remove overlaps, keeping larger fix"""
+    
+    var fixes = inList.sortWith({ (x, y) => x._1 < y._1 })
     var outList: FixList = Nil
 
     while (fixes != Nil) {
@@ -444,14 +426,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           outList
       }
     }
-    outList
+    outList.reverse
   }
 
   def fixIssues(fixList: FixList) = {
     var newBases = bases.clone
-    val sortedFixes = fixList.sortWith({ (x, y) => x._1 < y._1 })
-    val fixedFixes = fixFixList(sortedFixes)
-    for (fix <- fixedFixes) {
+    for (fix <- fixFixList(fixList).reverse) {
       //if (Pilon.debug) println("Fix " + fix)
       val (locus, was, patch) = fix
       val start = index(locus)
@@ -476,7 +456,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def writeVcf(vcf: Vcf) = {
-	var bigFixes = bigFixList.reverse
+	var bigFixes = fixFixList(bigFixList)
     for (i <- 0 until size) {
       val loc = locus(i)
       if (bigFixes.length > 0 && bigFixes.head._1 == loc) {
@@ -541,7 +521,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     pct(bad, good + bad)
   }
 
-  def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (dipFraction(i) >= 1.2) || (pctBad(i) >= 50)
+  def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (pctBad(i) >= 50) || (dipFraction(i) >= 1.5)
   def possibleBreaks = summaryRegions(breakp)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0

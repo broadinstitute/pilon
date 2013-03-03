@@ -154,7 +154,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     
     def lookup(read: SAMRecord): SAMRecord = mateMap.getOrElse(read, null)
     
-    def printDebug = println("mm: " + n + " " + readMap.size + "/" + mateMap.size/2)
+    def printDebug = println("mm: " + readMap.size + "/" + mateMap.size/2)
   }
   
   val strayMateMap = new MateMap()
