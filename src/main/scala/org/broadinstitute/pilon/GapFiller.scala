@@ -46,11 +46,10 @@ class GapFiller(val region: GenomeRegion) {
     val solution = joinBreak(start, right, left, stop)
     var gapOk = false
     if (solution != noSolution) {
-      // Sanity check gap margin; must be within gapMargin*gapSize or within gapMarginMin
-      val closedLength = (solution._3.length - solution._2.length) 
+      // Sanity check gap margin; must be within gapMargin bases
+      val closedLength = solution._3.length 
       val closedDiff = (closedLength - gap.size).abs
-      val margin = (gap.size * Pilon.gapMargin).round.toInt max Pilon.gapMarginMin
-      if (gap.size < Pilon.gapMarginMin || closedDiff < margin) gapOk = true
+      if (closedDiff <= Pilon.gapMargin) gapOk = true
       else if (Pilon.debug) println("Gap closed but bad size: " + gap + " " + closedLength)
     }
     if (gapOk) {

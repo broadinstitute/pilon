@@ -21,8 +21,7 @@ object Pilon {
   var diploid = false
   var fixList = fixChoices
   var flank = 10
-  var gapMargin = 0.25
-  var gapMarginMin = 100
+  var gapMargin = 1000
   var minMinDepth = 5
   var minGap = 10
   var minDepth = 0.1
@@ -82,7 +81,7 @@ object Pilon {
         bamFiles ::= new BamFile(new File(value), 'frags)
         optionParse(tail)
       case "--gapmargin" :: value :: tail =>
-        gapMargin = value.toDouble
+        gapMargin = value.toInt
         optionParse(tail)
       case "--genome" :: value :: tail =>
         genomePath = value
@@ -208,7 +207,7 @@ object Pilon {
            --diploid
               Sample is from diploid organism; affects calling of heterozygous SNPs
            --gapmargin
-              Closed gaps must be within this fraction of true size to be closed
+              Closed gaps must be within this number of bases of true size to be closed (1000)
            --verbose
               More verbose output.
            --debug

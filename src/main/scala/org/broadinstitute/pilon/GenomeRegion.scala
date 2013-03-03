@@ -334,10 +334,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
     if (loc == 0) print(" NoSolution")
     else if (gapSize == 0 && ref.length == 0 && patch.length == 0) print(" NoChange")
-    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
     else if (gapSize == 0 && nPatch == 0) print(" BreakFix")
     else if (nPatch > 0 && nRef == 0) print(" OpenedGap")
-    else print(" NoClue")
+    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
+    else if (gapSize > 0 && nPatch > 0) print(" PartialFill")
+    else print(" FixMe!") // Shouldn't happen...cases should be above!
     println()
   }
     
