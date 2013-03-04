@@ -65,7 +65,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     path.head + (path.tail map {_.last}).mkString("")
   }
 
-  def pathForward(kmers: List[String], target: String, forks: Int): List[String] = {
+  def pathForwardRecurse(kmers: List[String], target: String, forks: Int): List[String] = {
     val kmer = kmers.head
     if (target.indexOf(kmer) >= 99999999) {
       kmers
@@ -128,6 +128,79 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       if (Pilon.debug) println("pFw:off ")
       kmers	// we're off the graph, so punt! 
     }
+  }
+  
+  def pathForward(kmersIn: List[String], target: String, forks: Int): List[String] = {
+    var kmers = kmersIn
+    while (true) {
+      val kmer = kmers.head
+      if (target.indexOf(kmer) >= 99999999) {
+        if (Pilon.debug) println("pFw:target ")
+        return kmers
+      }
+      if (!(graph contains kmer)) {
+        if (Pilon.debug) println("pFw:off ")
+        return kmers	// we're off the graph, so punt!
+      }
+      val seen0 = kmers.tail count {_ == kmer}
+      val pu = graph(kmer)
+      val bc = pu.baseCall
+      val prefix = kmer.substring(1)
+      //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
+      //if (Pilon.debug) println("pFw:" + kmer + " " + pu) 
+      if (seen0 > 1 || forks > 10) {
+    	  if (Pilon.debug) println("pFw:twice " + pu + " " + forks) 
+          return kmers
+      } else if (pu.depth < Assembler.minDepth) { // TODO: fixed depth or computed?
+        // not enough depth to move forward
+    	if (Pilon.debug) println("pFw: " + pu) 
+        return kmers
+      } else if (bc.homo) {
+        val newKmer = prefix + bc.base
+        kmers ::= newKmer
+        //pathForward(newKmer :: kmers, target, forks)
+      } else {
+        val newKmer1 = prefix + bc.base
+        val newKmer2 = prefix + bc.altBase
+        if (seen0 > 0) {
+          // if we've been here before and we have two ways forward, let's see
+          // what we've explored
+          val seen1 = kmers contains newKmer1
+          val seen2 = kmers contains newKmer2
+          if (Pilon.debug) println("pFw: " + seen0 + " " + seen1 + " " + seen2 + " " + forks)
+          if (seen1) {
+            // we've already taken 1st branch, so try extending with 2nd 
+            // if we haven't already
+            if (seen2) {
+       	      if (Pilon.debug) println("pFw:s1+2 " + pu) 
+              return kmers
+            } else 
+              kmers ::= newKmer2
+              //pathForward(newKmer2 :: kmers, target, forks)
+          } else if (seen2) {
+            // likewise, if we've been through 2nd, try 1st if we haven't
+            kmers ::= newKmer1
+            //pathForward(newKmer1 :: kmers, target, forks)
+          } else {
+            // shouldn't happen; if we've seen this kmer, we should have moved forward
+            assert(false, "shouldn't happen")
+            return kmers
+          }
+        } else {
+          // we haven't been here, but two ways forward: try both and take longest extension
+       	  if (Pilon.debug) println("pFw:fork " + pu + " " + forks) 
+          val path1 = pathForward(newKmer1 :: kmers, target, forks + 1)
+          val path2 = pathForward(newKmer2 :: kmers, target, forks + 1)
+          val hit1 = target.indexOf(path1.head) >= 0
+          val hit2 = target.indexOf(path2.head) >= 0
+          if (hit1 && !hit2) return path1 
+          else if (hit2 && !hit1) return path2
+          else if (path1.length >= path2.length) return path1
+          else return path2
+        }
+      }
+    }
+    kmers
   }
   
   def pathForward(startingKmer: String, target: String = "") : String = {
