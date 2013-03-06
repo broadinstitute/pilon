@@ -93,9 +93,13 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	  } 
 	  if (Pilon.fixList.length > 0) {
 		val fixedRegions = reg._2 map { _.bases }
-        val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""		
-	    println("Writing updated " + name + " to " + fastaFile)
-        writeFastaElement(fastaWriter, name + "|pilon", bases)
+      val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
+      val sep = if (name.indexOf("|") < 0) "_"
+                else if (name(name.length-1) == '|') ""
+                else "|"
+      val newName = name + sep + "pilon"
+      println("Writing updated " + newName + " to " + fastaFile)
+      writeFastaElement(fastaWriter, newName, bases)
 	  }
 	}
     if (Pilon.fixList contains 'novel) {
