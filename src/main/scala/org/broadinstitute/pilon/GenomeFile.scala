@@ -62,50 +62,53 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def processRegions(bamFiles: List[BamFile]) = {
     bamFiles foreach validateBam
 
-    if (Pilon.strays) 
+    if (Pilon.strays)
       for (bam <- bamFiles) bam.buildStrayMateMap
 
     val fastaFile = Pilon.outputFile(".fasta")
-	val fastaWriter = if (Pilon.fixList.length > 0) 
-	  new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))
-	else null
-	
-	val vcf: Vcf = if (Pilon.vcf) 
-	  new Vcf(Pilon.outputFile(".vcf"), regions map {r => (r._1, r._2 map {_.size} sum)}) 
-	else null
-	
-	regions foreach { reg =>
-	  val name = reg._1
-	  reg._2 foreach { r => 
-	  	println("Processing " + r)
-	    r.initializePileUps
-	    bamFiles foreach { r.processBam(_) }
-	    r.postProcess
-	    if (Pilon.fixList.length > 0 || Pilon.vcf) {
-	      println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
-	      r.identifyIssues
-	    }
-	    if (Pilon.vcf) {
-   	      println("Writing " + name + " VCF to " + vcf.file)
-   	      r.writeVcf(vcf)
-   	    }
-	    r.finalizePileUps
-	  } 
-	  if (Pilon.fixList.length > 0) {
-		val fixedRegions = reg._2 map { _.bases }
-      val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
-      val sep = if (name.indexOf("|") < 0) "_"
-                else if (name(name.length-1) == '|') ""
-                else "|"
-      val newName = name + sep + "pilon"
-      println("Writing updated " + newName + " to " + fastaFile)
-      writeFastaElement(fastaWriter, newName, bases)
-	  }
-	}
+    val fastaWriter = if (Pilon.fixList.length > 0)
+	                      new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))
+                      else null
+
+    val vcf: Vcf = if (Pilon.vcf)
+	                   new Vcf(Pilon.outputFile(".vcf"), regions map {r => (r._1, r._2 map {_.size} sum)})
+                   else null
+
+    regions foreach { reg =>
+      val name = reg._1
+      reg._2 foreach { r =>
+        println("Processing " + r)
+        r.initializePileUps
+        bamFiles foreach { r.processBam(_) }
+        r.postProcess
+        if (Pilon.fixList.length > 0 || Pilon.vcf) {
+          println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
+          r.identifyIssues
+        }
+        if (Pilon.vcf) {
+          println("Writing " + name + " VCF to " + vcf.file)
+          r.writeVcf(vcf)
+        }
+        r.finalizePileUps
+      }
+      if (Pilon.fixList.length > 0) {
+        val sep = if (name.indexOf("|") < 0) "_"
+                  else if (name(name.length-1) == '|') ""
+                  else "|"
+        val newName = name + sep + "pilon"
+        println("Writing updated " + newName + " to " + fastaFile)
+        val fixedRegions = reg._2 map { _.bases }
+        val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
+        writeFastaElement(fastaWriter, newName, bases)
+      }
+    }
+
     if (Pilon.fixList contains 'novel) {
+      println("Assembling novel sequence")
       val contigs = assembleNovel(bamFiles)
       for (n <- 0 until contigs.length) {
-        val header = "pilon_novel_%04d".format(n+1)
+        val header = "pilon_novel_%04d".format(n + 1)
+        println("Appending " + header + " length " + contigs(n).length)
         writeFastaElement(fastaWriter, header, contigs(n))
       }
     }
