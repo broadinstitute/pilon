@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2013. The Broad Institute, Inc.
+ * SOFTWARE COPYRIGHT NOTICE
+ * This software and its documentation are the copyright of the Broad Institute, Inc.
+ * All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever.
+ * The Broad Institute is not responsible for its use, misuse, or functionality.
+ */
+
 package org.broadinstitute.pilon
 
 import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
@@ -100,6 +110,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         val fixedRegions = reg._2 map { _.bases }
         val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
         writeFastaElement(fastaWriter, newName, bases)
+        //TODO: write out change file
       }
     }
 
