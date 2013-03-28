@@ -202,7 +202,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           }
         } else if (b != r) {
           if (homo) addChange(i, 'snp, pu)
-          else addChange(i, 'amb, pu)
+          else {
+            if (bc.altBase != r) addChange(i, 'amb, pu)
+          }
         }
       }
     }
@@ -267,7 +269,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           insBases += insert.length
         case 'del =>
           val deletion = pu.deletionCall
-          smallFixList ::= (locus(i), "", deletion)
+          smallFixList ::= (locus(i), deletion, "")
           dels += 1
           delBases += deletion.length
       }
