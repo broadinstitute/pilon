@@ -15,7 +15,7 @@ import java.io.File
 object Pilon {
   // types of fixing we know about
   val fixChoices = List('bases, 'gaps, 'local)
-  val experimentalFixChoices = List('novel, 'breaks, 'fixamb)
+  val experimentalFixChoices = List('novel, 'breaks, 'amb)
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -205,7 +205,7 @@ object Pilon {
               "none": none of the above; new fasta file will not be written.
     		  The following are experimental fix types:
               "breaks": allow local reassembly to open new gaps (with "local").
-              "fixamb": fix ambiguous bases in fasta output (to most likely alternative).
+              "amb": fix ambiguous bases in fasta output (to most likely alternative).
               "novel": assemble novel sequence from unaligned non-jump reads.
            --pf
               Only include reads which pass quality filtering by sequencing instrument.

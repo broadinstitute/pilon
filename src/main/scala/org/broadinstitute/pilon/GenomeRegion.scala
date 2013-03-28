@@ -169,7 +169,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //meanReadLength = pileUpRegion.meanReadLength
 
     // Pass 1: pull out values from pileups & call base changes
-    val fixamb = Pilon.fixList contains 'fixamb
+    val fixamb = Pilon.fixList contains 'amb
 
     for (i <- 0 until size) {
       val pu = pileUpRegion(i)
