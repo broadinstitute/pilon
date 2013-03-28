@@ -117,9 +117,13 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
 
+    val cigarElements = cigar.getCigarElements
+
+    // First count up number of clipped bases, so we can use to weight alignment
+    val clippedBases = (cigarElements map {e => if (e.getOperator == CigarOperator.S) e.getLength else 0}).sum
+
     // parse read alignment and add to pileups
-    for (i <- 0 until cigar.numCigarElements) {
-      val ele = cigar.getCigarElement(i)
+    for (ele <- cigarElements) {
       val len = ele.getLength
       val op = ele.getOperator
       val locus = aStart + refOffset
@@ -162,8 +166,11 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               val locusPlus = locus + i
               val base = bases(rOff).toChar
               val qual = quals(rOff)
-              if (inRegion(locusPlus))
-                add(locusPlus, base, qual, mq, valid)
+              if (inRegion(locusPlus)) {
+                // de-rate mq proportionally to fraction of bases clipped
+                val adjMq = mq * (length - clippedBases) / length
+                add(locusPlus, base, qual, adjMq, valid)
+              }
             }
           }
         case CigarOperator.S =>

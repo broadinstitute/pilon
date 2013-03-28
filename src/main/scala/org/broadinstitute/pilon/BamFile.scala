@@ -109,7 +109,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     insertSizeSumSq += insertSize * insertSize
   }
   
-  def insertSizeMean = if (insertSizeSum > 0) (insertSizeSum / insertSizeCount) else 0
+  def insertSizeMean = if (insertSizeSum > 0) (insertSizeSum / insertSizeCount) else 0.0
   
   def insertSizeSigma = {
     if (insertSizeSum > 0) {
@@ -150,7 +150,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       for (mate <- findStrays) {
         val name = mate.getReadName
         val read = readMap(name)
- 	    readMap -= name
+ 	      readMap -= name
    	    mateMap += read -> mate
    	    mateMap += mate -> read
    	  }
