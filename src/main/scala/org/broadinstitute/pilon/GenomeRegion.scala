@@ -443,7 +443,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def fixIssues(fixList: FixList) = {
     var newBases = bases.clone
     for (fix <- fixFixList(fixList).reverse) {
-      //if (Pilon.debug) println("Fix " + fix)
+      if (Pilon.debug) println("Fix " + fix)
       val (locus, was, patch) = fix
       val start = index(locus)
       if (was.length == patch.length) {
@@ -462,7 +462,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
         newBases = before ++ (patch map { _.toByte }) ++ after
         assert(newBases.length == origLength + patch.length - was.length, "Fix patch length mismatch: " + fix)
-        //if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
+        if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
       }
     }
     bases = newBases
