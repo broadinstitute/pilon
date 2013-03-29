@@ -23,6 +23,7 @@ object Pilon {
   var genomePath = ""
   // parameters governing output
   var prefix = "pilon"
+  var changes = false
   var tracks = false
   var verbose = false
   var vcf = false
@@ -79,6 +80,9 @@ object Pilon {
         println(usage)
         print(help)
         sys.exit(0)
+      case "--changes" :: tail =>
+        changes = true
+        optionParse(tail)
       case "--debug" :: tail =>
         debug = true
         verbose = true

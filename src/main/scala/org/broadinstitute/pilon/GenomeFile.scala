@@ -75,6 +75,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     if (Pilon.strays)
       for (bam <- bamFiles) bam.buildStrayMateMap
 
+    val changesFile = Pilon.outputFile(".changes")
+    val changesWriter = if (Pilon.changes)
+	                      new PrintWriter(new BufferedWriter(new FileWriter(changesFile)))
+                      else null
     val fastaFile = Pilon.outputFile(".fasta")
     val fastaWriter = if (Pilon.fixList.length > 0)
 	                      new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))
@@ -85,7 +89,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
                    else null
 
     regions foreach { reg =>
-      val name = reg._1
       reg._2 foreach { r =>
         println("Processing " + r)
         r.initializePileUps
@@ -96,16 +99,23 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
           r.identifyIssues
         }
         if (Pilon.vcf) {
-          println("Writing " + name + " VCF to " + vcf.file)
+          println("Writing " + r.name + " VCF to " + vcf.file)
           r.writeVcf(vcf)
+        }
+        if (Pilon.changes) {
+          println("Writing " + r.name + " changes to " + changesFile)
+          r.writeChanges(changesWriter)
+
         }
         r.finalizePileUps
       }
       if (Pilon.fixList.length > 0) {
+        val name = reg._1
         val sep = if (name.indexOf("|") < 0) "_"
                   else if (name(name.length-1) == '|') ""
                   else "|"
         val newName = name + sep + "pilon"
+
         println("Writing updated " + newName + " to " + fastaFile)
         val fixedRegions = reg._2 map { _.bases }
         val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
@@ -125,6 +135,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     }
     if (Pilon.fixList.length > 0) fastaWriter.close
     if (Pilon.vcf) vcf.close
+    if (Pilon.changes) changesWriter.close
   }
 
   def identifyIssues() = regions foreach { _._2 foreach { _.identifyIssues } }

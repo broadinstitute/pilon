@@ -13,6 +13,7 @@ package org.broadinstitute.pilon
 import collection.mutable.Map
 import net.sf.picard.reference._
 import Utils._
+import java.io.PrintWriter
 
 object GenomeRegion {
   def baseString(b: Array[Byte]) = b map { _.toChar } mkString ("")
@@ -472,7 +473,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def writeVcf(vcf: Vcf) = {
-	var bigFixes = fixFixList(bigFixList)
+    var bigFixes = fixFixList(bigFixList)
     for (i <- 0 until size) {
       val loc = locus(i)
       if (bigFixes.length > 0 && bigFixes.head._1 == loc) {
@@ -481,6 +482,17 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         bigFixes = bigFixes.tail
       }
       vcf.writeRecord(this, i, deleted(i))
+    }
+  }
+
+  def writeChanges(changes: PrintWriter) {
+    val fixes = fixFixList(snpFixList ++ smallFixList ++ bigFixList)
+    var delta = 0
+    for (fix <- fixes) {
+      val (loc, from, to) = fix
+      changes.println(name + " " + locus(loc) + " " + locus(loc+delta) + " " +
+        (if (from.isEmpty) "." else from) + " " + (if (to.isEmpty) "." else to))
+      delta += to.length - from.length
     }
   }
 
