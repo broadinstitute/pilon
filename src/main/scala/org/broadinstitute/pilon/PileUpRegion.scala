@@ -121,6 +121,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
 
     // First count up number of clipped bases, so we can use to weight alignment
     val clippedBases = (cigarElements map {e => if (e.getOperator == CigarOperator.S) e.getLength else 0}).sum
+    // de-rate mq proportionally to fraction of bases clipped
+    val adjMq = Utils.roundDiv(mq * (length - clippedBases), length)
 
     // parse read alignment and add to pileups
     for (ele <- cigarElements) {
@@ -152,9 +154,9 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               // as we slide the deletion, remove old base from pileup and
               // add to end
               if (trusted(rloc) && inRegion(dloc)) {
-                remove(dloc, base, qual, mq, valid)
+                remove(dloc, base, qual, adjMq, valid)
                 if (inRegion(dloc + len))
-                  add(dloc + len, base, qual, mq, valid)
+                  add(dloc + len, base, qual, adjMq, valid)
               }
             }
             pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset))
@@ -167,8 +169,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               val base = bases(rOff).toChar
               val qual = quals(rOff)
               if (inRegion(locusPlus)) {
-                // de-rate mq proportionally to fraction of bases clipped
-                val adjMq = mq * (length - clippedBases) / length
                 add(locusPlus, base, qual, adjMq, valid)
               }
             }
@@ -184,7 +184,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
             val base = bases(rOff).toChar
             val qual = quals(rOff)
             if (inRegion(locusPlus))
-              add(locusPlus, base, qual, mq, false)
+              add(locusPlus, base, qual, adjMq, false)
           }
         case _ =>
           println("unknown cigar op=" + op + " in " + r.getCigarString)
