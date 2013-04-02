@@ -24,8 +24,8 @@ package org.broadinstitute.pilon
 //
 
 object Version {
-	val date = "[DATE NOT SET]"
-  val version = "[VERSION NOT SET]"
-	val svn = "[SVN VERSION NOT SET]"
-	def version = "Pilon version " + version + " svn " + svn + " " + date
+  val sbt = "[SBT VERSION]"
+  val date = "[DATE]"
+  val svn = "[SVN VERSION]"
+  def version = "Pilon version " + sbt + " svn " + svn + " " + date
 }
