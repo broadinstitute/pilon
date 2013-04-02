@@ -493,12 +493,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
   }
 
-  def writeChanges(changes: PrintWriter) {
+  def writeChanges(changes: PrintWriter, newName: String = name) {
     val fixes = fixFixList(snpFixList ++ smallFixList ++ bigFixList)
     var delta = 0
     for (fix <- fixes) {
       val (loc, from, to) = fix
-      changes.println(name + " " + loc + " " + (loc+delta) + " " +
+      val newLoc = loc + delta
+      val oldRegion = new Region(name, loc, loc + from.length - 1)
+      val newRegion = new Region(newName, newLoc, newLoc + to.length - 1)
+      changes.println(name + " " + oldRegion.regionString + " " + newRegion.regionString + " " +
         (if (from.isEmpty) "." else from) + " " + (if (to.isEmpty) "." else to))
       delta += to.length - from.length
     }
