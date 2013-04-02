@@ -501,7 +501,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val newLoc = loc + delta
       val oldRegion = new Region(name, loc, loc + from.length - 1)
       val newRegion = new Region(newName, newLoc, newLoc + to.length - 1)
-      changes.println(name + " " + oldRegion.regionString + " " + newRegion.regionString + " " +
+      changes.println(oldRegion.regionString + " " + newRegion.regionString + " " +
         (if (from.isEmpty) "." else from) + " " + (if (to.isEmpty) "." else to))
       delta += to.length - from.length
     }
