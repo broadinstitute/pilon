@@ -24,7 +24,7 @@ import Utils._
 import java.io.PrintWriter
 
 object GenomeRegion {
-  def baseString(b: Array[Byte]) = b map { _.toChar } mkString ("")
+  def baseString(b: Array[Byte]) = b map { _.toChar.toUpper } mkString ("")
   type Fix = (Int, String, String)
 }
 
