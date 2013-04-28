@@ -32,9 +32,9 @@ class PileUp {
   var insertSize = 0
   var badPair = 0
   var deletions = 0
-  var delQual = 0
+  var delQual: Long = 0
   var insertions = 0
-  var insQual = 0
+  var insQual: Long = 0
   var clips = 0
   var insertionList = List[Array[Byte]]()
   var deletionList = List[Array[Byte]]()
@@ -93,22 +93,30 @@ class PileUp {
     }
   }
   
-  def addInsertion(insertion: Array[Byte], qual: Int) = {
-    insQual += qual
+  def addInsertion(insertion: Array[Byte], qual: Int, mq: Int) = {
+	val mq1 = mq + 1
+    insQual += qual * mq1
+    mqSum += mq1
+    qSum += qual
     insertionList ::= insertion
     insertions += 1
   }
   
-  def addDeletion(deletion: Array[Byte], qual: Int) = {
-	delQual += qual
+  def addDeletion(deletion: Array[Byte], qual: Int, mq: Int) = {
+	val mq1 = mq + 1
+    mqSum += mq1
+    qSum += qual
+	delQual += qual * mq1
 	deletionList ::= deletion
     deletions += 1 
   }
   
-  //def roundDiv(n: Long, d: Long) = if (d > 0) (n + d/2) / d else 0
-  //def pct(n: Long, d: Long) = roundDiv(100 * n, d)
-  def insPct = pct(insertions, count)
-  def delPct = pct(deletions, count + deletions)
+  def totalQSum = qualSum.sum + insQual + delQual
+  
+  //def insPct = pct(insertions, count)
+  //def delPct = pct(deletions, count + deletions)
+  def insPct = pct(insQual, totalQSum)
+  def delPct = pct(delQual, totalQSum)
   def indelPct = insPct + delPct
   def qualPct = {
     val (base, max, sum) = qualSum.maxBase
@@ -132,8 +140,8 @@ class PileUp {
     val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
     val homo = homoScore >= heteroScore
     val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0 
-    val insertion = depth >= Pilon.minMinDepth && insPct >= 33 && insertCall != ""
-    val deletion = depth >= Pilon.minMinDepth && delPct >= 33 && deletionCall != ""
+    val insertion = depth >= Pilon.minMinDepth && insPct >= 50 && insertCall != ""
+    val deletion = depth >= Pilon.minMinDepth && delPct >= 50 && deletionCall != ""
     val indel = insertion || deletion
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10

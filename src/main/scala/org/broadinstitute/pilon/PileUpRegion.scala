@@ -148,7 +148,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            pileups(index(iloc)).addInsertion(insertion, quals(readOffset))
+            pileups(index(iloc)).addInsertion(insertion, quals(readOffset), adjMq)
           }
         case CigarOperator.D =>
           var dloc = locus
@@ -167,7 +167,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset))
+            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
           }
         case CigarOperator.M =>
           for (i <- 0 until len) {
