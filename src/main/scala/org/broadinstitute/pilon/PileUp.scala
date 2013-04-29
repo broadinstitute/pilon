@@ -32,9 +32,9 @@ class PileUp {
   var insertSize = 0
   var badPair = 0
   var deletions = 0
-  var delQual: Long = 0
+  var delQual = 0
   var insertions = 0
-  var insQual: Long = 0
+  var insQual = 0
   var clips = 0
   var insertionList = List[Array[Byte]]()
   var deletionList = List[Array[Byte]]()
@@ -95,8 +95,8 @@ class PileUp {
   
   def addInsertion(insertion: Array[Byte], qual: Int, mq: Int) = {
 	val mq1 = mq + 1
-    insQual += qual * mq1
-    mqSum += mq1
+    insQual += mq1
+    //mqSum += mq1 //don't add twice...already have a base here!
     qSum += qual
     insertionList ::= insertion
     insertions += 1
@@ -105,8 +105,8 @@ class PileUp {
   def addDeletion(deletion: Array[Byte], qual: Int, mq: Int) = {
 	val mq1 = mq + 1
     mqSum += mq1
+	delQual += mq1
     qSum += qual
-	delQual += qual * mq1
 	deletionList ::= deletion
     deletions += 1 
   }
@@ -115,8 +115,8 @@ class PileUp {
   
   //def insPct = pct(insertions, count)
   //def delPct = pct(deletions, count + deletions)
-  def insPct = pct(insQual, totalQSum)
-  def delPct = pct(delQual, totalQSum)
+  def insPct = pct(insQual, mqSum)
+  def delPct = pct(delQual, mqSum)
   def indelPct = insPct + delPct
   def qualPct = {
     val (base, max, sum) = qualSum.maxBase
@@ -139,9 +139,9 @@ class PileUp {
     val halfTotal = total / 2
     val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
     val homo = homoScore >= heteroScore
-    val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0 
-    val insertion = depth >= Pilon.minMinDepth && insPct >= 50 && insertCall != ""
-    val deletion = depth >= Pilon.minMinDepth && delPct >= 50 && deletionCall != ""
+    val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
+    val insertion = insertCall != ""
+    val deletion = !insertion && deletionCall != ""
     val indel = insertion || deletion
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10
@@ -164,21 +164,25 @@ class PileUp {
   
   def baseCall = new BaseCall
   
-  def insertCall = indelCall(insertionList)
-  def deletionCall = indelCall(deletionList)
+  def insertCall = indelCall(insertionList, insPct)
+  def deletionCall = indelCall(deletionList, delPct)
+  //def insertCall = indelCall(insertionList)
+  //def deletionCall = indelCall(deletionList)
   
-  def indelCall(indelList: List[Array[Byte]]): String = {
+  def indelCall(indelList: List[Array[Byte]], pct: Int): String = {
     val map = Map.empty[String, Int]
-    if (indelList.isEmpty) return ""
+    if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ""
     for (indel <- indelList) {
       val indelStr = indel.toSeq map {_.toChar} mkString  ""
       map(indelStr) = map.getOrElse(indelStr, 0) + 1
     }
     val winner = (map.toSeq sortBy { _._2 } last)
-    if (winner._2 >= indelList.length / 2)
-      winner._1
+    if (winner._2 < indelList.length / 2) return ""
+    val winStr = winner._1
+    if (pct > 50 - winStr.length) 
+      winStr
     else
-      ""
+        ""
   }
 
 

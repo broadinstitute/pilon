@@ -71,8 +71,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     val pileUp = region.pileUpRegion(index)
     val bc = pileUp.baseCall
     val bcString = bc.callString(indelOk)
-    val baseDP = bc.baseSum //pileUp.baseCount.sums(bc.baseIndex)
-    val altBaseDP = bc.altBaseSum //pileUp.baseCount.sums(bc.altBaseIndex)
+    val baseDP = bc.baseSum.toInt //pileUp.baseCount.sums(bc.baseIndex)
+    val altBaseDP = bc.altBaseSum.toInt //pileUp.baseCount.sums(bc.altBaseIndex)
     val depth = pileUp.depth.toInt
     var loc = locus
     val (rBase, cBase, callType, refDP, altDP) = {
@@ -80,12 +80,12 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
         loc -= 1
         val rBase = region.refBase(loc)
         //(rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
-        (rBase + bcString, rBase.toString, "1/1", pileUp.totalQSum - pileUp.delQual, pileUp.delQual)
+        (rBase + bcString, rBase.toString, "1/1", pileUp.mqSum - pileUp.delQual, pileUp.delQual)
       } else if (indelOk && !embedded && bc.insertion) {
         loc -= 1
         val rBase = region.refBase(loc)
         //(rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
-        (rBase.toString, rBase + bcString, "1/1", pileUp.totalQSum - pileUp.insQual, pileUp.insQual)
+        (rBase.toString, rBase + bcString, "1/1", pileUp.mqSum - pileUp.insQual, pileUp.insQual)
       } else if (bc.homo) {
         val rBase = region.refBase(loc)
         if (rBase == bc.base || bcString == "N")
