@@ -111,7 +111,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       if (seen0 > 1 || forks > 10) {
     	// chop off most recent kmer, as we don't want to go around again!
         //return kmers.tail
-    	val repeatStart = kmers.tail.indexOf(kmer)
+      val repeatStart = kmers.tail.indexOf(kmer)
     	if (Pilon.debug) {
     	  val repeatKmers = kmers.slice(0, repeatStart)
     	  val repeatStr = kmerPathString(repeatKmers)
@@ -138,6 +138,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
           val seen1 = kmers contains newKmer1
           val seen2 = kmers contains newKmer2
           if (Pilon.debug) {
+            val repeatStart = kmers.tail.indexOf(kmer)
+            val repeatKmers = kmers.slice(0, repeatStart)
+            val repeatStr = kmerPathString(repeatKmers)
+            debug("pFw: loop " + seen0 + "," + seen1 + "," + seen2 + " " + forks +
+               " (" + repeatStr.length + ")" + repeatStr)
           }
           if (seen1) {
             // we've already taken 1st branch, so try extending with 2nd 
@@ -145,7 +150,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
             if (seen2) {
        	      debug("pFw:s1+2 " + pu)
               return kmers
-            } else 
+            } else
               kmers ::= newKmer2
           } else if (seen2) {
             // likewise, if we've been through 2nd, try 1st if we haven't

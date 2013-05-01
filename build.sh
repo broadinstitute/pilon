@@ -12,5 +12,6 @@ sed -e "s/\(date.*=\).*/\\1 \"$svndate\"/" \
     <$tmp >$f
 #sbt $* package
 sbt $* one-jar
-cp -p target/scala-2.9.2/pilon_2.9.2-$version-one-jar.jar ~/lib/pilon/pilon.jar
+ln -sf `pwd`/target/scala-2.9.2/pilon_2.9.2-$version-one-jar.jar ~/lib/pilon/pilon-$version.jar
+ln -sf ~/lib/pilon/pilon-$version.jar ~/lib/pilon/pilon.jar
 mv $tmp $f
