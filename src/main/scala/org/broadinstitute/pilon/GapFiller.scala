@@ -132,8 +132,8 @@ class GapFiller(val region: GenomeRegion) {
     var start = startArg
     var stop = stopArg
     var interval = stop - start
-    //val k = 2 * Assembler.K + 1
-    val k = Assembler.K
+    val k = 2 * Assembler.K + 1
+    //val k = Assembler.K
     
     var patch = properOverlap(forward, reverse, k)
     if (Pilon.debug) {
@@ -165,12 +165,38 @@ class GapFiller(val region: GenomeRegion) {
   
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
     //for (leftOffset <- 0 until left.length if left.length - leftOffset >= minOverlap) {
+    for (rightOffset <- 0 until right.length - minOverlap) {
+      val leftOffset = left.lastIndexOfSlice(right.slice(rightOffset, rightOffset + minOverlap))
+      if (leftOffset >= 0) {
+        val ll = left.length - leftOffset
+        val rl = right.length - rightOffset
+        val len = ll min rl
+        if (Pilon.debug) {
+          println("overlap: " + leftOffset + "/" + rightOffset + " " + len) 
+          println("L: " + left.slice(leftOffset, leftOffset+len))
+          println("R: " + right.slice(rightOffset, rightOffset+len))
+        }
+        if (len >= minOverlap && 
+            left.slice(leftOffset, leftOffset+len) == right.slice(rightOffset, rightOffset+len))
+          return left.substring(0, leftOffset) + right.substring(rightOffset)
+      }
+    }
+    ""
+  } 
+  
+  def properOverlapOld(left: String, right: String, minOverlap: Int): String = {
+    //for (leftOffset <- 0 until left.length if left.length - leftOffset >= minOverlap) {
     for (leftOffset <- 0 until left.length - minOverlap) {
       val rightOffset = right.indexOfSlice(left.slice(leftOffset, leftOffset + minOverlap))
       if (rightOffset >= 0) {
         val ll = left.length - leftOffset
         val rl = right.length - rightOffset
         val len = ll min rl
+        if (Pilon.debug) {
+          println("overlap: " + leftOffset + "/" + rightOffset + " " + len) 
+          println("L: " + left.slice(leftOffset, leftOffset+len))
+          println("R: " + right.slice(rightOffset, rightOffset+len))
+        }
         if (len >= minOverlap && 
             left.slice(leftOffset, leftOffset+len) == right.slice(rightOffset, rightOffset+len))
           return left.substring(0, leftOffset) + right.substring(rightOffset)
