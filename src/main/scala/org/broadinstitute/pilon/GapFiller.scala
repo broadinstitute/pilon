@@ -165,20 +165,24 @@ class GapFiller(val region: GenomeRegion) {
   
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
     //for (leftOffset <- 0 until left.length if left.length - leftOffset >= minOverlap) {
-    for (rightOffset <- 0 until right.length - minOverlap) {
-      val leftOffset = left.lastIndexOfSlice(right.slice(rightOffset, rightOffset + minOverlap))
+    def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {
+      for (i <- 0 until len)
+        if (a(aOffset + i) != b(bOffset + i)) return false
+      return true
+    }
+    for (rightOffset <- 0 until right.length - minOverlap;
+         leftOffset <- left.length - minOverlap - 1 to 0 by -1) {
+      //val leftOffset = left.lastIndexOfSlice(right.slice(rightOffset, rightOffset + minOverlap))
       if (leftOffset >= 0) {
         val ll = left.length - leftOffset
         val rl = right.length - rightOffset
         val len = ll min rl
-        if (Pilon.debug) {
-          println("overlap: " + leftOffset + "/" + rightOffset + " " + len) 
-          println("L: " + left.slice(leftOffset, leftOffset+len))
-          println("R: " + right.slice(rightOffset, rightOffset+len))
-        }
-        if (len >= minOverlap && 
-            left.slice(leftOffset, leftOffset+len) == right.slice(rightOffset, rightOffset+len))
+        if (substrMatch(left, leftOffset, right, rightOffset, len)) {
+          if (Pilon.debug)
+            println("overlap: " + leftOffset + "/" + left.length + " " +
+                    rightOffset + "/" + right.length + " " + len)
           return left.substring(0, leftOffset) + right.substring(rightOffset)
+        }
       }
     }
     ""

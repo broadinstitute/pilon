@@ -89,6 +89,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     def debug(s: String) = {
       if (Pilon.debug) {
         val ks = kmerPathString(kmers)
+        for (i <- 1 to forks) print("  ")
         println(s + " [(" + ks.length + ")" + ks + "]")
       }
     }
@@ -162,10 +163,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
           }
         } else {
           // we haven't been here, but two ways forward: try both and take longest extension
-       	  debug("pFw:fork " + pu + " " + forks)
+          debug("pFw:forkA " + pu + " " + forks)
           val path1 = pathForward(newKmer1 :: kmers, target, forks + 1)
-          if (Pilon.debug) println("1:" + kmerPathString(path1))
+          if (Pilon.debug) println("pFw:forkB")
           val path2 = pathForward(newKmer2 :: kmers, target, forks + 1)
+          if (Pilon.debug) println("1:" + kmerPathString(path1))
           if (Pilon.debug) println("2:" + kmerPathString(path2))
           /* val hit1 = target.indexOf(path1.head) >= 0
           val hit2 = target.indexOf(path2.head) >= 0
@@ -223,8 +225,8 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     val anchorK = anchor.length / K
     for (offsetK <- 0 until (anchorK min 2)) {
       val offset = K * offsetK
-      if (Pilon.debug) print("tryForward o=" + offset + " ")
       val start = anchor.slice(offset, offset + K)
+      if (Pilon.debug) println("tryForward o=" + offset + " " + start)
       val path = pathForward(start, target)
       if (Pilon.debug) {
     	  val pathOld = pathForwardOld(start)
@@ -245,7 +247,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
   def tryReverse(anchor: String, target: String = "") = {
-    if (Pilon.debug) print("tryReverse ")
+    if (Pilon.debug) println("tryReverse")
     val rcAnchor = Bases.reverseComplement(anchor)
     val rcTarget = Bases.reverseComplement(target)
     val path = tryForward(rcAnchor, rcTarget)
