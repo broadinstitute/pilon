@@ -81,7 +81,6 @@ object Pilon {
   }
 
   def optionParse(list: List[String]) : Unit = {
-    def isSwitch(s: String) = (s(0) == '-')
     list match {
       case Nil => Nil
       case "--help" :: tail =>

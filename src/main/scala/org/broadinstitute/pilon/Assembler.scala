@@ -294,5 +294,6 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
   override def toString =
-    "<assembler K=" + K + " nReads=" + nReads + " nBases=" + nBases + " nKmers=" + graph.size + ">"
+    "<assembler K=" + K + " nReads=" + nReads + " nBases=" +
+      nBases + " nKmers=" + graph.size + ">"
 }
