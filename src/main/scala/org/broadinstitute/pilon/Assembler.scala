@@ -17,7 +17,7 @@
  */
 
 package org.broadinstitute.pilon
-
+import scala.annotation.tailrec
 import collection.JavaConversions._
 import collection.mutable.{ Map, HashMap, Set, HashSet }
 import net.sf.samtools._
@@ -28,14 +28,15 @@ object Assembler {
   val minGap = 10
   val minExtend = 20
   val minNovel = 200
+  val maxBranches = 5
   type Kmer = String
   type KmerPileup = HashMap[Kmer, PileUp]
-  type KmerGraph = HashMap[Kmer, Kmer]
+  type KmerGraph = HashMap[Kmer, (Kmer,Int)]
 }
 
 class Assembler(val minDepth: Int = Assembler.minDepth) {
   import Assembler._
-  val pileups: KmerPileup = HashMap()
+  var pileups: KmerPileup = HashMap()
   val kGraph: KmerGraph = HashMap()
   val altGraph: KmerGraph = HashMap()
   var nReads: Long = 0
@@ -80,13 +81,37 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
   def buildGraph = {
+    val targets = Set[Kmer]()
+    val multiTargets = Set[Kmer]()
+
+    def addLink(g: KmerGraph, k1: Kmer, k2: Kmer, weight: Int) = {
+      g(k1) = (k2, weight)
+      if (targets contains k2) multiTargets += k2
+      else targets += k2
+    }
+
+
+    if (Pilon.debug) println("building kmer Graph")
+
     for ((k, pu) <- pileups.iterator) {
       if (pu.depth >= Assembler.minDepth) {
         val bc = pu.baseCall
         val prefix = k.substring(1)
-        kGraph(k) = prefix + bc.base
-        if (!bc.homo) altGraph(k) = prefix + bc.altBase
+        addLink(kGraph, k, prefix + bc.base, pu.baseCount.sums(bc.baseIndex).toInt)
+        if (!bc.homo)
+          addLink(altGraph, k, prefix + bc.altBase, pu.baseCount.sums(bc.altBaseIndex).toInt)
       }
+    }
+    // We don't need  or targets any more, free up the memory
+    //pileups = null
+
+    if (Pilon.debug) println("kmer graph: t=" + targets.size + " mt=" + multiTargets.size)
+
+    val sources = kGraph.keys filter {k => (multiTargets contains k) || !(targets contains k)}
+    //if (Pilon.debug) println("kmer Graph built")
+    //if (Pilon.debug) println("sources: " + sources.size, " " + sources)
+    for (s <- sources) {
+
     }
   }
 
@@ -105,6 +130,44 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       "(" + pathStr.length + ")" + pathStr
     else
       pathStr
+  }
+
+
+  def pathsForward(kmersIn: List[String], branches: Int = 0): List[List[String]] = {
+    if (kGraph.isEmpty) buildGraph
+    var kmers = kmersIn
+    while (true) {
+      val kmer = kmers.head
+      if (!(kGraph contains kmer)) {
+        // end of the line
+        return List(kmers)
+      } else if (altGraph contains kmer) {
+        // two choices forward
+        val next1 = kGraph(kmer)._1
+        val next2 = altGraph(kmer)._1
+        val seen1 = kmers.tail contains next1
+        val seen2 = kmers.tail contains next2
+
+        // explore branches not already taken
+        if (seen1 && seen2) return List(kmers)
+        else if (seen1 && !seen2) kmers ::= next2
+        else if (seen2 && !seen1) kmers ::= next1
+        else {
+          return pathsForward(next1 :: kmers, branches + 1) ++
+            pathsForward(next2 :: kmers, branches + 1)
+        }
+      } else {
+        // only one way forward
+        val next = kGraph(kmer)._1
+        val nextCount = kmers count {_ == next}
+        // punt if we're looping (we'll allow one full time around repeat)
+        if (nextCount > 1)
+          return List(kmers)
+        kmers ::= next
+      }
+    }
+    // shouldn't get here
+    Nil
   }
 
 
@@ -127,7 +190,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         return kmers
       }
       */
-      if (!(kGraph contains kmer)) {
+      if (!(pileups contains kmer)) {
 	    // we're off the graph, so punt!
 	    debug("pFw:off ")
         return kmers
@@ -213,6 +276,14 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     val path = pathForward(List(startingKmer), target, 0)
     val bases = kmerPathString(path)
     if (Pilon.debug) println("pFw:" + bases.length + " " + bases)
+    if (Pilon.debug) print("pathsForward:")
+    val paths = pathsForward(List(startingKmer))
+    val pathStrs = (paths map { kmerPathString(_) }) sortWith {(a, b) => a.length > b.length}
+    if (Pilon.debug) {
+      println(paths.length + " paths")
+      pathStrs foreach {p => println("  [" + p.length + "]" + p)}
+      assert(pathStrs.indexOf(bases) == 0)
+    }
     bases
   }
 
