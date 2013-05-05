@@ -25,6 +25,8 @@ import net.sf.samtools._
 
 object GapFiller {
   val minExtend = 20
+  //val k = 2 * Assembler.K + 1
+  val k = Assembler.K
 }
 
 class GapFiller(val region: GenomeRegion) {
@@ -98,7 +100,7 @@ class GapFiller(val region: GenomeRegion) {
     val assembler = new Assembler(region.minDepth)
     assembler.addReads(reads)
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
-    if (Pilon.fixList contains 'novelbreaks) assembler.novel
+    //if (Pilon.fixList contains 'novelbreaks) assembler.novel
 
     val startOffset = breakRadius
     var start = (break.start - startOffset) max region.start
@@ -132,9 +134,8 @@ class GapFiller(val region: GenomeRegion) {
     var start = startArg
     var stop = stopArg
     var interval = stop - start
-    val k = 2 * Assembler.K + 1
-    //val k = Assembler.K
-    
+    val k = GapFiller.k
+
     var patch = properOverlap(forward, reverse, k)
     if (Pilon.debug) {
       println("joinBreak start=" + startArg + " stop=" + stopArg)
