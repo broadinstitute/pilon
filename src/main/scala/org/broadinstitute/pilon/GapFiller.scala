@@ -36,6 +36,7 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose) println("#fixBreak: " + break)
     //val reads = if (break.size < 100) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
+    // TODO: fix totally non-intuitive use of left and right
     var (start, rights, lefts, stop) = assembleIntoBreak(break, reads)
     //val solution = joinBreak(start, right, left, stop)
     val solutions = breakJoins(start, rights, lefts, stop)
@@ -44,8 +45,12 @@ class GapFiller(val region: GenomeRegion) {
     val solution = if (solutions.length == 1) solutions(0) else noSolution
     if (solution != noSolution) solution
     else if (Pilon.fixList contains 'breaks) {
-      val right = rights.reverse.head
-      val left = lefts.reverse.head
+      val left = consensusRight(lefts)
+      val right = consensusLeft(rights)
+      if (Pilon.debug) {
+        println("consensusL: " + left)
+        println("consensusR: " + right)
+      }
       val newStart = start + right.length
       val newStop = stop - left.length
       // To be worthy, one side or the other must have extended a non-trivial amount
@@ -84,8 +89,12 @@ class GapFiller(val region: GenomeRegion) {
       if (Pilon.debug) println("Closed gap " + gap)
       solution
     } else {
-      val right = rights.reverse.head
-      val left = lefts.reverse.head
+      val left = consensusRight(lefts)
+      val right = consensusLeft(rights)
+      if (Pilon.debug) {
+        println("consensusL: " + left)
+        println("consensusR: " + right)
+      }
       val newStart = start + right.length
       val newStop = stop - left.length
       if (newStart >= gap.start + GapFiller.minExtend || 
@@ -104,6 +113,29 @@ class GapFiller(val region: GenomeRegion) {
   def fill(region: Region) = {
     if (region.size >= 100) fillGap(region)
     else fixBreak(region)
+  }
+
+  def consensusLeft(seqs: List[String]): String = {
+    val s0 = seqs.head
+    if (seqs.length == 1) return s0
+    val minLength = (seqs map {_.length}).min
+    for (i <- 0 until minLength;
+         s <- seqs.tail)
+      if (s(i) != s0(i)) return s0.substring(0, i)
+    return s0.substring(0, minLength)
+  }
+
+  def consensusRight(seqs: List[String]): String = {
+    val s0 = seqs.head
+    if (seqs.length == 1) return s0
+    val minLength = (seqs map {_.length}).min
+    for (i <- 0 until minLength;
+         s <- seqs.tail) {
+      val si = s.length - 1 - i
+      val s0i = s0.length - 1 - i
+      if (s(si) != s0(s0i)) return s0.substring(s0i + 1)
+    }
+    return s0.substring(s0.length - minLength)
   }
 
   def assembleIntoBreak(break: Region, reads: List[SAMRecord]) = {
