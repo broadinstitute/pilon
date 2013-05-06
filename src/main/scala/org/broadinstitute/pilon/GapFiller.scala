@@ -36,11 +36,16 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose) println("#fixBreak: " + break)
     //val reads = if (break.size < 100) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
-    var (start, right, left, stop) = assembleIntoBreak(break, reads)
-    val solution = joinBreak(start, right, left, stop)
+    var (start, rights, lefts, stop) = assembleIntoBreak(break, reads)
+    //val solution = joinBreak(start, right, left, stop)
+    val solutions = breakJoins(start, rights, lefts, stop)
     //if (Pilon.debug) println("S:" + seq.size + ": " + seq)
+    //val solution = if (solutions.isEmpty) noSolution else solutions.head
+    val solution = if (solutions.length == 1) solutions(0) else noSolution
     if (solution != noSolution) solution
     else if (Pilon.fixList contains 'breaks) {
+      val right = rights.reverse.head
+      val left = lefts.reverse.head
       val newStart = start + right.length
       val newStop = stop - left.length
       // To be worthy, one side or the other must have extended a non-trivial amount
@@ -62,8 +67,11 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose) println("# Filling gap " + gap)
     val reads = if (gap.size < 100) recruitLocalReads(gap) else recruitReads(gap)
     //val reads = recruitReads(gap)
-    val (start, right, left, stop) = assembleIntoBreak(gap, reads)
-    val solution = joinBreak(start, right, left, stop)
+    val (start, rights, lefts, stop) = assembleIntoBreak(gap, reads)
+    //val solution = joinBreak(start, right, left, stop)
+    val solutions = breakJoins(start, rights, lefts, stop)
+    //val solution = if (solutions.isEmpty) noSolution else solutions.head
+    val solution = if (solutions.length == 1) solutions(0) else noSolution
     var gapOk = false
     if (solution != noSolution) {
       // Sanity check gap margin; must be within gapMargin bases
@@ -76,6 +84,8 @@ class GapFiller(val region: GenomeRegion) {
       if (Pilon.debug) println("Closed gap " + gap)
       solution
     } else {
+      val right = rights.reverse.head
+      val left = lefts.reverse.head
       val newStart = start + right.length
       val newStop = stop - left.length
       if (newStart >= gap.start + GapFiller.minExtend || 
@@ -109,7 +119,7 @@ class GapFiller(val region: GenomeRegion) {
     val right = region.subString(break.stop + 1, stop - break.stop - 1)
     //var forward = assembler.tryForward(left)
     //var reverse = assembler.tryReverse(right)
-    val (forward, reverse) = assembler.bridge(left, right)
+    val (forward, reverse) = assembler.multiBridge(left, right)
     /*
     // if we didn't make it back to the beginning, use old boundary
     if (start + forward.length < break.start) {
@@ -128,7 +138,22 @@ class GapFiller(val region: GenomeRegion) {
     (start, forward, reverse, stop)
   }
 
-
+  def breakJoins(start: Int, forwardPaths: List[String], reversePaths: List[String], stop: Int) = {
+    var solutionSet = Set[(Int, String, String)]()
+    for (f <- forwardPaths;
+         r <- reversePaths) {
+      val s = joinBreak(start, f, r, stop)
+      if (s != noSolution) {
+        solutionSet += s
+      }
+    }
+    val solutions = solutionSet.toList sortWith { (a,b) => a._3.length - a._2.length > b._3.length - b._2.length }
+    if (Pilon.debug) {
+      println("breakJoins: " + solutions.length + " solutions")
+      for (s <- solutions) println("  " + s)
+    }
+    solutions
+  }
   
   def joinBreak(startArg: Int, forward: String, reverse: String, stopArg: Int) = {
     var start = startArg
@@ -165,7 +190,17 @@ class GapFiller(val region: GenomeRegion) {
   }
   
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
-    //for (leftOffset <- 0 until left.length if left.length - leftOffset >= minOverlap) {
+    /*
+    val stopKmer = rightArg.substring(rightArg.length - Assembler.K)
+    val stopKmerIndex = leftArg.lastIndexOf(stopKmer)
+    val left = if (stopKmerIndex >= 0) leftArg.substring(0, stopKmerIndex + Assembler.K) else leftArg
+    if (Pilon.debug && left != leftArg) println("trimmed left:\n" + leftArg + "\n" + left)
+    val startKmer = left.substring(0, Assembler.K)
+    val startKmerIndex = rightArg.indexOf(startKmer)
+    val right = if (startKmerIndex >= 0) rightArg.substring(startKmerIndex) else rightArg
+    if (Pilon.debug && right != rightArg) println("trimmed right:\n" + rightArg + "\n" + right)
+    */
+
     def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {
       for (i <- 0 until len)
         if (a(aOffset + i) != b(bOffset + i)) return false

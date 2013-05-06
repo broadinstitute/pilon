@@ -133,8 +133,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
 
-  def pathsForward(kmersIn: List[String], branches: Int = 0): List[List[String]] = {
-    if (kGraph.isEmpty) buildGraph
+  def kmerPathsForward(kmersIn: List[String], branches: Int = 0): List[List[String]] = {
     var kmers = kmersIn
     while (true) {
       val kmer = kmers.head
@@ -153,8 +152,8 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         else if (seen1 && !seen2) kmers ::= next2
         else if (seen2 && !seen1) kmers ::= next1
         else {
-          return pathsForward(next1 :: kmers, branches + 1) ++
-            pathsForward(next2 :: kmers, branches + 1)
+          return kmerPathsForward(next1 :: kmers, branches + 1) ++
+            kmerPathsForward(next2 :: kmers, branches + 1)
         }
       } else {
         // only one way forward
@@ -170,6 +169,48 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     Nil
   }
 
+  def pathsForward(startingKmer: String) : List[String] = {
+    require(startingKmer.length == K, "starting kmer must be size K")
+    if (kGraph.isEmpty) buildGraph
+    if (Pilon.debug) print("pathsForward: " + startingKmer)
+    val kmerPaths = kmerPathsForward(List(startingKmer))
+    val paths = (kmerPaths map { kmerPathString(_) }) sortWith {(a, b) => a.length > b.length}
+    if (Pilon.debug) {
+      println(": " + paths.length + " paths")
+      paths foreach {p => println("  [" + p.length + "]" + p)}
+    }
+    paths
+  }
+
+  def tryForward(anchor: String): List[String] = {
+    if (Pilon.debug) println("tryForward: [" + anchor.length + "]" + anchor)
+    if (anchor.length < K) List(anchor)
+    else {
+      val startingKmer = anchor.substring(0, K)
+      val paths = pathsForward(startingKmer) filter {_.length > anchor.length + minExtend}
+      if (paths.length > 0)
+        paths
+      else
+        tryForward(anchor.substring(K)) map {p => startingKmer + p}
+    }
+  }
+
+  def tryReverse(anchor: String) = {
+    if (Pilon.debug) println("tryReverse")
+    val rcAnchor = Bases.reverseComplement(anchor)
+    val paths = tryForward(rcAnchor) map { Bases.reverseComplement(_) }
+    if (Pilon.debug) {
+      println("RC " + paths.length + " paths")
+      paths foreach {p => println("  [" + p.length + "]" + p)}
+    }
+    paths
+  }
+
+  def multiBridge(left: String, right: String) = {
+    val pathsForward = tryForward(left)
+    val pathsReverse = tryReverse(right)
+    (pathsForward, pathsReverse)
+  }
 
   def pathForward(kmersIn: List[String], target: String, forks: Int): List[String] = {
     var kmers = kmersIn
@@ -277,13 +318,6 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     val bases = kmerPathString(path)
     if (Pilon.debug) println("pFw:" + bases.length + " " + bases)
     if (Pilon.debug) print("pathsForward:")
-    val paths = pathsForward(List(startingKmer))
-    val pathStrs = (paths map { kmerPathString(_) }) sortWith {(a, b) => a.length > b.length}
-    if (Pilon.debug) {
-      println(paths.length + " paths")
-      pathStrs foreach {p => println("  [" + p.length + "]" + p)}
-      assert(pathStrs.indexOf(bases) == 0)
-    }
     bases
   }
 
@@ -343,6 +377,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     longestFull
   }
 
+
   def tryReverse(anchor: String, target: String = "") = {
     if (Pilon.debug) println("tryReverse")
     val rcAnchor = Bases.reverseComplement(anchor)
@@ -350,7 +385,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     val path = tryForward(rcAnchor, rcTarget)
     Bases.reverseComplement(path)
   }
-  
+
   def bridge(left: String, right: String) = {
     val pathForward = tryForward(left, right.substring(right.length - K))
     if (Pilon.debug) println("bridgeF:(" + pathForward.length + ")" + pathForward)
