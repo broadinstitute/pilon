@@ -319,8 +319,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       }
     }
 
-    // Try to reassemble around possible contiguity breaks
-    val breaks = possibleBreaks filter { !_.nearAny(gaps) }
+    // Try to reassemble around possible contiguity breaks, but stay away from gaps
+    val breaks = possibleBreaks filter { !_.nearAny(gaps, 300) }
     if ((Pilon.fixList contains 'local) && breaks.length > 0) {
       println("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
