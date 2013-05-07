@@ -40,7 +40,7 @@ object Pilon {
   var diploid = false
   var fixList = fixChoices
   var flank = 10
-  var gapMargin = 1000
+  var gapMargin = 100000
   var minMinDepth = 5
   var minGap = 10
   var minDepth = 0.1
@@ -236,7 +236,7 @@ object Pilon {
               Controls how much of the well-aligned reads will be used; this many bases at each
               end of the good reads will be ignored (default 10).
            --gapmargin
-              Closed gaps must be within this number of bases of true size to be closed (1000)
+              Closed gaps must be within this number of bases of true size to be closed (100000)
            --mindepth depth
               Variants (snps and indels) will only be called if there is coverage of good pairs
               at this depth or more; if this value is >= 1, it is an absolute depth, if it is a
