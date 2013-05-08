@@ -25,8 +25,8 @@ import net.sf.samtools._
 
 object GapFiller {
   val minExtend = 20
-  //val k = 2 * Assembler.K + 1
-  val k = Assembler.K
+  val k = 2 * Assembler.K + 1
+  //val k = Assembler.K
 }
 
 class GapFiller(val region: GenomeRegion) {
@@ -223,8 +223,8 @@ class GapFiller(val region: GenomeRegion) {
   
   def properOverlapScored(left: String, right: String, minOverlap: Int): String = {
     val matchScore = 1
-    val mismatchScore = -10
-    val scoreCutoff = -20
+    val mismatchScore = -50
+    val scoreCutoff = -100
     val minScore = Assembler.K
 
     def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Int = {
@@ -238,23 +238,34 @@ class GapFiller(val region: GenomeRegion) {
         } else score += matchScore
       score
     }
+
     val ll = left.length
     val rl = right.length
-    //println("pO: " + ll + " " + rl + " " + minOverlap)
+
+    var bestScore = 0
+    var bestLeft = 0
+    var bestRight = 0
+    var bestLen = 0
+
     for (overlap <- minOverlap to ll + rl - 2 * minOverlap) {
       val leftOffset = (ll - overlap) max 0
       val rightOffset = (overlap - ll) max 0
       val len = (ll - leftOffset) min (rl - rightOffset)
       //println(overlap + " " + leftOffset + " " + rightOffset + " " + len)
       val score = substrMatch(left, leftOffset, right, rightOffset, len)
-      if (score > minScore) {
-        if (Pilon.debug)
-          println("overlap: " + leftOffset + "/" + left.length + " " +
-                  rightOffset + "/" + right.length + " " + len + " " + score)
-        return left.substring(0, leftOffset) + right.substring(rightOffset)
+      if (score > bestScore) {
+        bestScore = score
+        bestLeft = leftOffset
+        bestRight = rightOffset
+        bestLen = len
       }
     }
-    ""
+    if (bestScore > 0) {
+      if (Pilon.debug)
+        println("overlap: " + bestLeft + "/" + left.length + " " +
+                bestRight + "/" + right.length + " " + bestLen + " " + bestScore)
+      left.substring(0, bestLeft) + right.substring(bestRight)
+    } else ""
   }
 
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
@@ -284,60 +295,6 @@ class GapFiller(val region: GenomeRegion) {
     ""
   }
 
-  def properOverlapBroken(left: String, right: String, minOverlap: Int): String = {
-    /*
-    val stopKmer = rightArg.substring(rightArg.length - Assembler.K)
-    val stopKmerIndex = leftArg.lastIndexOf(stopKmer)
-    val left = if (stopKmerIndex >= 0) leftArg.substring(0, stopKmerIndex + Assembler.K) else leftArg
-    if (Pilon.debug && left != leftArg) println("trimmed left:\n" + leftArg + "\n" + left)
-    val startKmer = left.substring(0, Assembler.K)
-    val startKmerIndex = rightArg.indexOf(startKmer)
-    val right = if (startKmerIndex >= 0) rightArg.substring(startKmerIndex) else rightArg
-    if (Pilon.debug && right != rightArg) println("trimmed right:\n" + rightArg + "\n" + right)
-    */
-    def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {
-      for (i <- 0 until len)
-        if (a(aOffset + i) != b(bOffset + i)) return false
-      return true
-    }
-    for (rightOffset <- 0 until right.length - minOverlap;
-         leftOffset <- left.length - minOverlap - 1 to 0 by -1) {
-      //val leftOffset = left.lastIndexOfSlice(right.slice(rightOffset, rightOffset + minOverlap))
-      val ll = left.length - leftOffset
-      val rl = right.length - rightOffset
-      val len = ll min rl
-      if (substrMatch(left, leftOffset, right, rightOffset, len)) {
-        if (Pilon.debug)
-          println("overlap: " + leftOffset + "/" + left.length + " " +
-            rightOffset + "/" + right.length + " " + len)
-        return left.substring(0, leftOffset) + right.substring(rightOffset)
-      }
-    }
-    ""
-  }
-
-
-  def properOverlapOld(left: String, right: String, minOverlap: Int): String = {
-    //for (leftOffset <- 0 until left.length if left.length - leftOffset >= minOverlap) {
-    for (leftOffset <- 0 until left.length - minOverlap) {
-      val rightOffset = right.indexOfSlice(left.slice(leftOffset, leftOffset + minOverlap))
-      if (rightOffset >= 0) {
-        val ll = left.length - leftOffset
-        val rl = right.length - rightOffset
-        val len = ll min rl
-        if (Pilon.debug) {
-          println("overlap: " + leftOffset + "/" + rightOffset + " " + len) 
-          println("L: " + left.slice(leftOffset, leftOffset+len))
-          println("R: " + right.slice(rightOffset, rightOffset+len))
-        }
-        if (len >= minOverlap && 
-            left.slice(leftOffset, leftOffset+len) == right.slice(rightOffset, rightOffset+len))
-          return left.substring(0, leftOffset) + right.substring(rightOffset)
-      }
-    }
-    ""
-  }
-  
   def trimPatch(startArg: Int, patchArg: String, stopArg: Int) = {
     var start = startArg
     var stop = stopArg

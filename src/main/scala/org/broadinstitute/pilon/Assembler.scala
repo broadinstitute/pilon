@@ -169,7 +169,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     Nil
   }
 
-  def pathsForward(startingKmer: String) : List[String] = {
+  def pathsForward(startingKmer: String): List[String] = {
     require(startingKmer.length == K, "starting kmer must be size K")
     if (kGraph.isEmpty) buildGraph
     if (Pilon.debug) print("pathsForward: " + startingKmer)
@@ -180,6 +180,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       paths foreach {p => println("  [" + p.length + "]" + p)}
     }
     paths
+  }
+
+  def pathsReverse(startingKmer: String): List[String] = {
+    val paths = pathsForward(Bases.reverseComplement(startingKmer))
+    paths map {Bases.reverseComplement(_)}
   }
 
   def tryForward(anchor: String): List[String] = {
@@ -212,187 +217,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     (pathsForward, pathsReverse)
   }
 
-  def pathForward(kmersIn: List[String], target: String, forks: Int): List[String] = {
-    var kmers = kmersIn
-    def debug(s: String, kmerPath: List[String] = kmers) = {
-      if (Pilon.debug) {
-        val ks = kmerPathString(kmerPath)
-        for (i <- 1 to forks) print("  ")
-        println(s + "[(" + ks.length + ")" + ks + "]")
-      }
-    }
-    while (true) {
-      val kmer = kmers.head
-      //if (target.indexOf(kmer) >= 99999999) {
 
-      /*
-      if (kmer == target) {
-        debug("pFw:target ")
-        return kmers
-      }
-      */
-      if (!(pileups contains kmer)) {
-	    // we're off the graph, so punt!
-	    debug("pFw:off ")
-        return kmers
-      }
-      val seen0 = kmers.tail count {_ == kmer}
-      val pu = pileups(kmer)
-      val bc = pu.baseCall
-      val prefix = kmer.substring(1)
-      if (seen0 > 1 || forks > 10) {
-    	// chop off most recent kmer, as we don't want to go around again!
-        val repeatStart = kmers.tail.indexOf(kmer)
-    	if (Pilon.debug) {
-    	  val repeatKmers = kmers.slice(0, repeatStart)
-    	  val repeatStr = kmerPathString(repeatKmers)
-    	  debug("pFw: loop " + seen0 + " " + forks +
-    			  	" (" + repeatStr.length + ")" + repeatStr)          
-    	}
-
-    	return kmers.tail //tail drop repeatStart+1
-      } else if (pu.depth < Assembler.minDepth) { // TODO: fixed depth or computed?
-        // not enough depth to move forward
-        debug("pFw: " + pu)
-        return kmers
-      } else if (bc.homo) {
-        // no-brainer: only one path forward
-        val newKmer = prefix + bc.base
-        kmers ::= newKmer
-      } else {
-        // two choices forward: we choose based on where we've been before
-        val newKmer1 = prefix + bc.base
-        val newKmer2 = prefix + bc.altBase
-        if (seen0 > 0) {
-          // if we've been here before and we have two ways forward, let's see
-          // what we've explored
-          val seen1 = kmers contains newKmer1
-          val seen2 = kmers contains newKmer2
-          if (Pilon.debug) {
-            val repeatStart = kmers.tail.indexOf(kmer)
-            val repeatKmers = kmers.slice(0, repeatStart)
-            val repeatStr = kmerPathString(repeatKmers)
-            debug("pFw: loop " + seen0 + "," + seen1 + "," + seen2 + " " + forks +
-               " (" + repeatStr.length + ")" + repeatStr)
-          }
-          if (seen1) {
-            // we've already taken 1st branch, so try extending with 2nd 
-            // if we haven't already
-            if (seen2) {
-       	      debug("pFw:s1+2 " + pu)
-              return kmers
-            } else
-              kmers ::= newKmer2
-          } else if (seen2) {
-            // likewise, if we've been through 2nd, try 1st if we haven't
-            kmers ::= newKmer1
-          } else {
-            // shouldn't happen; if we've seen this kmer, we should have moved forward
-            assert(false, "shouldn't happen")
-            return kmers
-          }
-        } else {
-          // we haven't been here, but two ways forward: try both and take longest extension
-          debug("pFw:forkA " + pu + " " + forks)
-          val path1 = pathForward(newKmer1 :: kmers, target, forks + 1)
-          debug("pFw:forkB")
-          val path2 = pathForward(newKmer2 :: kmers, target, forks + 1)
-          debug("A:", path1)
-          debug("B:", path2)
-          val hit1 = target.indexOf(path1.head) >= 0
-          val hit2 = target.indexOf(path2.head) >= 0
-          if (hit1 && !hit2) return path1 
-          else if (hit2 && !hit1) return path2
-          else
-            if (path1.length >= path2.length) return path1
-          else return path2
-        }
-      }
-    }
-    kmers
-  }
-  
-  def pathForward(startingKmer: String, target: String = "") : String = {
-    require(startingKmer.length == K, "starting kmer must be size K")
-    val path = pathForward(List(startingKmer), target, 0)
-    val bases = kmerPathString(path)
-    if (Pilon.debug) println("pFw:" + bases.length + " " + bases)
-    if (Pilon.debug) print("pathsForward:")
-    bases
-  }
-
-  def pathForwardOld(anchor: String, kmersVisited: HashSet[String] = HashSet()): String = {
-    val startingKmer = anchor.slice(anchor.length - K, anchor.length)
-    if (pileups contains startingKmer) {
-      if (kmersVisited contains startingKmer) {
-        anchor
-      } else {
-        val pu = pileups(startingKmer)
-        val bc = pu.baseCall
-        //if (bc.homo && !bc.indel && pu.depth >= GapFiller.minDepth) {
-        if (pu.depth >= Assembler.minDepth && // TODO: fixed depth or computed?
-          (bc.homo || (Pilon.diploid && bc.majority))) {
-          kmersVisited += startingKmer
-          pathForwardOld(anchor + bc.base, kmersVisited)
-        } else {
-          anchor
-        }
-      }
-    } else {
-      anchor
-    }
-  }
-
-  def pathReverse(anchor: String, target: String = ""): String = {
-    val rcAnchor = Bases.reverseComplement(anchor)
-    //val path = pathForward(rcAnchor, kmersVisited)
-    val path = pathForward(rcAnchor)
-    Bases.reverseComplement(path)
-  }
-
-  def tryForward(anchor: String, target: String = ""): String = {
-    var longest = ""
-    var longestFull = ""
-    val anchorK = anchor.length / K
-    for (offsetK <- 0 until (anchorK min 2)) {
-      val offset = K * offsetK
-      val start = anchor.slice(offset, offset + K)
-      if (Pilon.debug) println("tryForward o=" + offset + " " + start)
-      val path = pathForward(start, target)
-      if (Pilon.debug) {
-    	  val pathOld = pathForwardOld(start)
-    	  if (pathOld.length != path.length)
-    	    println("pFw: new " + path.length + " old " + pathOld.length)
-      } 
-      val fullPath = anchor.slice(0, offset) + path
-      // If we make it sufficiently beyond our starting point, call it good
-      if (fullPath.length > anchor.length + Assembler.minExtend)
-        return fullPath
-      if (path.length > longest.length) {
-        longest = path
-        longestFull = fullPath
-      }
-    }
-    //anchor
-    longestFull
-  }
-
-
-  def tryReverse(anchor: String, target: String = "") = {
-    if (Pilon.debug) println("tryReverse")
-    val rcAnchor = Bases.reverseComplement(anchor)
-    val rcTarget = Bases.reverseComplement(target)
-    val path = tryForward(rcAnchor, rcTarget)
-    Bases.reverseComplement(path)
-  }
-
-  def bridge(left: String, right: String) = {
-    val pathForward = tryForward(left, right.substring(right.length - K))
-    if (Pilon.debug) println("bridgeF:(" + pathForward.length + ")" + pathForward)
-    val pathReverse = tryReverse(right, left.substring(0, K))
-    if (Pilon.debug) println("bridgeR:(" + pathReverse.length + ")" + pathReverse)
-    (pathForward, pathReverse)
-  }
 
   def novel: List[String] = {
     println("Assembling novel sequence: " + this)
@@ -404,8 +229,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     for (kmer <- pileups.keysIterator) {
       if (!(usedKmers contains kmer)) {
         var dup = false
-        val forward = pathForward(kmer)
-        val reverse = pathReverse(kmer)
+        val forwards = pathsForward(kmer)
+        val reverses = pathsReverse(kmer)
+        val forward = if (forwards.isEmpty) ""  else forwards.head
+        val reverse = if (reverses.isEmpty) ""  else reverses.head
         val path = reverse + forward.substring(K)
         path.sliding(K) foreach { k =>
           if (usedKmers contains kmer)
