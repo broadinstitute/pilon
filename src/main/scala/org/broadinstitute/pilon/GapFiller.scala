@@ -199,7 +199,7 @@ class GapFiller(val region: GenomeRegion) {
       //println("forward=" + forward.length + " reverse=" + reverse.length)
       //println("F:" + forward)
       //println("R:" + reverse)
-      println("P:" + patch)
+      if (patch != "") println("P:" + patch)
     }
 
     if (patch != "") {
@@ -221,6 +221,42 @@ class GapFiller(val region: GenomeRegion) {
     }
   }
   
+  def properOverlapScored(left: String, right: String, minOverlap: Int): String = {
+    val matchScore = 1
+    val mismatchScore = -10
+    val scoreCutoff = -20
+    val minScore = Assembler.K
+
+    def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Int = {
+      var score = 0
+      //println(a.slice(aOffset, aOffset+len))
+      //println(b.slice(bOffset, bOffset+len))
+      for (i <- 0 until len)
+        if (a(aOffset + i) != b(bOffset + i)) {
+          score += mismatchScore
+          if (score < scoreCutoff) return score
+        } else score += matchScore
+      score
+    }
+    val ll = left.length
+    val rl = right.length
+    //println("pO: " + ll + " " + rl + " " + minOverlap)
+    for (overlap <- minOverlap to ll + rl - 2 * minOverlap) {
+      val leftOffset = (ll - overlap) max 0
+      val rightOffset = (overlap - ll) max 0
+      val len = (ll - leftOffset) min (rl - rightOffset)
+      //println(overlap + " " + leftOffset + " " + rightOffset + " " + len)
+      val score = substrMatch(left, leftOffset, right, rightOffset, len)
+      if (score > minScore) {
+        if (Pilon.debug)
+          println("overlap: " + leftOffset + "/" + left.length + " " +
+                  rightOffset + "/" + right.length + " " + len + " " + score)
+        return left.substring(0, leftOffset) + right.substring(rightOffset)
+      }
+    }
+    ""
+  }
+
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
 
     def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {
@@ -241,7 +277,7 @@ class GapFiller(val region: GenomeRegion) {
       if (substrMatch(left, leftOffset, right, rightOffset, len)) {
         if (Pilon.debug)
           println("overlap: " + leftOffset + "/" + left.length + " " +
-                  rightOffset + "/" + right.length + " " + len)
+            rightOffset + "/" + right.length + " " + len)
         return left.substring(0, leftOffset) + right.substring(rightOffset)
       }
     }
