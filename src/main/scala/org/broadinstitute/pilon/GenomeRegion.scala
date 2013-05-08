@@ -349,7 +349,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val regStr = reg.start.toString + "(" + reg.size.toString + ")"
     val regType = if (gapSize > 0) "gap" else "break"
     print("fix " + regType + ": " + name + " " + regStr +
-        " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
+          " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
+    //print("fix " + regType + ": " + reg +
+    //      " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
@@ -561,7 +563,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (pctBad(i) >= 50) || (dipFraction(i) >= 1.5)
-  def possibleBreaks = summaryRegions(breakp)
+  def possibleBreaks = summaryRegions(breakp, 300)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
   def possibleInsertions = summaryRegions(insertionp)

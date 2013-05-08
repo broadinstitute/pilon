@@ -40,5 +40,6 @@ class Region(val name: String, val start: Int, val stop: Int) {
   def nearAny(others: List[Region], distance: Int = 100) = others.exists({_.near(this, distance)})
   def regionString = name + ":" + start + (if (size < 2) "" else "-" + stop)
   override def toString = "<Region " + regionString + ">"
+  //override def toString = regionString
 }
 
