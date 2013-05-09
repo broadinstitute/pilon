@@ -127,6 +127,7 @@ object Pilon {
         optionParse(tail)
       case "--multiclosure" :: tail =>
         multiClosure = true
+        optionParse(tail)
       case "--output" :: value :: tail =>
         prefix = value
         optionParse(tail)
@@ -147,6 +148,7 @@ object Pilon {
         vcf = true
         fixList ::= 'breaks
         multiClosure = true
+        optionParse(tail)
       case "--vcf" :: tail =>
         vcf = true
         optionParse(tail)
