@@ -221,7 +221,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Pass 2: computed values
     val baseCov = fragCoverageDist.mean
-    println("Frag cov mean=" + baseCov + ", median=" + fragCoverageDist.median)
+    if (Pilon.verbose)
+      println("Frag coverage mean=" + baseCov + ", median=" + fragCoverageDist.median)
     val smoothCov = smooth(fragCoverage, 200)
     for (i <- 0 until size) {
       val n = smoothCov(i)
@@ -348,10 +349,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nonGapPatch = patch.length - nPatch
     val regStr = reg.start.toString + "(" + reg.size.toString + ")"
     val regType = if (gapSize > 0) "gap" else "break"
-    print("fix " + regType + ": " + name + " " + regStr +
-          " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
-    //print("fix " + regType + ": " + reg +
+    //print("fix " + regType + ": " + name + " " + regStr +
     //      " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
+    print("fix " + regType + ": " + reg +
+          " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
     	print(" " + (if (ref.length > 0) ref else "."))
     	print(" " + (if (patch.length > 0) patch else "."))
