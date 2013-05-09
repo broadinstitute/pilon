@@ -264,5 +264,5 @@ object Pilon {
               For local reassembly to close gaps or fix contiguity breaks, consider multiple
               possible closures and try to pick the best. Default will not close if multiple
               possibilities are found.
-             """
+"""
 }
