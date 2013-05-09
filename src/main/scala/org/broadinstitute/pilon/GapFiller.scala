@@ -183,11 +183,19 @@ class GapFiller(val region: GenomeRegion) {
       }
     }
     val solutions = solutionSet.toList sortWith { (a,b) => a._3.length - a._2.length > b._3.length - b._2.length }
+    var solutionLengths = Set[Int]()
+    solutions map {s => solutionLengths += s._3.length - s._2.length}
+
     if (Pilon.debug) {
-      println("breakJoins: " + solutions.length + " solutions")
+      println("breakJoins: " + solutions.length + " solutions; lengths " + solutionLengths)
       for (s <- solutions) println("  " + s)
     }
-    solutions
+    if (solutionLengths.size == 1) {
+      if (Pilon.debug) println("...all solutions of same length, using first above")
+      List(solutions.head)
+    } else{
+      solutions
+    }
   }
   
   def joinBreak(startArg: Int, forward: String, reverse: String, stopArg: Int) = {

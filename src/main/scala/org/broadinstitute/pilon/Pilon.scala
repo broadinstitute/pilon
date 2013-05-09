@@ -125,7 +125,7 @@ object Pilon {
       case "--minqual" :: value :: tail =>
         minQual = value.toInt
         optionParse(tail)
-      case "--multiclosure" :: tail =>
+      case "--multiclosure" :: tail =>      // undocumented experimental option
         multiClosure = true
         optionParse(tail)
       case "--output" :: value :: tail =>
@@ -147,8 +147,8 @@ object Pilon {
         // variant calling mode
         vcf = true
         fixList ::= 'breaks
-        multiClosure = true
         optionParse(tail)
+        //multiClosure = true
       case "--vcf" :: tail =>
         vcf = true
         optionParse(tail)
@@ -219,7 +219,7 @@ object Pilon {
          CONTROL:
            --variant
               Sets up heuristics for variant calling, as opposed to assembly improvement;
-              equivalent to "--vcf --fix all,breaks --multiclosure".
+              equivalent to "--vcf --fix all,breaks".
            --diploid
               Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
@@ -260,9 +260,5 @@ object Pilon {
               Minimum size for unclosed gaps (default 10)
            --minqual
               Minimum base quality to consider for pileups (default 0)
-           --multiclosure
-              For local reassembly to close gaps or fix contiguity breaks, consider multiple
-              possible closures and try to pick the best. Default will not close if multiple
-              possibilities are found.
 """
 }
