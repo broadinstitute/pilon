@@ -34,7 +34,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##reference=" + ref)
     for ((c, s) <- contigsWithSizes)
       writer.println("##contig=<ID=" + c + ",length=" + s + ">")
-    writer.println("##FILTER=<ID=LowConf,Description=\"Low Confidence Call\">")
+    //writer.println("##FILTER=<ID=LowConf,Description=\"Low Confidence Call\">")
     writer.println("##FILTER=<ID=LowCov,Description=\"Low Coverage of good reads at location\">")
     //writer.println("##FILTER=<ID=LowMQ,Description=\"Low mean mapping quality at location\">")
     writer.println("##FILTER=<ID=Amb,Description=\"Ambiguous evidence in haploid genome\">")
