@@ -41,8 +41,10 @@ class GapFiller(val region: GenomeRegion) {
     //val solution = joinBreak(start, right, left, stop)
     val solutions = breakJoins(start, rights, lefts, stop)
     //if (Pilon.debug) println("S:" + seq.size + ": " + seq)
-    //val solution = if (solutions.isEmpty) noSolution else solutions.head
-    val solution = if (solutions.length == 1) solutions(0) else noSolution
+    val solution =
+      if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
+      else noSolution
+    //val solution = if (solutions.length == 1) solutions(0) else noSolution
     if (solution != noSolution) solution
     else if (Pilon.fixList contains 'breaks) {
       val left = consensusRight(lefts)
@@ -75,8 +77,9 @@ class GapFiller(val region: GenomeRegion) {
     val (start, rights, lefts, stop) = assembleIntoBreak(gap, reads)
     //val solution = joinBreak(start, right, left, stop)
     val solutions = breakJoins(start, rights, lefts, stop)
-    //val solution = if (solutions.isEmpty) noSolution else solutions.head
-    val solution = if (solutions.length == 1) solutions(0) else noSolution
+    val solution =
+      if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
+      else noSolution
     var gapOk = false
     if (solution != noSolution) {
       // Sanity check gap margin; must be within gapMargin bases

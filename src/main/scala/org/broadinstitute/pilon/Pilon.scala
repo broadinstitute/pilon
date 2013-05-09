@@ -45,6 +45,7 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
+  var multiClosure = false
   var pf = false
   var strays = true
   
@@ -124,6 +125,8 @@ object Pilon {
       case "--minqual" :: value :: tail =>
         minQual = value.toInt
         optionParse(tail)
+      case "--multiclosure" :: tail =>
+        multiClosure = true
       case "--output" :: value :: tail =>
         prefix = value
         optionParse(tail)
@@ -139,6 +142,11 @@ object Pilon {
       case "--unpaired" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'unpaired)
         optionParse(tail)
+      case "--variant" :: tail =>
+        // variant calling mode
+        vcf = true
+        fixList ::= 'breaks
+        multiClosure = true
       case "--vcf" :: tail =>
         vcf = true
         optionParse(tail)
@@ -207,6 +215,9 @@ object Pilon {
               This options will cause many track files (*.bed, *.wig) suitable for viewing in
               IGV to be written.
          CONTROL:
+           --variant
+              Sets up heuristics for variant calling, as opposed to assembly improvement;
+              equivalent to "--vcf --fix all,breaks --multiclosure".
            --diploid
               Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
@@ -247,5 +258,9 @@ object Pilon {
               Minimum size for unclosed gaps (default 10)
            --minqual
               Minimum base quality to consider for pileups (default 0)
+           --multiclosure
+              For local reassembly to close gaps or fix contiguity breaks, consider multiple
+              possible closures and try to pick the best. Default will not close if multiple
+              possibilities are found.
              """
 }
