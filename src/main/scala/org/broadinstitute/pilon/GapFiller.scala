@@ -36,7 +36,7 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose) println("#fixBreak: " + break)
     //val reads = if (break.size < 100) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
-    // TODO: fix totally non-intuitive use of left and right
+    // TODO: fix totally non-intuitive use of left and right!!!!
     var (start, rights, lefts, stop) = assembleIntoBreak(break, reads)
     //val solution = joinBreak(start, right, left, stop)
     val solutions = breakJoins(start, rights, lefts, stop)
