@@ -24,8 +24,8 @@ package org.broadinstitute.pilon
 //
 
 object Version {
-  val sbt = "[SBT VERSION]"
+  val sbt = "[VERSION]"
   val date = "[DATE]"
-  val svn = "[SVN VERSION]"
-  def version = "Pilon version " + sbt + " svn " + svn + " " + date
+  val commit = "[COMMIT]"
+  def version = "Pilon version " + sbt + " commit " + commit + " " + date
 }
