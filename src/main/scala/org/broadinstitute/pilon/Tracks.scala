@@ -34,24 +34,24 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   def standardTracks = {
     makeBedTrack("Pilon.bed", "Pilon")
     changesTrack("Changes.wig")
-    confirmedTrack("Confirmed.wig")
+    unconfirmedTrack("Unconfirmed.wig")
     copyNumberTrack("CopyNumber.wig")
     coverageTrack("Coverage.wig")
-    coverageTrackSD("CoverageSD.wig")
     badCoverageTrack("BadCoverage.wig")
-    badCoverageTrackSD("BadCoverageSD.wig")
+    pctBadTrack("PctBad.wig")
+    //coverageTrackSD("CoverageSD.wig")
+    //badCoverageTrackSD("BadCoverageSD.wig")
     deltaCoverageTrack("DeltaCoverage.wig")
     dipCoverageTrack("DipCoverage.wig")
-    fragCoverageTrack("FragCoverage.wig")
+    //fragCoverageTrack("FragCoverage.wig")
     physicalCoverageTrack("PhysicalCoverage.wig")
-    physicalCoverageTrackSD("PhysicalCoverageSD.wig")
-    gcTrack("GC.wig")
-    insertSizeTrack("InsertSize.wig")
-    insertSizeTrackSD("InsertSizeSD.wig")
-    pctBadTrack("PctBad.wig")
+    //physicalCoverageTrackSD("PhysicalCoverageSD.wig")
+    //insertSizeTrack("InsertSize.wig")
+    //insertSizeTrackSD("InsertSizeSD.wig")
+    clippedAlignmentTrack("ClippedAlignments.wig")
     weightedQualTrack("WeightedQual.wig")
     weightedMqTrack("WeightedMq.wig")
-    clippedAlignmentTrack("ClippedAlignments.wig")
+    gcTrack("GC.wig")
     //kmerCopyNumberTrack("KmerCopyNumber.wig")
   }
   
@@ -60,7 +60,7 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
         { (r: GenomeRegion, i: Int) => if (r.changed(i)) 1 else 0 })
   }
 
-  def confirmedTrack(file: String) = {
+  def unconfirmedTrack(file: String) = {
     makeTrack(file, "Unconfirmed", 
         { (r: GenomeRegion, i: Int) => if (r.confirmed(i)) 0 else 1 })
   }
