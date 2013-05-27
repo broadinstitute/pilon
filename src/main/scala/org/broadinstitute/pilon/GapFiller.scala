@@ -32,45 +32,58 @@ object GapFiller {
 class GapFiller(val region: GenomeRegion) {
   val noSolution = (0, "", "")
 
+  def fillGap(gap: Region) = {
+    if (Pilon.verbose) println("# Filling gap " + gap)
+    assembleAcrossBreak(gap, true)
+  }
+
   def fixBreak(break: Region) = {
     if (Pilon.verbose) println("#fixBreak: " + break)
-    //val reads = if (break.size < 100) recruitLocalReads(break) else recruitReads(break)
-    val reads = recruitReads(break)
-    // TODO: fix totally non-intuitive use of left and right!!!!
-    var (start, rights, lefts, stop) = assembleIntoBreak(break, reads)
-    //val solution = joinBreak(start, right, left, stop)
-    val solutions = breakJoins(start, rights, lefts, stop)
-    //if (Pilon.debug) println("S:" + seq.size + ": " + seq)
+    assembleAcrossBreak(break, false)
+  }
+
+  def assembleAcrossBreak(break: Region, isGap: Boolean) = {
+    val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
+    //val reads = recruitReads(break)
+    var (start, pathsFromLeft, pathsFromRight, stop) = assembleIntoBreak(break, reads)
+    val solutions = breakJoins(start, pathsFromLeft, pathsFromRight, stop)
     val solution =
       if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
       else noSolution
-    //val solution = if (solutions.length == 1) solutions(0) else noSolution
-    if (solution != noSolution) solution
-    else if (Pilon.fixList contains 'breaks) {
-      val left = consensusRight(lefts)
-      val right = consensusLeft(rights)
+    var solutionOK = (solution != noSolution)
+    if (solutionOK && isGap) {
+      // Sanity check gap margin; must be within gapMargin bases of original gap size
+      val closedLength = solution._3.length
+      val closedDiff = (closedLength - break.size).abs
+      if (closedDiff > Pilon.gapMargin) solutionOK = false
+      else if (Pilon.debug) println("Gap closed but bad size: " + break + " " + closedLength)
+    }
+    if (solutionOK) solution
+    else if (isGap || (Pilon.fixList contains 'breaks)) {
+      // build partial solution using consensus from each side, opening gap if necessary
+      val fromRight = consensusFromRight(pathsFromRight)
+      val fromLeft = consensusFromLeft(pathsFromLeft)
       if (Pilon.debug) {
-        println("consensusL: " + left)
-        println("consensusR: " + right)
+        println("consensusL: " + fromLeft)
+        println("consensusR: " + fromRight)
       }
-      val newStart = start + right.length
-      val newStop = stop - left.length
+      val newStart = start + fromLeft.length
+      val newStop = stop - fromRight.length
       // To be worthy, one side or the other must have extended a non-trivial amount
       if (newStart >= break.start + GapFiller.minExtend ||
-          newStop <= break.stop - GapFiller.minExtend) {
+        newStop <= break.stop - GapFiller.minExtend) {
         if (Pilon.debug) println((break.start, break.stop, newStart, newStop))
-        val newGapLength = Pilon.minGap //max (newStop - newStart)
+        val newGapLength = if (isGap) (Pilon.minGap max (newStop - newStart)) else Pilon.minGap
         val newGap = (1 to newGapLength) map {_ => "N"} mkString("")
-        val seq = right + newGap + left
+        val seq = fromLeft + newGap + fromRight
         if (Pilon.debug) println("S:" + seq.size + ": " + seq)
         val solution = trimPatch(start, seq, stop)
-        if (solution._3 != "") solution 
-        else noSolution
+        if (solution._3 != "") solution else noSolution
       } else noSolution
     } else noSolution
-  }  
+  }
   
-  def fillGap(gap: Region) = {
+  def fillGapOld(gap: Region) = {
     if (Pilon.verbose) println("# Filling gap " + gap)
     val reads = if (gap.size < 100) recruitLocalReads(gap) else recruitReads(gap)
     //val reads = recruitReads(gap)
@@ -92,8 +105,8 @@ class GapFiller(val region: GenomeRegion) {
       if (Pilon.debug) println("Closed gap " + gap)
       solution
     } else {
-      val left = consensusRight(lefts)
-      val right = consensusLeft(rights)
+      val left = consensusFromRight(lefts)
+      val right = consensusFromLeft(rights)
       if (Pilon.debug) {
         println("consensusL: " + left)
         println("consensusR: " + right)
@@ -112,13 +125,8 @@ class GapFiller(val region: GenomeRegion) {
       } else noSolution
     }
   }
-  
-  def fill(region: Region) = {
-    if (region.size >= 100) fillGap(region)
-    else fixBreak(region)
-  }
 
-  def consensusLeft(seqs: List[String]): String = {
+  def consensusFromLeft(seqs: List[String]): String = {
     val s0 = seqs.head
     if (seqs.length == 1) return s0
     val minLength = (seqs map {_.length}).min
@@ -128,7 +136,7 @@ class GapFiller(val region: GenomeRegion) {
     return s0.substring(0, minLength)
   }
 
-  def consensusRight(seqs: List[String]): String = {
+  def consensusFromRight(seqs: List[String]): String = {
     val s0 = seqs.head
     if (seqs.length == 1) return s0
     val minLength = (seqs map {_.length}).min
