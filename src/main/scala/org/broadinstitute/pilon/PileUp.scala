@@ -61,12 +61,13 @@ class PileUp {
   }
   
   def meanQual = {
-    roundDiv(qualSum.sum, mqSum)
+    // scale mqSum by count/depth because mqSum includes deletions
+    roundDiv(qualSum.sum, roundDiv(mqSum * count, depth))
   }
 
   // In all the mq handling, note that we use mq+1 internally to avoid ignoring mq0
   def meanMq = {
-    roundDiv(mqSum - count, count)
+    roundDiv(mqSum - depth, depth)
   }
  
   // add a base to the stack
@@ -94,7 +95,7 @@ class PileUp {
   }
   
   def addInsertion(insertion: Array[Byte], qual: Int, mq: Int) = {
-	val mq1 = mq + 1
+	  val mq1 = mq + 1
     insQual += mq1
     //mqSum += mq1 //don't add twice...already have a base here!
     qSum += qual
@@ -103,12 +104,12 @@ class PileUp {
   }
   
   def addDeletion(deletion: Array[Byte], qual: Int, mq: Int) = {
-	val mq1 = mq + 1
+	  val mq1 = mq + 1
     mqSum += mq1
-	delQual += mq1
+	  delQual += mq1
     qSum += qual
-	deletionList ::= deletion
-    deletions += 1 
+	  deletionList ::= deletion
+    deletions += 1
   }
   
   def totalQSum = qualSum.sum + insQual + delQual
