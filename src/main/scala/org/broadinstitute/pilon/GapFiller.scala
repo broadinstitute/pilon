@@ -43,8 +43,8 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def assembleAcrossBreak(break: Region, isGap: Boolean) = {
-    val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
-    //val reads = recruitReads(break)
+    //val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
+    val reads = recruitReads(break)
     var (start, pathsFromLeft, pathsFromRight, stop) = assembleIntoBreak(break, reads)
     val solutions = breakJoins(start, pathsFromLeft, pathsFromRight, stop)
     val solution =
