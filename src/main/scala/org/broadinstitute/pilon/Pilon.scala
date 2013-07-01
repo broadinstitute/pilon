@@ -230,7 +230,7 @@ object Pilon {
               "local": try to detect and fix local misassemblies;
               "all": all of the above (default);
               "none": none of the above; new fasta file will not be written.
-    		  The following are experimental fix types:
+    		      The following are experimental fix types:
               "breaks": allow local reassembly to open new gaps (with "local").
               "novel": assemble novel sequence from unaligned non-jump reads.
            --pf
@@ -260,5 +260,11 @@ object Pilon {
               Minimum size for unclosed gaps (default 10)
            --minqual
               Minimum base quality to consider for pileups (default 0)
+           --nostrays
+              Skip making a pass through the input BAM files to identify stray pairs, that is,
+              those pairs in which both reads are aligned but not marked valid because they have
+              inconsistent orientation or separation. Identifying stray pairs can help fill gaps
+              and assemble larger insertions, especially of repeat content.  However, doing so
+              sometimes consumes considerable memory.
 """
 }
