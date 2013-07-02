@@ -81,7 +81,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     bamFiles foreach validateBam
 
     if (Pilon.strays)
-      for (bam <- bamFiles) bam.buildStrayMateMap
+      for (bam <- bamFiles)
+        if (bam.bamType != 'unpaired)
+          bam.buildStrayMateMap
 
     val changesFile = Pilon.outputFile(".changes")
     val changesWriter = if (Pilon.changes)
