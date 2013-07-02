@@ -107,7 +107,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val length = r.getReadLength
     val bases = r.getReadBases
     val paired = r.getReadPairedFlag
-    val valid = ((r.getProperPairFlag && r.getReferenceIndex == r.getMateReferenceIndex) || !paired)
+    val valid = (!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex))
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
     val aEnd = r.getAlignmentEnd
