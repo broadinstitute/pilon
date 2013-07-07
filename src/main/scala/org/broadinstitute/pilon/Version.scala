@@ -27,5 +27,5 @@ object Version {
   val sbt = "[VERSION]"
   val date = "[DATE]"
   val commit = "[COMMIT]"
-  def version = "Pilon version " + sbt + " commit " + commit + " " + date
+  def version = "Pilon version " + commit + " " + date
 }
