@@ -1,7 +1,7 @@
 #!/bin/sh
 version=`grep ^version build.sbt |sed -e 's/.*\"\(.*\)\"/\\1/'`
 date=`date`
-commit=`git describe`
+commit=`git describe | sed -e 's/^v//'`
 commitdate=`git log -n1 | grep '^Date' | sed -e 's/Date: *\(.*\)/\\1/'`
 tmp=Version.scala.tmp
 f=`find . -name Version.scala`
