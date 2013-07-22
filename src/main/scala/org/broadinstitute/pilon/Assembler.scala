@@ -28,7 +28,7 @@ object Assembler {
   val minGap = 10
   val minExtend = 20
   val minNovel = 200
-  val maxBranches = 5
+  val maxBranches = 10
   type Kmer = String
   type KmerPileup = HashMap[Kmer, PileUp]
   type KmerGraph = HashMap[Kmer, (Kmer,Int)]
@@ -152,8 +152,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         else if (seen1 && !seen2) kmers ::= next2
         else if (seen2 && !seen1) kmers ::= next1
         else {
-          return kmerPathsForward(next1 :: kmers, branches + 1) ++
-            kmerPathsForward(next2 :: kmers, branches + 1)
+          if (Pilon.debug) println("branch " + branches + " " + next1 + " " + next2)
+          if (branches < maxBranches)
+            return kmerPathsForward(next1 :: kmers, branches + 1) ++
+              kmerPathsForward(next2 :: kmers, branches + 1)
+          else return List(kmers)
         }
       } else {
         // only one way forward
