@@ -116,6 +116,9 @@ object Pilon {
       case "--jumps" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'jumps)
         optionParse(tail)
+      case "--K" :: value :: tail =>
+        Assembler.K = value.toInt
+        optionParse(tail)
       case "--mindepth" :: value :: tail =>
         minDepth = value.toDouble
         optionParse(tail)
@@ -250,6 +253,8 @@ object Pilon {
               end of the good reads will be ignored (default 10).
            --gapmargin
               Closed gaps must be within this number of bases of true size to be closed (100000)
+           --K
+              Kmer size used by internal assembler (default 47).
            --mindepth depth
               Variants (snps and indels) will only be called if there is coverage of good pairs
               at this depth or more; if this value is >= 1, it is an absolute depth, if it is a
@@ -266,5 +271,5 @@ object Pilon {
               inconsistent orientation or separation. Identifying stray pairs can help fill gaps
               and assemble larger insertions, especially of repeat content.  However, doing so
               sometimes consumes considerable memory.
-"""
+             """
 }

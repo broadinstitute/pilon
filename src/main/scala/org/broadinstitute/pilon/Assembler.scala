@@ -23,9 +23,8 @@ import collection.mutable.{ Map, HashMap, Set, HashSet }
 import net.sf.samtools._
 
 object Assembler {
-  val K = 47
+  var K = 47
   val minDepth = 5
-  val minGap = 10
   val minExtend = 20
   val minNovel = 200
   val maxBranches = 5
