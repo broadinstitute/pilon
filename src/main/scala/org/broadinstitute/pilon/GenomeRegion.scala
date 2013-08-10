@@ -305,7 +305,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     
     // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
     // We can't change coords here, though, so no indels!
-    fixIssues(snpFixList)
+    if (Pilon.fixList contains 'bases)
+      fixIssues(snpFixList)
 
     // Try to fill gaps
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {

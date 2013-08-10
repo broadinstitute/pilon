@@ -26,8 +26,9 @@ object Assembler {
   var K = 47
   val minDepth = 5
   val minExtend = 20
-  val minNovel = 200
   val maxBranches = 5
+  val minNovel = 200
+  val minNovelPct = 50
   type Kmer = String
   type KmerPileup = HashMap[Kmer, PileUp]
   type KmerGraph = HashMap[Kmer, (Kmer,Int)]
@@ -77,6 +78,16 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         pileups(kmer) = new PileUp
       pileups(kmer).add(bases(offset + K), quals(offset + K), mq)
     }
+  }
+
+  // Used to create an assembly graph from sequence, e.g., contigs.
+  // Uses fake base and mapping qualities.
+  def addSeq(bases: String) = {
+    val mq = 10
+    val quals = Array.fill(bases.length) { 10.toByte }
+    addToPileups(bases, quals, mq)
+    val rcBases = Bases.reverseComplement(bases)
+    addToPileups(rcBases, quals, mq)
   }
 
   def buildGraph = {
@@ -221,8 +232,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
 
 
 
-  def novel: List[String] = {
-    println("Assembling novel sequence: " + this)
+  def novel(ref: Assembler): List[String] = {
+    def novelKmers(seq: String) = seq.sliding(K) count { !ref.pileups.contains(_)  }
+
+    if (Pilon.verbose) println("Assembling novel sequence: " + this + ", ref " + ref)
     prunePileups()
     var usedKmers = HashSet[String]()
     var paths: List[String] = List()
@@ -230,28 +243,28 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
 
     for (kmer <- pileups.keysIterator) {
       if (!(usedKmers contains kmer)) {
-        var dup = false
         val forwards = pathsForward(kmer)
         val reverses = pathsReverse(kmer)
         val forward = if (forwards.isEmpty) ""  else forwards.head
         val reverse = if (reverses.isEmpty) ""  else reverses.head
         val path = reverse + forward.substring(K)
         path.sliding(K) foreach { k =>
-          if (usedKmers contains kmer)
-            dup = true
           usedKmers += k
           usedKmers += Bases.reverseComplement(k)
         }
-        if (!dup && path.length > Assembler.minNovel) {
+        val kLength = path.length - (K - 1)
+        val novel = novelKmers(path)
+        val novelPct = Utils.pct(novel, kLength)
+        if (novel >= minNovel && novelPct >= minNovelPct) {
           paths ::= path
-          println("novel " + path.length + " " + path)
+          if (Pilon.verbose) println("novel " + path.length + " " + novelPct + "% " + path)
         }
       }
       n += 1
       //if (n % 100000 == 0) print("..." + n)
     }
     //println
-    paths
+    paths sortWith {(a, b) => a.length > b.length}
   }
 
   override def toString =
