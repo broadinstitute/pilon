@@ -32,7 +32,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   extends Region(contig.getName, start, stop) {
   require(stop <= contig.length, "GenomeRegion stop point must be within contig")
   val contigBases = contig.getBases
-  var bases = refBases
+  val originalBases = refBases
+  var bases = originalBases
 
   var pileUpRegion: PileUpRegion = null
   var minDepth = Pilon.minMinDepth
@@ -251,7 +252,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   var smallFixList: FixList = List()
   var bigFixList: FixList = List()
 
-  def identifyIssues = {
+  def identifyAndFixIssues = {
     if (Pilon.verbose) {
       println("# IdentifyIssues: " + this)
       identifyIssueRegions
@@ -465,7 +466,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (was.length == patch.length) {
         for (i <- 0 until was.length) {
           val iNew = start + i
-          val ref = newBases(iNew).toChar.toUpper
+          val ref = originalBases(iNew).toChar.toUpper
           if (ref != was(i)) 
             println("Fix mismatch: loc=" + (locus+i) + " ref=" + ref + " was=" + was(i))
           newBases(start + i) = patch(i).toByte        
@@ -474,7 +475,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         val origLength = newBases.length
         val before = newBases.slice(0, start)
         val after = newBases.slice(start + was.length, newBases.length)
-        val ref = newBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
+        val ref = originalBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
         if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
         newBases = before ++ (patch map { _.toByte }) ++ after
         assert(newBases.length == origLength + patch.length - was.length, "Fix patch length mismatch: " + fix)
@@ -612,15 +613,22 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   
-  def baseAt(locus: Int) = {
+  def baseAt(locus: Int, whichBases: Array[Byte] = bases) = {
     require(inRegion(locus))
-    bases(index(locus)).toChar.toUpper
+    whichBases(index(locus)).toChar.toUpper
   }
+
+  def originalBaseAt(locus: Int) = baseAt(locus, originalBases)
   
   def subString(locus: Int, n: Int) = {
     require(inRegion(locus) && inRegion(locus + n - 1))
     GenomeRegion.baseString(bases.slice(index(locus), index(locus+n)))
-  } 
+  }
+
+  def refSubString(locus: Int, n: Int) = {
+    require(inRegion(locus) && inRegion(locus + n - 1))
+    GenomeRegion.baseString(contigBases.slice(locus - 1, locus + n - 1))
+  }
 
   def refBase(locus: Int) = {
     require(inRegion(locus), "can't fetch base outside region")
@@ -635,10 +643,6 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def refSlice(a: Int, b: Int) = contigBases.slice(index(a), index(b))
   def refBases(a: Int, b: Int) = refSlice(a, b).toArray
 
-  def refSubString(locus: Int, n: Int) = {
-    require(inRegion(locus) && inRegion(locus + n - 1))
-    GenomeRegion.baseString(contigBases.slice(locus - 1, locus + n - 1))
-  }
 
   //def apply(locus: Int) = bases(index(locus))
 }

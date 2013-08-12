@@ -111,7 +111,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         r.postProcess
         if (Pilon.fixList.length > 0 || Pilon.vcf) {
           println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
-          r.identifyIssues
+          r.identifyAndFixIssues
         }
         if (Pilon.vcf) {
           println("Writing " + r.name + " VCF to " + vcf.file)
@@ -147,7 +147,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     if (Pilon.changes) changesWriter.close
   }
 
-  def identifyIssues() = regions foreach { _._2 foreach { _.identifyIssues } }
+  def identifyAndFixIssues() = regions foreach { _._2 foreach { _.identifyAndFixIssues } }
   
   def assembleNovel(bamFiles: List[BamFile]) = {
     println("Assembling novel sequence")

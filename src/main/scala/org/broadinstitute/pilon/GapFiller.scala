@@ -225,7 +225,7 @@ class GapFiller(val region: GenomeRegion) {
     	val solution = trimPatch(start, patch, stop)
     	start = solution._1
     	
-    	if (solution._2.length == 0 && solution._3.length == 0) {
+    	if (solution._2 == solution._3) {
     	  if (Pilon.debug) println("...no change")
     	  solution
     	} else {
@@ -326,7 +326,7 @@ class GapFiller(val region: GenomeRegion) {
     	stop -= 1
     	patch = patch.substring(0, patch.length-1)
     }
-    (start, region.subString(start, stop-start), patch)
+    (start, region.refSubString(start, stop-start), patch)
   }
 
   
