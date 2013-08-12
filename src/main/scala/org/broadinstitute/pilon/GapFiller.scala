@@ -318,11 +318,13 @@ class GapFiller(val region: GenomeRegion) {
     var start = startArg
     var stop = stopArg
     var patch = patchArg
-    while (start < stop && patch.length > 0 && region.baseAt(start) == patch(0)) {
+    while (start < stop && patch.length > 0 &&
+      (region.baseAt(start) == patch(0) || region.originalBaseAt(start) == patch(0))) {
     	start += 1
     	patch = patch.substring(1)
     }
-    while (start < stop && patch.length > 0 && region.baseAt(stop-1) == patch(patch.length-1)) {
+    while (start < stop && patch.length > 0 &&
+      (region.baseAt(stop-1) == patch(patch.length-1) || region.originalBaseAt(stop-1) == patch(patch.length-1))) {
     	stop -= 1
     	patch = patch.substring(0, patch.length-1)
     }
