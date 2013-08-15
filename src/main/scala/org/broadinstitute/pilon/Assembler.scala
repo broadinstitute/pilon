@@ -252,19 +252,25 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
           usedKmers += k
           usedKmers += Bases.reverseComplement(k)
         }
-        val kLength = path.length - (K - 1)
-        val novel = novelKmers(path)
-        val novelPct = Utils.pct(novel, kLength)
-        if (novel >= minNovel && novelPct >= minNovelPct) {
+        if (path.length >= minNovel)
           paths ::= path
-          if (Pilon.verbose) println("novel " + path.length + " " + novelPct + "% " + path)
-        }
       }
       n += 1
       //if (n % 100000 == 0) print("..." + n)
     }
-    //println
-    paths sortWith {(a, b) => a.length > b.length}
+    paths = paths sortWith {(a, b) => a.length > b.length}
+    paths filter { path =>
+      val kLength = path.length - (K - 1)
+      val novel = novelKmers(path)
+      val novelPct = Utils.pct(novel, kLength)
+      //println("L=" + path.length + " K=" + kLength + " N=" + novel + " P=" + novelPct)
+      if (novel >= minNovel && novelPct >= minNovelPct) {
+        // side effect...if we're accepting this one, add it to ref to avoid future dupes
+        ref.addSeq(path)
+        if (Pilon.verbose) println("novel " + path.length + " " + novelPct + "% " + path)
+        true
+      } else false
+    }
   }
 
   override def toString =
