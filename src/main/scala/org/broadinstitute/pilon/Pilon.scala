@@ -22,8 +22,8 @@ import java.io.File
 
 object Pilon {
   // types of fixing we know about
-  val fixChoices = List('bases, 'gaps, 'local, 'amb)
-  val experimentalFixChoices = List('novel, 'breaks)
+  val fixChoices = Set('bases, 'gaps, 'local, 'amb)
+  val experimentalFixChoices = Set('novel, 'breaks)
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -72,6 +72,7 @@ object Pilon {
     println("Genome: " + genomePath)
     val genome = new GenomeFile(new File(genomePath), targets)
 
+    println("Fixing " + (fixList map {_.name} mkString(", ")))
     genome.processRegions(bamFiles)
 
     if (tracks) { 
@@ -99,7 +100,7 @@ object Pilon {
         diploid = true
         optionParse(tail)
       case "--fix" :: value :: tail =>
-        fixList = parseFixList(value)
+        parseFixList(value)
         optionParse(tail)
       case "--flank" :: value :: tail =>
         flank = value.toInt
@@ -149,7 +150,7 @@ object Pilon {
       case "--variant" :: tail =>
         // variant calling mode
         vcf = true
-        fixList ::= 'breaks
+        fixList += 'breaks
         optionParse(tail)
         //multiClosure = true
       case "--vcf" :: tail =>
@@ -169,22 +170,28 @@ object Pilon {
   
   def parseFixList(fix: String) = {
     val fixes = fix.split(",")
-    var fixList = List[Symbol]()
+    if (fix(0) != '+' && fix(0) != '-') fixList = Set.empty
     for (f <- fixes) {
-      val fsym = Symbol(f)
-      if (fsym == 'all) fixList = fixChoices
-      else if (fsym == 'none) fixList = List.empty
-      else if (fixChoices contains fsym) fixList ::= fsym
-      else if (experimentalFixChoices contains fsym) {
-        println("Warning: experimental fix option " + f)
-        fixList ::= fsym 
-      }
+      if (f == "all" || f == "default") fixList ++= fixChoices
+      else if (f == "none") fixList = Set.empty
       else {
-        println("Error: unknown fix option " + f)
-        sys.exit(1)
+        val plusMinus = if (f(0) == '-') f(0) else '+'
+        val fsym = if (f(0) == plusMinus) Symbol(f.substring(1)) else Symbol(f)
+        if (fixChoices contains fsym) {
+          if (plusMinus == '+') fixList += fsym
+          else fixList -= fsym
+        }
+        else if (experimentalFixChoices contains fsym) {
+          println("Warning: experimental fix option " + f)
+          if (plusMinus == '+') fixList += fsym
+          else fixList -= fsym
+        }
+        else {
+          println("Error: unknown fix option " + f)
+          sys.exit(1)
+        }
       }
     }
-    fixList
   }
   
   def outputFile(name : String) = new File(prefix + name)

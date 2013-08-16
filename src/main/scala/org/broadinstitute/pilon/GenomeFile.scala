@@ -90,7 +90,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	                      new PrintWriter(new BufferedWriter(new FileWriter(changesFile)))
                       else null
     val fastaFile = Pilon.outputFile(".fasta")
-    val fastaWriter = if (Pilon.fixList.length > 0)
+    val fastaWriter = if (!Pilon.fixList.isEmpty)
 	                      new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))
                       else null
 
@@ -109,8 +109,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         r.initializePileUps
         bamFiles foreach { r.processBam(_) }
         r.postProcess
-        if (Pilon.fixList.length > 0 || Pilon.vcf) {
-          println("Fixing " + (Pilon.fixList map {_.name} mkString(", ")))
+        if (Pilon.vcf || !Pilon.fixList.isEmpty) {
           r.identifyAndFixIssues
         }
         if (Pilon.vcf) {
@@ -124,7 +123,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         }
         r.finalizePileUps
       }
-      if (Pilon.fixList.length > 0) {
+      if (!Pilon.fixList.isEmpty) {
 
         println("Writing updated " + newName + " to " + fastaFile)
         val fixedRegions = reg._2 map { _.bases }
@@ -142,7 +141,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         writeFastaElement(fastaWriter, header, contigs(n))
       }
     }
-    if (Pilon.fixList.length > 0) fastaWriter.close
+    if (!Pilon.fixList.isEmpty) fastaWriter.close
     if (Pilon.vcf) vcf.close
     if (Pilon.changes) changesWriter.close
   }
