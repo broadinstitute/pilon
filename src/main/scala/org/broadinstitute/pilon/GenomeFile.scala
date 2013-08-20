@@ -134,11 +134,11 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     }
 
     if (Pilon.fixList contains 'novel) {
-      val contigs = assembleNovel(bamFiles)
-      for (n <- 0 until contigs.length) {
+      val novelContigs = assembleNovel(bamFiles)
+      for (n <- 0 until novelContigs.length) {
         val header = "pilon_novel_%03d".format(n + 1)
-        println("Appending " + header + " length " + contigs(n).length)
-        writeFastaElement(fastaWriter, header, contigs(n))
+        println("Appending " + header + " length " + novelContigs(n).length)
+        writeFastaElement(fastaWriter, header, novelContigs(n))
       }
     }
     if (!Pilon.fixList.isEmpty) fastaWriter.close
@@ -151,20 +151,21 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def assembleNovel(bamFiles: List[BamFile]) = {
     print("Assembling novel sequence:")
     val genomeGraph = new Assembler()
-    print(" graphing genome...")
+    print(" graphing genome")
     for (contig <- contigMap.values) {
-      if (Pilon.verbose) print("# graphing " + contig.getName)
       genomeGraph.addSeq(GenomeRegion.baseString(contig.getBases))
+      if (Pilon.verbose) print("..." + contig.getName)
     }
+    if (Pilon.verbose) println
     val assembler = new Assembler()
     bamFiles filter {_.bamType != 'jumps} foreach { bam =>
       val reads = bam.getUnaligned
-      print(reads.length + " unmapped reads...")
+      print("..." + reads.length + " unmapped reads")
       assembler.addReads(reads)
     }
-    print("assembling contigs...")
+    print("...assembling contigs")
     val contigs = assembler.novel(genomeGraph)
-    println("done")
+    println
     val contigLengths = contigs map {_.length}
     println("Assembled %d novel contigs containing %d bases".format(contigs.length, contigLengths.sum))
     contigs

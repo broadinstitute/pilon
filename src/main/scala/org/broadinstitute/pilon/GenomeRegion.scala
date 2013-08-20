@@ -257,6 +257,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       println("# IdentifyIssues: " + this)
       identifyIssueRegions
     }
+    val fix = Pilon.fixList contains 'bases
     var snps = 0
     var ins = 0
     var dels = 0
@@ -269,27 +270,31 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val cBase = pu.baseCall.base
       kind match {
         case 'snp =>
-          snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+          if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'amb =>
-          snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+          if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           amb += 1
         case 'ins =>
           val insert = pu.insertCall
-          smallFixList ::= (locus(i), "", insert)
+          if (fix) smallFixList ::= (locus(i), "", insert)
           ins += 1
           insBases += insert.length
         case 'del =>
           val deletion = pu.deletionCall
-          smallFixList ::= (locus(i), deletion, "")
+          if (fix) smallFixList ::= (locus(i), deletion, "")
           dels += 1
           delBases += deletion.length
       }
       if (Pilon.verbose) printChange(i)
     }
     
-    // Report small changes
-    print("Corrected ")
+    // Report some stats
+    val nConfirmed = confirmed count {x => x}
+    val nonN = originalBases count {x => x != 'N'}
+    println("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
+      (nConfirmed * 100.0 / nonN).formatted("%.1f") + "%)")
+    if (Pilon.fixList contains 'bases) print("Corrected ") else print("Found ")
     if (Pilon.diploid) print((snps + amb) + " snps")
     else {
       print(snps + " snps; ")
@@ -306,8 +311,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     
     // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
     // We can't change coords here, though, so no indels!
-    if (Pilon.fixList contains 'bases)
-      fixIssues(snpFixList)
+    fixIssues(snpFixList)
 
     // Try to fill gaps
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
