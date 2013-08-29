@@ -150,12 +150,13 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   
   def assembleNovel(bamFiles: List[BamFile]) = {
     print("Assembling novel sequence:")
-    val genomeGraph = new Assembler()
+    val genomeGraph = new Assembler(minDepth = 1)
     print(" graphing genome")
     for (contig <- contigMap.values) {
       genomeGraph.addSeq(GenomeRegion.baseString(contig.getBases))
       if (Pilon.verbose) print("..." + contig.getName)
     }
+    genomeGraph.buildGraph
     if (Pilon.verbose) println
     val assembler = new Assembler()
     bamFiles filter {_.bamType != 'jumps} foreach { bam =>

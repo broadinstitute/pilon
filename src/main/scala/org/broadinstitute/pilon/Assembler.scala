@@ -31,7 +31,7 @@ object Assembler {
   val minNovelPct = 50
   type Kmer = String
   type KmerPileup = HashMap[Kmer, PileUp]
-  type KmerGraph = HashMap[Kmer, (Kmer,Int)]
+  type KmerGraph = HashMap[Kmer, Kmer]
 }
 
 class Assembler(val minDepth: Int = Assembler.minDepth) {
@@ -91,38 +91,31 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
   def buildGraph = {
-    val targets = Set[Kmer]()
-    val multiTargets = Set[Kmer]()
-
     def addLink(g: KmerGraph, k1: Kmer, k2: Kmer, weight: Int) = {
-      g(k1) = (k2, weight)
-      if (targets contains k2) multiTargets += k2
-      else targets += k2
+      // not using weight for now
+      g(k1) = k2
     }
-
 
     if (Pilon.debug) println("building kmer Graph")
 
     for ((k, pu) <- pileups.iterator) {
-      if (pu.depth >= Assembler.minDepth) {
+      if (pu.depth >= minDepth) {
         val bc = pu.baseCall
         val prefix = k.substring(1)
-        addLink(kGraph, k, prefix + bc.base, pu.baseCount.sums(bc.baseIndex).toInt)
+        val nextK = prefix + bc.base
+        val weight = pu.baseCount.sums(bc.baseIndex).toInt
+        if ((kGraph contains k) && (kGraph(k) != nextK))
+          addLink(altGraph, k, nextK, weight)
+        else
+          addLink(kGraph, k, nextK, weight)
         if (!bc.homo)
           addLink(altGraph, k, prefix + bc.altBase, pu.baseCount.sums(bc.altBaseIndex).toInt)
       }
     }
-    // We don't need  or targets any more, free up the memory
-    //pileups = null
+    // We don't need pileups any more, free up the memory
+    pileups = HashMap()
 
-    if (Pilon.debug) println("kmer graph: t=" + targets.size + " mt=" + multiTargets.size)
-
-    val sources = kGraph.keys filter {k => (multiTargets contains k) || !(targets contains k)}
-    //if (Pilon.debug) println("kmer Graph built")
-    //if (Pilon.debug) println("sources: " + sources.size, " " + sources)
-    for (s <- sources) {
-
-    }
+    if (Pilon.debug) println("kmer graph: t=" + kGraph.size + " mt=" + altGraph.size)
   }
 
 
@@ -152,8 +145,8 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         return List(kmers)
       } else if (altGraph contains kmer) {
         // two choices forward
-        val next1 = kGraph(kmer)._1
-        val next2 = altGraph(kmer)._1
+        val next1 = kGraph(kmer)
+        val next2 = altGraph(kmer)
         val seen1 = kmers.tail contains next1
         val seen2 = kmers.tail contains next2
 
@@ -170,7 +163,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         }
       } else {
         // only one way forward
-        val next = kGraph(kmer)._1
+        val next = kGraph(kmer)
         val nextCount = kmers count {_ == next}
         // punt if we're looping (we'll allow one full time around repeat)
         if (nextCount > 1)
@@ -233,7 +226,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
 
 
   def novel(ref: Assembler): List[String] = {
-    def novelKmers(seq: String) = seq.sliding(K) count { !ref.pileups.contains(_)  }
+    def novelKmers(seq: String) = seq.sliding(K) count { !ref.kGraph.contains(_)  }
 
     if (Pilon.verbose) println("Assembling novel sequence: " + this + ", ref " + ref)
     prunePileups()
@@ -267,6 +260,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       if (novel >= minNovel && novelPct >= minNovelPct) {
         // side effect...if we're accepting this one, add it to ref to avoid future dupes
         ref.addSeq(path)
+        ref.buildGraph
         if (Pilon.verbose) println("novel " + path.length + " " + novelPct + "% " + path)
         true
       } else false
