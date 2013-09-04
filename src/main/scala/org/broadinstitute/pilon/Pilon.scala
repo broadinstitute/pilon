@@ -37,6 +37,7 @@ object Pilon {
   var vcf = false
   var debug = false
   // heuristics and control parameters
+  var defaultQual: Byte = 15
   var diploid = false
   var fixList = fixChoices
   var flank = 10
@@ -95,6 +96,9 @@ object Pilon {
       case "--debug" :: tail =>
         debug = true
         verbose = true
+        optionParse(tail)
+      case "--defaultqual" :: value :: tail =>
+        defaultQual = value.toByte
         optionParse(tail)
       case "--diploid" :: tail =>
         diploid = true
@@ -255,6 +259,8 @@ object Pilon {
            --debug
               Debugging output (implies verbose).
          HEURISTICS:
+           --defaultqual qual
+              Assumes bases are of this quality if quals are no present in input BAMs (default 15).
            --flank nbases
               Controls how much of the well-aligned reads will be used; this many bases at each
               end of the good reads will be ignored (default 10).

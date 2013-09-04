@@ -21,10 +21,6 @@ package org.broadinstitute.pilon
 import scala.collection.JavaConversions._
 import net.sf.samtools._
 
-object PileUpRegion {
-  val defaultQual: Byte = 15
-}
-
 class PileUpRegion(name: String, start: Int, stop: Int)
   extends Region(name, start, stop) {
 
@@ -118,7 +114,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val quals = if (r.getBaseQualities.size > 0) r.getBaseQualities
     else {
       val q = new Array[Byte](length)
-      for (i <- 0 until length) q(i) = PileUpRegion.defaultQual
+      for (i <- 0 until length) q(i) = Pilon.defaultQual
       q
     }
 
@@ -194,6 +190,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
             if (inRegion(locusPlus))
               add(locusPlus, base, qual, adjMq, false)
           }
+        case CigarOperator.H =>
+          // Hard clipped bases are not present in read, nothing to do here
         case _ =>
           println("unknown cigar op=" + op + " in " + r.getCigarString)
       }
