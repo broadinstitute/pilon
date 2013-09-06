@@ -298,7 +298,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nConfirmed = confirmed count {x => x}
     val nonN = originalBases count {x => x != 'N'}
     println("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
-      (nConfirmed * 100.0 / nonN).formatted("%.1f") + "%)")
+      (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
     if (Pilon.fixList contains 'bases) print("Corrected ") else print("Found ")
     if (Pilon.diploid) print((snps + amb) + " snps")
     else {
