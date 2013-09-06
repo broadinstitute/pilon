@@ -142,10 +142,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
   
   def smooth(input: Array[Int], window: Int) = {
-    val result = new Array[Int](input.size)
-    var accum = 0
+    val inputSize = input.size
+    val result = new Array[Int](inputSize)
     val half = window / 2
-    for (i <- 0 until input.size) {
+    var accum = 0
+    for (i <- 0 until inputSize) {
       accum += input(i)
       if (i > window) {
         accum -= input(i-window)
@@ -153,8 +154,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         result(i-half) = smoothed
       }
     }
-    for (i <- 0 until window - half) result(i) = result(window-half)
-    for (i <- result.size - half until result.size) result(i) = result(result.size-half-1)
+    if (inputSize > window) {
+      for (i <- 0 until window - half) result(i) = result(window-half)
+      for (i <- inputSize - half until inputSize) result(i) = result(inputSize-half-1)
+    } else {
+      for (i <- 0 until inputSize) result(i) = accum / inputSize
+    }
     result
   }
 
