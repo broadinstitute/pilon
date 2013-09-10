@@ -34,7 +34,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	    contigList ::= refseq
 	    refseq = referenceSequenceFile.nextSequence()
 	  } 
-	  (contigList reverse, contigMap)
+	  (contigList.reverse, contigMap)
 	}
 
 	val regions = {
@@ -95,7 +95,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
                       else null
 
     val vcf: Vcf = if (Pilon.vcf)
-	                   new Vcf(Pilon.outputFile(".vcf"), regions map {r => (r._1, r._2 map {_.size} sum)})
+	                   new Vcf(Pilon.outputFile(".vcf"), regions.map({r => (r._1, r._2.map({_.size}).sum)}))
                    else null
 
     regions foreach { reg =>

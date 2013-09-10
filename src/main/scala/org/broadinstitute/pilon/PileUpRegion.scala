@@ -226,11 +226,11 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   }
 
   def postProcess = {
-    """To be called after all reads have been added to pileUps"""
+    // To be called after all reads have been added to pileUps
     computePhysCov
   }
 
-  def meanReadLength = (baseCount / readCount) toInt
+  def meanReadLength = (baseCount / readCount).toInt
 
   def apply(i: Int) = pileups(i)
 }

@@ -49,7 +49,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 	val seqs = r.getFileHeader.getSequenceDictionary.getSequences
     require(r.hasIndex(), path + " must be indexed BAM")
 	r.close
-	seqs map { _.getSequenceName } toSet
+	seqs.map({ _.getSequenceName }).toSet
   }
   
   lazy val header = {
@@ -129,7 +129,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   def insertSizeStats = "%.0f+/-%.0f".format(insertSizeMean, insertSizeSigma)
 
   def maxInsertSize = {
-    """Returns reasonable max insert size for this bam, either computed or defaulted"""
+    // Returns reasonable max insert size for this bam, either computed or defaulted
     if (insertSizeCount >= 1000) (insertSizeMean + 3 * insertSizeSigma).round.toInt
     else BamFile.maxInsertSizes(bamType)    
   }
@@ -166,7 +166,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     
     def findStrays = {
       var nStrays = 0
-      val mates = (readMap map {pair => strayMateMap.lookup(pair._2)}) filter {_ != null} toList;
+      val mates = readMap.map({pair => strayMateMap.lookup(pair._2)}).filter({_ != null}).toList
       if (Pilon.debug) println("findStrays: " + mates.length)
       mates
     }

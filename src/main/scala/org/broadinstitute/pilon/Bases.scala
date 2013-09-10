@@ -55,7 +55,7 @@ object Bases {
   def complementIndex(i: Int) = i ^ 3
   
   def reverseComplement(s: String) = {
-    s map complement reverse    
+    s.map(complement).reverse
   }
 
   def bit(i: Int) = 1 << i

@@ -177,7 +177,7 @@ class PileUp {
       val indelStr = indel.toSeq map {_.toChar} mkString  ""
       map(indelStr) = map.getOrElse(indelStr, 0) + 1
     }
-    val winner = (map.toSeq sortBy { _._2 } last)
+    val winner = map.toSeq.sortBy({ _._2 }).last
     if (winner._2 < indelList.length / 2) return ""
     val winStr = winner._1
     if (pct > 50 - winStr.length) 

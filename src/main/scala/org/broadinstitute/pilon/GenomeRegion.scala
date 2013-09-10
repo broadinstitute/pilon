@@ -82,7 +82,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     // really lame quick & dirty implementation, doesn't do rc, 
     // only for this contig, etc
     println("kcn start")
-    val seq = (bases map {_.toChar toUpper}) mkString("")
+    val seq = (bases.map({_.toChar.toUpper})).mkString("")
 	val k = Assembler.K
 	val halfK = k / 2
     val kcn = new Array[Int](size)
@@ -432,7 +432,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def fixFixList(inList: FixList): FixList = {
-    """Sort and remove overlaps, keeping larger fix"""
+    // Sort and remove overlaps, keeping larger fix
     
     var fixes = inList.sortWith({ (x, y) => x._1 < y._1 })
     var outList: FixList = Nil
