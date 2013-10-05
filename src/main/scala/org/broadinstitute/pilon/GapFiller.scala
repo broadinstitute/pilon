@@ -43,14 +43,15 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def assembleAcrossBreak(break: Region, isGap: Boolean) = {
+    //TODO: ugh, this is ugly and really wants to be re-written.
     //val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
-    var (start, pathsFromLeft, pathsFromRight, stop) = assembleIntoBreak(break, reads)
+    var (start, pathsFromLeft, pathsFromRight, stop, loop) = assembleIntoBreak(break, reads)
     val solutions = breakJoins(start, pathsFromLeft, pathsFromRight, stop)
     val solution =
       if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
       else noSolution
-    var solutionOK = (solution != noSolution)
+    var solutionOK = (solution != noSolution) && (loop.length == 0 || !Pilon.trSafe)
     if (solutionOK && isGap) {
       // Sanity check gap margin; must be within gapMargin bases of original gap size
       val closedLength = solution._3.length
@@ -81,49 +82,6 @@ class GapFiller(val region: GenomeRegion) {
         if (solution._3 != "") solution else noSolution
       } else noSolution
     } else noSolution
-  }
-  
-  def fillGapOld(gap: Region) = {
-    if (Pilon.verbose) println("# Filling gap " + gap)
-    val reads = if (gap.size < 100) recruitLocalReads(gap) else recruitReads(gap)
-    //val reads = recruitReads(gap)
-    val (start, rights, lefts, stop) = assembleIntoBreak(gap, reads)
-    //val solution = joinBreak(start, right, left, stop)
-    val solutions = breakJoins(start, rights, lefts, stop)
-    val solution =
-      if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
-      else noSolution
-    var gapOk = false
-    if (solution != noSolution) {
-      // Sanity check gap margin; must be within gapMargin bases
-      val closedLength = solution._3.length 
-      val closedDiff = (closedLength - gap.size).abs
-      if (closedDiff <= Pilon.gapMargin) gapOk = true
-      else if (Pilon.debug) println("Gap closed but bad size: " + gap + " " + closedLength)
-    }
-    if (gapOk) {
-      if (Pilon.debug) println("Closed gap " + gap)
-      solution
-    } else {
-      val left = consensusFromRight(lefts)
-      val right = consensusFromLeft(rights)
-      if (Pilon.debug) {
-        println("consensusL: " + left)
-        println("consensusR: " + right)
-      }
-      val newStart = start + right.length
-      val newStop = stop - left.length
-      if (newStart >= gap.start + GapFiller.minExtend || 
-          newStop <= gap.stop - GapFiller.minExtend) {
-        if (Pilon.debug) println((gap.start, gap.stop, newStart,newStop))
-        val newGapLength = Pilon.minGap max (newStop - newStart)
-        val newGap = (1 to newGapLength) map {_ => "N"} mkString("")
-        val seq = right + newGap + left
-        if (Pilon.debug) println("S:" + seq.size + ": " + seq)
-        val solution = trimPatch(start, seq, stop)
-        if (solution._3 != "") solution else noSolution
-      } else noSolution
-    }
   }
 
   def consensusFromLeft(seqs: List[String]): String = {
@@ -162,7 +120,7 @@ class GapFiller(val region: GenomeRegion) {
     val right = region.subString(break.stop + 1, stop - break.stop - 1)
     //var forward = assembler.tryForward(left)
     //var reverse = assembler.tryReverse(right)
-    val (forward, reverse) = assembler.multiBridge(left, right)
+    val (forward, reverse, loop) = assembler.multiBridge(left, right)
     /*
     // if we didn't make it back to the beginning, use old boundary
     if (start + forward.length < break.start) {
@@ -178,7 +136,7 @@ class GapFiller(val region: GenomeRegion) {
       if (Pilon.debug) println("reverting reverse")
     }
     */
-    (start, forward, reverse, stop)
+    (start, forward, reverse, stop, loop)
   }
 
   def breakJoins(start: Int, forwardPaths: List[String], reversePaths: List[String], stop: Int) = {

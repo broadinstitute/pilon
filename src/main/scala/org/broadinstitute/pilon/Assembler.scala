@@ -41,6 +41,8 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   val altGraph: KmerGraph = HashMap()
   var nReads: Long = 0
   var nBases: Long = 0
+  var loopLength = 0
+  var loopSequence = ""
 
   def addReads(reads: List[SAMRecord]) = {
     reads foreach addRead
@@ -135,6 +137,15 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       pathStr
   }
 
+  def noteKmerLoop(loopIndex: Int, kmers: List[String]) = {
+    val length = loopIndex + K - 1
+    if (length != loopLength) {
+      loopLength = loopIndex + K
+      loopSequence = kmerPathString(kmers.take(loopIndex+1))
+      if (Pilon.trSafe)
+        println("# loop " + loopLength + ": " + loopSequence)
+    }
+  }
 
   def kmerPathsForward(kmersIn: List[String], branches: Int = 0): List[List[String]] = {
     var kmers = kmersIn
@@ -150,6 +161,13 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
         val seen1 = kmers.tail contains next1
         val seen2 = kmers.tail contains next2
 
+        if (seen1 || seen2) {
+          val loop = kmers.indexOf(next1) max kmers.indexOf(next2)
+          noteKmerLoop(loop, kmers)
+          // if we're being careful about tandem repeats, better punt now!
+          if (Pilon.trSafe) return List(kmers)
+        }
+
         // explore branches not already taken
         if (seen1 && seen2) return List(kmers)
         else if (seen1 && !seen2) kmers ::= next2
@@ -164,10 +182,17 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       } else {
         // only one way forward
         val next = kGraph(kmer)
-        val nextCount = kmers count {_ == next}
-        // punt if we're looping (we'll allow one full time around repeat)
-        if (nextCount > 1)
-          return List(kmers)
+        val loop = kmers indexOf next
+        if (loop >= 0) {
+          noteKmerLoop(loop, kmers)
+          // if we're being careful about tandem repeats, better punt now!
+          if (Pilon.trSafe) return List(kmers)
+
+          // punt if we're looping (we'll allow one full time around repeat)
+          val nextCount = kmers count {_ == next}
+          if (nextCount > 1)
+            return List(kmers)
+        }
         kmers ::= next
       }
     }
@@ -220,7 +245,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   def multiBridge(left: String, right: String) = {
     val pathsForward = tryForward(left)
     val pathsReverse = tryReverse(right)
-    (pathsForward, pathsReverse)
+    (pathsForward, pathsReverse, loopSequence)
   }
 
 

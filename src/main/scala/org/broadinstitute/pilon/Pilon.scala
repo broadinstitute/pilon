@@ -49,6 +49,7 @@ object Pilon {
   var multiClosure = false
   var pf = false
   var strays = true
+  var trSafe = false
   
   // for logging to output files
   var commandArgs = Array[String]()
@@ -147,6 +148,9 @@ object Pilon {
         optionParse(tail)
       case "--tracks" :: tail =>
         tracks = true
+        optionParse(tail)
+      case "--trsafe" :: tail =>
+        trSafe = true
         optionParse(tail)
       case "--unpaired" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'unpaired)
