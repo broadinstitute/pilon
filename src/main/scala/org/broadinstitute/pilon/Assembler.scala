@@ -138,11 +138,11 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
   }
 
   def noteKmerLoop(loopIndex: Int, kmers: List[String]) = {
-    val length = loopIndex + K - 1
-    if (length != loopLength) {
-      loopLength = loopIndex + K
-      loopSequence = kmerPathString(kmers.take(loopIndex+1))
-      if (Pilon.trSafe)
+    val length = loopIndex + 1
+    if (loopLength == 0 || length < loopLength) {
+      loopLength = length
+      loopSequence = kmerPathString(kmers.take(loopIndex+1)).take(length)
+      if (Pilon.verbose)
         println("# loop " + loopLength + ": " + loopSequence)
     }
   }
