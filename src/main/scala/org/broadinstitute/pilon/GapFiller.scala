@@ -65,8 +65,8 @@ class GapFiller(val region: GenomeRegion) {
       val fromRight = consensusFromRight(pathsFromRight)
       val fromLeft = consensusFromLeft(pathsFromLeft)
       if (Pilon.debug) {
-        println("consensusL: " + fromLeft)
-        println("consensusR: " + fromRight)
+        println("consensusL[%d]: %s".format(fromLeft.length, fromLeft))
+        println("consensusR[%d]: %s".format(fromRight.length, fromRight))
       }
       val newStart = start + fromLeft.length
       val newStop = stop - fromRight.length
@@ -198,53 +198,6 @@ class GapFiller(val region: GenomeRegion) {
     }
   }
   
-  def properOverlapScored(left: String, right: String, minOverlap: Int): String = {
-    val matchScore = 1
-    val mismatchScore = -50
-    val scoreCutoff = -100
-    val minScore = Assembler.K
-
-    def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Int = {
-      var score = 0
-      //println(a.slice(aOffset, aOffset+len))
-      //println(b.slice(bOffset, bOffset+len))
-      for (i <- 0 until len)
-        if (a(aOffset + i) != b(bOffset + i)) {
-          score += mismatchScore
-          if (score < scoreCutoff) return score
-        } else score += matchScore
-      score
-    }
-
-    val ll = left.length
-    val rl = right.length
-
-    var bestScore = 0
-    var bestLeft = 0
-    var bestRight = 0
-    var bestLen = 0
-
-    for (overlap <- minOverlap to ll + rl - 2 * minOverlap) {
-      val leftOffset = (ll - overlap) max 0
-      val rightOffset = (overlap - ll) max 0
-      val len = (ll - leftOffset) min (rl - rightOffset)
-      //println(overlap + " " + leftOffset + " " + rightOffset + " " + len)
-      val score = substrMatch(left, leftOffset, right, rightOffset, len)
-      if (score > bestScore) {
-        bestScore = score
-        bestLeft = leftOffset
-        bestRight = rightOffset
-        bestLen = len
-      }
-    }
-    if (bestScore > 0) {
-      if (Pilon.debug)
-        println("overlap: " + bestLeft + "/" + left.length + " " +
-                bestRight + "/" + right.length + " " + bestLen + " " + bestScore)
-      left.substring(0, bestLeft) + right.substring(bestRight)
-    } else ""
-  }
-
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
 
     def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {

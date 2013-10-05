@@ -223,8 +223,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     if (anchor.length < K) List(anchor)
     else {
       val startingKmer = anchor.substring(0, K)
-      val paths = pathsForward(startingKmer) filter {_.length > anchor.length + minExtend}
-      if (paths.length > 0)
+      //val paths = pathsForward(startingKmer) filter {_.length > anchor.length + minExtend}
+      //if (paths.length > 0)
+      val paths = pathsForward(startingKmer)
+      if (paths.length > 0 && paths(0).length > anchor.length + minExtend)
         paths
       else
         tryForward(anchor.substring(K)) map {p => startingKmer + p}
