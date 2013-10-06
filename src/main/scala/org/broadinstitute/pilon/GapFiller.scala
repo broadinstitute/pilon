@@ -30,7 +30,9 @@ object GapFiller {
 }
 
 class GapFiller(val region: GenomeRegion) {
+  // TODO: change contract of this class to hold results in class state, not be all functional.
   val noSolution = (0, "", "")
+  var tandemRepeat = ""
 
   def fillGap(gap: Region) = {
     if (Pilon.verbose) println("# Filling gap " + gap)
@@ -43,10 +45,11 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def assembleAcrossBreak(break: Region, isGap: Boolean) = {
-    //TODO: ugh, this is ugly and really wants to be re-written.
+    // TODO: ugh, this is ugly and really wants to be re-written.
     //val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
     var (start, pathsFromLeft, pathsFromRight, stop, loop) = assembleIntoBreak(break, reads)
+    tandemRepeat = loop
     val solutions = breakJoins(start, pathsFromLeft, pathsFromRight, stop)
     val solution =
       if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head

@@ -326,7 +326,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         val (start, ref, patch) = filler.fillGap(gap)
         if (start > 0) {
           bigFixList ::= (start, ref, patch)
-          printFix(gap, start, ref, patch, gap.size)
+          printFix(gap, start, ref, patch, gap.size, filler.tandemRepeat)
         }
       }
     }
@@ -340,10 +340,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         val (start, ref, patch) = filler.fixBreak(break)
         if (start > 0 && (ref.length max patch.length) > 10) {
          	bigFixList ::= (start, ref, patch)
-         	printFix(break, start, ref, patch, 0)
+         	printFix(break, start, ref, patch, 0, filler.tandemRepeat)
         } else if (Pilon.verbose || start == 0) {
           print ("# ")
-          printFix(break, start, ref, patch, 0)
+          printFix(break, start, ref, patch, 0, filler.tandemRepeat)
         }
       }
     }
@@ -352,7 +352,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
   
-  def printFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int) = {
+  def printFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
     val nPatch = countNs(patch)
@@ -375,6 +375,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     else if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
     else if (gapSize > 0) print(" PartialFill")
     else print(" Unknown!") // Shouldn't happen...cases should be above!
+    if (tandemRepeat != "") {
+      print (" TandemRepeat " + tandemRepeat.length)
+      if (Pilon.verbose) print(" " + tandemRepeat)
+    }
     println()
   }
     
