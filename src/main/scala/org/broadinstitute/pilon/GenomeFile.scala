@@ -68,7 +68,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def processBam(bam: BamFile) = regions foreach { _._2 foreach { _.processBam(bam) } }
   
   def validateBam(bamFile: BamFile) = {
-    val seqs = bamFile.getSeqs
+    val seqs = bamFile.getSeqNames
     require(!seqs.intersect(contigMap.keySet).isEmpty, bamFile + " doesn't match " + referenceFile)
   }
   
@@ -80,10 +80,15 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def processRegions(bamFiles: List[BamFile]) = {
     bamFiles foreach validateBam
 
-    if (Pilon.strays)
+    if (Pilon.strays) {
       for (bam <- bamFiles)
         if (bam.bamType != 'unpaired)
-          bam.buildStrayMateMap
+          bam.scan
+
+      if (Pilon.fixList contains 'scaffolds)
+        for (bam <- bamFiles filter {_.bamType == 'jumps})
+          Scaffold.analyzeStrays(bam)
+    }
 
     val changesFile = Pilon.outputFile(".changes")
     val changesWriter = if (Pilon.changes)

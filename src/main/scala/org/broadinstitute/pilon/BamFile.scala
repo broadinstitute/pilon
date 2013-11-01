@@ -39,17 +39,24 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   {
     // validate at object creation time by opening file and reader
-	val r = reader
+    val r = reader
     require(r.hasIndex(), path + " must be indexed BAM")
-	r.close
+    r.close
   }
-  
+
   def getSeqs = {
-	val r = reader
-	val seqs = r.getFileHeader.getSequenceDictionary.getSequences
-    require(r.hasIndex(), path + " must be indexed BAM")
-	r.close
-	seqs.map({ _.getSequenceName }).toSet
+    // returns an array of sequence records indexed by bam seq index
+    val r = reader
+    val seqs = r.getFileHeader.getSequenceDictionary.getSequences
+    r.close
+    val seqArray = new Array[SAMSequenceRecord](seqs.length)
+    for (s <- seqs) seqArray(s.getSequenceIndex) = s
+    seqArray
+  }
+
+  def getSeqNames = {
+    val seqs = getSeqs
+    seqs.map({ _.getSequenceName }).toSet
   }
   
   lazy val header = {
@@ -73,48 +80,55 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def process(region: GenomeRegion, printInterval: Int = 100000) : Unit = {
 
-	val pileUpRegion = region.pileUpRegion
-	
+    val pileUpRegion = region.pileUpRegion
+
     // Ugh. Is there a way for samtools to do the right thing here and get
     // the pairs for which only one end overlaps?  Adding 10k slop until
     // that's figured out.
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
-	val r = reader
-    val reads = r.queryOverlapping(region.name, 
+    val r = reader
+    val reads = r.queryOverlapping(region.name,
         (region.start-10000) max 0, (region.stop+10000) min region.contig.length)
     val readsBefore = pileUpRegion.readCount
     val covBefore = pileUpRegion.coverage
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
-    
+
     for (read <- reads) {
-    	val loc = read.getAlignmentStart
-    	if (Pilon.verbose && printInterval > 0 && loc > lastLoc + printInterval) {
-    	  lastLoc = printInterval * (loc / printInterval)
-    	  print("..." + lastLoc)
-    	}
-    	if ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) {
-    	  val insertSize = pileUpRegion.addRead(read, region.contigBases)
-    	  if (insertSize > huge) {
-    		if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
-    	  } 
-    	  if (insertSize > 0 && insertSize <= huge) addInsert(insertSize)
-    	}
+      val loc = read.getAlignmentStart
+      if (Pilon.verbose && printInterval > 0 && loc > lastLoc + printInterval) {
+        lastLoc = printInterval * (loc / printInterval)
+        print("..." + lastLoc)
+      }
+      if ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) {
+        val insertSize = pileUpRegion.addRead(read, region.contigBases)
+        if (insertSize > huge) {
+        if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
+        }
+        addInsert(insertSize)
+      }
     }
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
   }
-  
+
+  var mapped = 0
+  var unmapped = 0
+  var proper = 0
   var insertSizeSum = 0.0
   var insertSizeCount = 0.0
   var insertSizeSumSq = 0.0
 
+  val huge = 10 * BamFile.maxInsertSizes(bamType)
+
   def addInsert(insertSize: Int) = {
-    insertSizeCount += 1
-    insertSizeSum += insertSize
-    insertSizeSumSq += insertSize * insertSize
+    if (insertSize > 0 && insertSize < huge) {
+      insertSizeCount += 1
+      insertSizeSum += insertSize
+      insertSizeSumSq += insertSize * insertSize
+    }
   }
   
   def insertSizeMean = if (insertSizeSum > 0) (insertSizeSum / insertSizeCount) else 0.0
@@ -182,16 +196,28 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
-  def buildStrayMateMap = {
+  def scan() = {
+    print("Scanning " + bamFile + "...")
     val r = reader
-   	// if it's not a proper pair but both ends are mapped, it's a stray mate
-    print("Mapping stray pairs in " + bamFile + "...")
-    for (read <- r.iterator)
-      if (!(read.getProperPairFlag | read.getReadUnmappedFlag | read.getMateUnmappedFlag))
-        strayMateMap.addRead(read)
-    println(strayMateMap.nPairs + " found")
+    for (read <- r.iterator) {
+      if (read.getReadUnmappedFlag) unmapped += 1
+      else {
+        mapped += 1
+        val pp = read.getProperPairFlag
+        if (pp) {
+          proper += 1
+          addInsert(read.getInferredInsertSize)
+        } else if (Pilon.strays && !(pp | read.getReadUnmappedFlag | read.getMateUnmappedFlag)) {
+          // if it's not a proper pair but both ends are mapped, it's a stray mate
+          strayMateMap.addRead(read)
+        }
+      }
+    }
     r.close
-    strayMateMap
+    print("\n%d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper))
+    print(", insert size " + insertSizeStats)
+    if (Pilon.strays) print(", " + strayMateMap.nPairs + " stray pairs")
+    println
   }
   
   def readsInRegion(region: Region) = {
