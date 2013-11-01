@@ -42,21 +42,27 @@ class MatePair(r1: SAMRecord, r2: SAMRecord) {
   }
 
   // 64bit coord: High order word is scaffold (negative if rc, low order is signed coord
-  var longCoordMask: Long = (1.toLong << 32) - 1
-  def longCoord(s: Int, c: Int): Long = (s.toLong << 32) | (c.toLong & longCoordMask)
+  def mask32bit: Long = (1.toLong << 32) - 1
+  def mask16bit: Long = (1.toLong << 16) - 1
+
+  def longCoord(s: Int, c: Int): Long = (s.toLong << 32) | (c.toLong & mask32bit)
 
   def longCoord1 = longCoord(scaffold1, coord1)
   def longCoord2 = longCoord(scaffold2, coord2)
 
 
-  def distance() = {
+  def distance : Long = {
     // A simple expression designed to yield insertSize in the case of
     // same-scaffold FR orientation, small negative for RF "innies",
     // but something big and different
     // for different intra-scaffold combinations, still keeping neighborhoods
     // close together.
     // We muck with high bits for intra-scaffold
-    ((scaffold1 ^ scaffold2) << 24) ^ (coord1 + coord2)
+    //((scaffold1 ^ scaffold2) << 24) ^ (coord1 + coord2)
+    if (sameScaffold)
+      (coord1 + coord2)
+    else
+      ((scaffold1 & mask16bit).toLong << 48) | ((scaffold2 & mask16bit) << 32) | ((coord1 + coord2) & mask32bit)
   }
 
   def isRunt = {
@@ -68,7 +74,7 @@ class MatePair(r1: SAMRecord, r2: SAMRecord) {
 
 
   // convert back to (scaffold, coord) pair of ints
-  def decodeLongCoord(c: Long) = ((c >> 32).toInt, (c & longCoordMask).toInt)
+  def decodeLongCoord(c: Long) = ((c >> 32).toInt, (c & mask32bit).toInt)
 
   def coordsAndDistance= (longCoord1, longCoord2, distance)
 }
@@ -82,6 +88,8 @@ class LinkCluster(val matePairs: Array[MatePair]) {
   val minCoord2 = matePairs.map(_.coord2).min
   val maxCoord2 = matePairs.map(_.coord2).max
 
+  //println("LinkCluster " + this)
+  //dumpCoords(matePairs)
   assert(scaffold1 == matePairs.map(_.scaffold1).max, "Not all scaffold1 the same!")
   assert(scaffold2 == matePairs.map(_.scaffold2).max, "Not all scaffold2 the same!")
 
@@ -90,24 +98,16 @@ class LinkCluster(val matePairs: Array[MatePair]) {
       scaffold2, minCoord2, maxCoord2)
   }
 
+
+  def dumpCoords(coords: Array[MatePair]) = {
+    for (mp <- coords) {
+      val (c1, c2, is) = mp.coordsAndDistance
+      println("%X %X %d %d:%d %d:%d".format(c1,c2,is, mp.scaffold1, mp.coord1, mp.scaffold2, mp.coord2))
+    }
+  }
 }
 
 object Scaffold {
-
-  def histLinks(mpList: List[MatePair], bucketSize: Int) = {
-    val buckets: Map[(Int,Int,Int), Int] = Map()
-    for (mp <- mpList) {
-      val c1 = mp.coord1 / bucketSize
-      val c2 = mp.coord2 / bucketSize
-      val is = mp.distance / bucketSize
-      val key = (c1, c2, is)
-      if (buckets contains key) buckets(key) = buckets(key) + 1
-      else buckets(key) = 1
-      buckets
-    }
-
-  }
-
 
   def findClusters(coords: Array[MatePair], windowSize: Int, minCluster: Int = 10) = {
     val clustersByDistance = findClustersInternal(coords, windowSize, minCluster, {_.distance})
@@ -148,13 +148,6 @@ object Scaffold {
     clusterRanges map {c => coords.slice(c._1, c._2)}
   }
 
-  def dumpCoords(coords: Array[MatePair]) = {
-    for (mp <- coords) {
-      val (c1, c2, is) = mp.coordsAndDistance
-      println("%X %X %d %d:%d %d:%d".format(c1,c2,is, mp.scaffold1, mp.coord1, mp.scaffold2, mp.coord2))
-    }
-  }
-
   def analyzeStrays(bam: BamFile) = {
     println("analyzing strays in " + bam)
     val mm = bam.strayMateMap.mateMap
@@ -180,4 +173,13 @@ object Scaffold {
 
     findClusters(links.toArray, window, 1 * backgroundRate)
   }
+
+
+  def dumpCoords(coords: Array[MatePair]) = {
+    for (mp <- coords) {
+      val (c1, c2, is) = mp.coordsAndDistance
+      println("%X %X %d %d:%d %d:%d".format(c1,c2,is, mp.scaffold1, mp.coord1, mp.scaffold2, mp.coord2))
+    }
+  }
+
 }
