@@ -288,5 +288,5 @@ object Pilon {
               inconsistent orientation or separation. Identifying stray pairs can help fill gaps
               and assemble larger insertions, especially of repeat content.  However, doing so
               sometimes consumes considerable memory.
-             """
+"""
 }
