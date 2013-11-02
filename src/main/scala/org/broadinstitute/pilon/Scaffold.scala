@@ -24,6 +24,7 @@ class MatePair(r1: SAMRecord, r2: SAMRecord) {
     if ((s1 < s2) || (s1 == s2 && c1 < c2)) (s1, c1, s2, c2)
     else (s2, c2, s1, c1)
   }
+  val mq = r1.getMappingQuality min r2.getMappingQuality
 
   def sameScaffold = (scaffold1 == scaffold2)
 
@@ -65,18 +66,23 @@ class MatePair(r1: SAMRecord, r2: SAMRecord) {
       ((scaffold1 & mask16bit).toLong << 48) | ((scaffold2 & mask16bit) << 32) | ((coord1 + coord2) & mask32bit)
   }
 
-  def isRunt = {
+  def isRunt(maxInsert : Int = 10000) = {
     if (sameScaffold) {
       val d = distance
-      (d < 1000) && (d > -1000)
+      (d < maxInsert) && (d > -maxInsert)
     } else false
   }
+
+  def ambiguousPlacement = mq < 4
 
 
   // convert back to (scaffold, coord) pair of ints
   def decodeLongCoord(c: Long) = ((c >> 32).toInt, (c & mask32bit).toInt)
 
   def coordsAndDistance= (longCoord1, longCoord2, distance)
+
+  override def toString = "<MatePair %d:%d %d:%d %d %d".format(scaffold1, coord1, scaffold2, coord2,
+    mq, distance)
 }
 
 class LinkCluster(val matePairs: Array[MatePair]) {
@@ -87,6 +93,7 @@ class LinkCluster(val matePairs: Array[MatePair]) {
   val scaffold2 = matePairs.map(_.scaffold2).min
   val minCoord2 = matePairs.map(_.coord2).min
   val maxCoord2 = matePairs.map(_.coord2).max
+  val mq = matePairs.map(_.mq).sum / matePairs.length
 
   //println("LinkCluster " + this)
   //dumpCoords(matePairs)
@@ -94,17 +101,12 @@ class LinkCluster(val matePairs: Array[MatePair]) {
   assert(scaffold2 == matePairs.map(_.scaffold2).max, "Not all scaffold2 the same!")
 
   override def toString = {
-    "<LinkCluster %d %d:%d-%d %d:%d-%d>".format(nLinks, scaffold1, minCoord1, maxCoord1,
-      scaffold2, minCoord2, maxCoord2)
+    "<LinkCluster %d %d:%d+%d %d:%d+%d %d>".format(nLinks, scaffold1, minCoord1, maxCoord1-minCoord1,
+      scaffold2, minCoord2, maxCoord2-minCoord2, mq)
   }
 
 
-  def dumpCoords(coords: Array[MatePair]) = {
-    for (mp <- coords) {
-      val (c1, c2, is) = mp.coordsAndDistance
-      println("%X %X %d %d:%d %d:%d".format(c1,c2,is, mp.scaffold1, mp.coord1, mp.scaffold2, mp.coord2))
-    }
-  }
+  def dumpCoords(coords: Array[MatePair]) = coords foreach println
 }
 
 object Scaffold {
@@ -154,13 +156,16 @@ object Scaffold {
     val window = (bam.insertSizeSigma * 4).toInt
     val genomeSize = bam.getSeqs.map({_.getSequenceLength}).sum
     println("genome size " + genomeSize)
+    println("max imsert " + bam.maxInsertSize)
 
     var innie = 0
     var intra = 0
+    var ambig = 0
     var links: List[MatePair] = Nil
     for ((r1,r2) <- mm if (r2.getSecondOfPairFlag)) {
       val mp = new MatePair(r1, r2)
-      if (mp.isRunt) innie += 1
+      if (mp.isRunt(/* bam.maxInsertSize */10000)) innie += 1
+      else if (mp.ambiguousPlacement) ambig += 1
       else {
         if (mp.sameScaffold) intra += 1
         links ::= mp
@@ -168,18 +173,12 @@ object Scaffold {
     }
     val nLinks = links.length
     val backgroundRate = (nLinks.toFloat * window.toFloat / genomeSize.toFloat).toInt
-    println("same=" + intra + " innies=" + innie + " links=" + nLinks + " background=" + backgroundRate)
+    println("ambig=" + ambig + " same=" + intra + " innies=" + innie + " links=" + nLinks + " background=" + backgroundRate)
     val coords = links.toArray
 
-    findClusters(links.toArray, window, 1 * backgroundRate)
+    findClusters(links.toArray, window, /*1 * backgroundRate*/ 25)
   }
 
 
-  def dumpCoords(coords: Array[MatePair]) = {
-    for (mp <- coords) {
-      val (c1, c2, is) = mp.coordsAndDistance
-      println("%X %X %d %d:%d %d:%d".format(c1,c2,is, mp.scaffold1, mp.coord1, mp.scaffold2, mp.coord2))
-    }
-  }
-
+  def dumpCoords(coords: Array[MatePair]) = coords foreach println
 }
