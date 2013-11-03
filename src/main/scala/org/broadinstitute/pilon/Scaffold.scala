@@ -75,17 +75,11 @@ class MatePair(r1: SAMRecord, r2: SAMRecord) {
 
   def ambiguousPlacement = mq < 4
 
-
-  // convert back to (scaffold, coord) pair of ints
-  def decodeLongCoord(c: Long) = ((c >> 32).toInt, (c & mask32bit).toInt)
-
-  def coordsAndDistance= (longCoord1, longCoord2, distance)
-
   override def toString = "<MatePair %d:%d %d:%d %d %d".format(scaffold1, coord1, scaffold2, coord2,
     mq, distance)
 }
 
-class LinkCluster(val matePairs: Array[MatePair]) {
+class LinkCluster(val matePairs: Array[MatePair], scaffolds: Array[SAMSequenceRecord], sigma: Int) {
   val nLinks = matePairs.size
   val scaffold1 = matePairs.map(_.scaffold1).min
   val minCoord1 = matePairs.map(_.coord1).min
@@ -94,15 +88,65 @@ class LinkCluster(val matePairs: Array[MatePair]) {
   val minCoord2 = matePairs.map(_.coord2).min
   val maxCoord2 = matePairs.map(_.coord2).max
   val mq = matePairs.map(_.mq).sum / matePairs.length
+  val seq1 = scaffolds(scaffold1)
+  val seq2 = scaffolds(scaffold2)
+  val size1 = seq1.getSequenceLength
+  val size2 = seq2.getSequenceLength
 
   //println("LinkCluster " + this)
   //dumpCoords(matePairs)
-  assert(scaffold1 == matePairs.map(_.scaffold1).max, "Not all scaffold1 the same!")
-  assert(scaffold2 == matePairs.map(_.scaffold2).max, "Not all scaffold2 the same!")
+  require(scaffold1 == matePairs.map(_.scaffold1).max, "Not all scaffold1 the same!")
+  require(scaffold2 == matePairs.map(_.scaffold2).max, "Not all scaffold2 the same!")
+
+  def sameScaffold = (scaffold1 == scaffold2)
+
+  def sameOrientation = (minCoord1 < 0 && minCoord2 < 0) || (minCoord1 > 0 && minCoord2 > 0)
+
+  def spread1 = maxCoord1 - minCoord1
+  def spread2 = maxCoord2 - minCoord2
+
+  def valid = (spread1 > sigma) && (spread2 > sigma)
+
+  def circular = {
+    valid && sameScaffold && nearEnds
+  }
+
+  def reportCoord(name: String, coord: Int) = {
+    val dir = if (coord < 0) "fw" else "rc"
+    "%s:%d%s".format(name, coord.abs, dir)
+  }
+
+  def reportCoord1 = reportCoord(seq1.getSequenceName, minCoord1)
+  def reportCoord2 = reportCoord(seq2.getSequenceName, minCoord2)
+
+  def reportCoords = {
+    (reportCoord1, reportCoord2)
+  }
+
+  def reportCircular = {
+    assert(valid && circular, "don't call me unless you now I'm circular")
+    val name = seq1.getSequenceName
+    ""
+  }
+
+  def nearEnds = (-minCoord1 > size1 - sigma) && (minCoord2 < sigma)
+
+  def scaffoldLink = {
+     valid && nearEnds && !sameScaffold
+  }
+
+  def rearrangement = {
+    valid && !circular && !scaffoldLink
+  }
 
   override def toString = {
-    "<LinkCluster %d %d:%d+%d %d:%d+%d %d>".format(nLinks, scaffold1, minCoord1, maxCoord1-minCoord1,
-      scaffold2, minCoord2, maxCoord2-minCoord2, mq)
+    //var str = "<LinkCluster %d %d:%d+%d %d:%d+%d %d ".format(nLinks, scaffold1, minCoord1, spread1,
+    //  scaffold2, minCoord2, spread2, mq)
+    var str = "<LinkCluster %d %d:%d%+d %d:%d%+d %d".format(nLinks, scaffold1, minCoord1, maxCoord1,
+      scaffold2, minCoord2, maxCoord2, mq)
+    if (valid) str += " valid"
+    if (circular) str += " circular"
+    str + ">"
   }
 
 
@@ -111,12 +155,14 @@ class LinkCluster(val matePairs: Array[MatePair]) {
 
 object Scaffold {
 
-  def findClusters(coords: Array[MatePair], windowSize: Int, minCluster: Int = 10) = {
+  def findClusters(coords: Array[MatePair], scaffolds: Array[SAMSequenceRecord],
+                   sigma: Int, minCluster: Int = 10) = {
+    val windowSize = 4 * sigma
     val clustersByDistance = findClustersInternal(coords, windowSize, minCluster, {_.distance})
     val clusters = clustersByDistance map {findClustersInternal(_, windowSize, minCluster, {_.longCoord1})}
 
-    val linkClusters = clusters.flatten.map({new LinkCluster(_)}).sortWith({_.nLinks > _.nLinks})
-    linkClusters foreach println
+    val linkClusters = clusters.flatten.map({new LinkCluster(_, scaffolds, sigma)}).sortWith({_.nLinks > _.nLinks})
+    if (Pilon.debug) linkClusters foreach println
     linkClusters
   }
 
@@ -125,11 +171,12 @@ object Scaffold {
                            window: Int,
                            minCluster: Int = 10,
                            mpFunc: MatePair => Long) = {
-    //println("finding clusters: size=%d window=%d min=%d func=%s".format(unsortedCoords.size,
-    //  window, minCluster, mpFunc))
+    if (Pilon.debug)
+      println("finding clusters: size=%d window=%d min=%d func=%s".format(unsortedCoords.size,
+        window, minCluster, mpFunc))
 
     val coords = unsortedCoords.sortWith({mpFunc(_) < mpFunc(_)})
-    //dumpCoords(coords)
+    if (Pilon.debug) dumpCoords(coords)
     var best = (0, 0)
     var clusterRanges : List[(Int, Int)] = Nil
     for (tail <- 0 until coords.size) {
@@ -151,12 +198,17 @@ object Scaffold {
   }
 
   def analyzeStrays(bam: BamFile) = {
-    println("analyzing strays in " + bam)
     val mm = bam.strayMateMap.mateMap
-    val window = (bam.insertSizeSigma * 4).toInt
-    val genomeSize = bam.getSeqs.map({_.getSequenceLength}).sum
-    println("genome size " + genomeSize)
-    println("max imsert " + bam.maxInsertSize)
+    val sigma = bam.insertSizeSigma
+    val scaffolds = bam.getSeqs
+    val scaffoldSizes = scaffolds.map({_.getSequenceLength})
+    val genomeSize = scaffoldSizes.sum
+    println("Analyzing large-scale structure using " + bam)
+    if (Pilon.verbose) {
+      println("analyzing strays in " + bam)
+      println("genome size " + genomeSize)
+      println("max imsert " + bam.maxInsertSize)
+    }
 
     var innie = 0
     var intra = 0
@@ -172,11 +224,26 @@ object Scaffold {
       }
     }
     val nLinks = links.length
-    val backgroundRate = (nLinks.toFloat * window.toFloat / genomeSize.toFloat).toInt
-    println("ambig=" + ambig + " same=" + intra + " innies=" + innie + " links=" + nLinks + " background=" + backgroundRate)
+    val backgroundRate = (nLinks.toFloat * 4 * sigma / genomeSize.toFloat).toInt
+    if (Pilon.debug)
+      println("ambig=" + ambig + " same=" + intra + " innies=" + innie + " links=" + nLinks + " background=" + backgroundRate)
     val coords = links.toArray
 
-    findClusters(links.toArray, window, /*1 * backgroundRate*/ 25)
+    val clusters = findClusters(links.toArray, scaffolds, sigma.toInt, /*TODO: 1 * backgroundRate*/ 25)
+    for (c <- clusters if c.valid) {
+      val (c1, c2) = c.reportCoords
+      if (c.circular)
+        print("Circular element " + scaffolds(c.scaffold1).getSequenceName)
+      else if (c.scaffoldLink) {
+        print("Candidate scaffold link " + c1 + " to " + c2)
+      }
+      else if (c.rearrangement) {
+        print("Candidate rearrangement " + c1 + " connects to " + c2)
+      }
+      else print("What is this? " + c)
+      if (c.sameOrientation) print(" inverted")
+      println(" (%d supporting links)".format(c.nLinks))
+    }
   }
 
 
