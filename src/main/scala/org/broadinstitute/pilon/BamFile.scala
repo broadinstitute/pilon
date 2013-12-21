@@ -30,6 +30,7 @@ object BamFile {
 
 class BamFile(val bamFile: File, val bamType: Symbol) {
   val path = bamFile.getCanonicalPath()
+  var baseCount: Long = 0
 
   def reader = {
     val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
@@ -90,6 +91,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val reads = r.queryOverlapping(region.name,
         (region.start-10000) max 0, (region.stop+10000) min region.contig.length)
     val readsBefore = pileUpRegion.readCount
+    val baseCountBefore = pileUpRegion.baseCount
     val covBefore = pileUpRegion.coverage
     var lastLoc = 0
     val huge = 10 * BamFile.maxInsertSizes(bamType)
@@ -112,6 +114,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
     println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
+
+    // Track baseCount for global coverage
+    baseCount += pileUpRegion.baseCount - baseCountBefore
   }
 
   var mapped = 0

@@ -22,6 +22,7 @@ import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
 import net.sf.picard.reference._
+import Utils._
 
 class GenomeFile(val referenceFile: File, val targets : String = "") {
 	val referenceSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(referenceFile)
@@ -36,6 +37,11 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	  } 
 	  (contigList.reverse, contigMap)
 	}
+
+  val ungappedGenomeSize: Long = {
+    // count everything but Ns
+    contigs.map(_.getBases.count(b => b != 'N'.toByte && b != 'n'.toByte)).sum
+  }
 
 	val regions = {
 	 if (targets != "") 
@@ -64,7 +70,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	  contigs flatMap { c => contigRegions(c, maxSize) }
 	}
 	
-	
   def processBam(bam: BamFile) = regions foreach { _._2 foreach { _.processBam(bam) } }
   
   def validateBam(bamFile: BamFile) = {
@@ -78,6 +83,8 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   }
 
   def processRegions(bamFiles: List[BamFile]) = {
+    println("Ungapped input genome size: " + ungappedGenomeSize)
+
     bamFiles foreach validateBam
 
     if (Pilon.strays) {
@@ -149,6 +156,18 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     if (!Pilon.fixList.isEmpty) fastaWriter.close
     if (Pilon.vcf) vcf.close
     if (Pilon.changes) changesWriter.close
+    coverageSummary(bamFiles)
+  }
+
+  def coverageSummary(bamFiles: List[BamFile]) = {
+    val bamTypes = bamFiles.groupBy(_.bamType)
+    var totalBaseCount: Long = 0
+    for ((t,files) <- bamTypes) {
+      val typeBaseCount = files.map(_.baseCount).sum
+      println("Mean " + t.name + " coverage: " + roundDiv(typeBaseCount, ungappedGenomeSize))
+      totalBaseCount += typeBaseCount
+    }
+    println("Mean total coverage: " + roundDiv(totalBaseCount, ungappedGenomeSize))
   }
 
   def identifyAndFixIssues() = regions foreach { _._2 foreach { _.identifyAndFixIssues } }
