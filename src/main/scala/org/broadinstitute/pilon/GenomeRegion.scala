@@ -500,8 +500,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def writeVcf(vcf: Vcf) = {
     var bigFixes = fixFixList(bigFixList)
+    var dupes = duplicationEvents
     for (i <- 0 until size) {
       val loc = locus(i)
+      if (dupes != Nil && dupes.head.start == loc) {
+        vcf.writeDup(this, dupes.head)
+        dupes = dupes.tail
+      }
       if (bigFixes.length > 0 && bigFixes.head._1 == loc) {
         vcf.writeFixRecord(this, bigFixes.head)
         for (j <- 0 until bigFixes.head._2.length) deleted(i+j) = true

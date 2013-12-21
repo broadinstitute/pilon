@@ -59,6 +59,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">")
     writer.println("##FORMAT=<ID=AD,Number=.,Type=String,Description=\"Allelic depths for the ref and alt alleles in the order listed\">")
     writer.println("##FORMAT=<ID=DP,Number=1,Type=String,Description=\"Approximate read depth; some reads may have been filtered\">")
+    writer.println("##ALT=<ID=DUP,Description=\"Possible segmental duplication\">")
     writer.println("#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE")
   }
 
@@ -160,9 +161,19 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     val svtype = if (svlen < 0) "DEL" else "INS"
     var line = region.name + tab + loc + tab + "." + tab
     line += ref + tab + alt + tab + "." + tab + "PASS" + tab
-    if (fix._3 contains 'N') line += "IMPRECISE;"
-    line += "SVTYPE=" + svtype + ";SVLEN=" + svlen + ";END=" + svend + tab
-    line += "GT" + tab + "1/1"
+    line += "SVTYPE=" + svtype + ";SVLEN=" + svlen + ";END=" + svend
+    if (fix._3 contains 'N') line += ";IMPRECISE"
+    line += tab + "GT" + tab + "1/1"
+    writer.println(line)
+  }
+
+  def writeDup(region: GenomeRegion, dup: Region) = {
+    var loc = dup.start - 1
+    val rBase = region.refBase(loc)
+    var line = region.name + tab + loc + tab + "." + tab
+    line += rBase + tab + "<DUP>" + tab + "." + tab + "PASS" + tab
+    line += "SVTYPE=DUP;SVLEN=" + dup.size + ";END=" + dup.stop + ";IMPRECISE"
+    line += tab + "GT" + tab + "./."
     writer.println(line)
   }
 }
