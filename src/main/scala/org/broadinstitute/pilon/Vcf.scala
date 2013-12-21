@@ -55,6 +55,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##INFO=<ID=SVTYPE,Number=1,Type=String,Description=\"Type of structural variant\">")
     writer.println("##INFO=<ID=SVLEN,Number=.,Type=String,Description=\"Difference in length between REF and ALT alleles\">")
     writer.println("##INFO=<ID=END,Number=1,Type=Integer,Description=\"End position of the variant described in this record\">")
+    writer.println("##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description=\"Imprecise change from local reassembly (ALT contains Ns)\">")
     writer.println("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">")
     writer.println("##FORMAT=<ID=AD,Number=.,Type=String,Description=\"Allelic depths for the ref and alt alleles in the order listed\">")
     writer.println("##FORMAT=<ID=DP,Number=1,Type=String,Description=\"Approximate read depth; some reads may have been filtered\">")
@@ -159,6 +160,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     val svtype = if (svlen < 0) "DEL" else "INS"
     var line = region.name + tab + loc + tab + "." + tab
     line += ref + tab + alt + tab + "." + tab + "PASS" + tab
+    if (fix._3 contains 'N') line += "IMPRECISE;"
     line += "SVTYPE=" + svtype + ";SVLEN=" + svlen + ";END=" + svend + tab
     line += "GT" + tab + "1/1"
     writer.println(line)
