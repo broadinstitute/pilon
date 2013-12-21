@@ -112,7 +112,7 @@ class LinkCluster(val matePairs: Array[MatePair], scaffolds: Array[SAMSequenceRe
   }
 
   def reportCoord(name: String, coord: Int) = {
-    val dir = if (coord < 0) "fw" else "rc"
+    val dir = if (coord < 0) "+" else "-"
     "%s:%d%s".format(name, coord.abs, dir)
   }
 
@@ -129,7 +129,11 @@ class LinkCluster(val matePairs: Array[MatePair], scaffolds: Array[SAMSequenceRe
     ""
   }
 
-  def nearEnds = (-minCoord1 > size1 - sigma) && (minCoord2 < sigma)
+  def nearEnd(coord: Int, size: Int) = {
+    (coord < sigma) || (-coord > size - sigma)
+  }
+
+  def nearEnds = nearEnd(minCoord1, size1) && nearEnd(minCoord2, size2)
 
   def scaffoldLink = {
      valid && nearEnds && !sameScaffold
@@ -241,7 +245,7 @@ object Scaffold {
         print("Candidate rearrangement " + c1 + " connects to " + c2)
       }
       else print("What is this? " + c)
-      if (c.sameOrientation) print(" inverted")
+      if (c.sameOrientation) print(" reversed")
       println(" (%d supporting links)".format(c.nLinks))
     }
   }
