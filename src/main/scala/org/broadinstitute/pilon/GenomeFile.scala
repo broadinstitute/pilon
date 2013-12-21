@@ -88,6 +88,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     bamFiles foreach validateBam
 
     if (Pilon.strays) {
+      println("Scanning BAMs")
       for (bam <- bamFiles)
         if (bam.bamType != 'unpaired)
           bam.scan

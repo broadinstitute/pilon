@@ -113,7 +113,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
-    println(" Reads: " + nReads + ", Coverage: " + meanCoverage + ", Insert Size: " + insertSizeStats)
+    println("coverage " + meanCoverage)
 
     // Track baseCount for global coverage
     baseCount += pileUpRegion.baseCount - baseCountBefore
@@ -194,6 +194,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
     def nPairs = mateMap.size / 2
 
+    def nStrays = mateMap.size
+
     def printDebug = println("mm: " + readMap.size + "/" + mateMap.size/2)
   }
   
@@ -202,7 +204,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
   def scan() = {
-    print("Scanning " + bamFile + "...")
+    print(bamFile + ": ")
     val r = reader
     for (read <- r.iterator) {
       if (read.getReadUnmappedFlag) unmapped += 1
@@ -219,9 +221,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       }
     }
     r.close
-    print("\n%d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper))
+    print("%d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper))
+    if (Pilon.strays) print(", " + strayMateMap.nStrays + " stray")
     print(", insert size " + insertSizeStats)
-    if (Pilon.strays) print(", " + strayMateMap.nPairs + " stray pairs")
     println
   }
   

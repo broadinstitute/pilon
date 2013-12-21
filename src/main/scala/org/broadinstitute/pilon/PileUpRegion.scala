@@ -20,6 +20,7 @@ package org.broadinstitute.pilon
 
 import scala.collection.JavaConversions._
 import net.sf.samtools._
+import Utils._
 
 class PileUpRegion(name: String, start: Int, stop: Int)
   extends Region(name, start, stop) {
@@ -31,7 +32,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   var readCount = 0
   val trustedFlank = Pilon.flank
 
-  def coverage = baseCount / size
+  def coverage = roundDiv(baseCount, size)
 
   def add(locus: Int, base: Char, qual: Int, mq: Int,
     pair: Boolean) = {

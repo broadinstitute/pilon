@@ -239,7 +239,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def processBam(bam: BamFile) = {
-    print(bam.bamType.name + " " + bam.bamFile)
+    print(bam.bamType.name + " " + bam.bamFile + ": ")
     // This is a real kludge...
     val covBefore = new Array[Int](size)
     if (bam.bamType != 'jumps)
