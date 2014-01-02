@@ -38,9 +38,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	  (contigList.reverse, contigMap)
 	}
 
-  val ungappedGenomeSize: Long = {
+  val genomeSize: Long = {
     // count everything but Ns
-    contigs.map(_.getBases.count(b => b != 'N'.toByte && b != 'n'.toByte)).sum
+    contigs.map(_.getBases.length).sum
   }
 
 	val regions = {
@@ -83,7 +83,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   }
 
   def processRegions(bamFiles: List[BamFile]) = {
-    println("Ungapped input genome size: " + ungappedGenomeSize)
+    println("Input genome size: " + genomeSize)
 
     bamFiles foreach validateBam
 
@@ -165,10 +165,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     var totalBaseCount: Long = 0
     for ((t,files) <- bamTypes) {
       val typeBaseCount = files.map(_.baseCount).sum
-      println("Mean " + t.name + " coverage: " + roundDiv(typeBaseCount, ungappedGenomeSize))
+      println("Mean " + t.name + " coverage: " + roundDiv(typeBaseCount, genomeSize))
       totalBaseCount += typeBaseCount
     }
-    println("Mean total coverage: " + roundDiv(totalBaseCount, ungappedGenomeSize))
+    println("Mean total coverage: " + roundDiv(totalBaseCount, genomeSize))
   }
 
   def identifyAndFixIssues() = regions foreach { _._2 foreach { _.identifyAndFixIssues } }
