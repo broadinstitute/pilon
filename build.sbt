@@ -2,7 +2,7 @@ name := "pilon"
 
 version := "1.6"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
 scalacOptions += "-deprecation"
 
