@@ -508,8 +508,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         dupes = dupes.tail
       }
       if (bigFixes.length > 0 && bigFixes.head._1 == loc) {
-        vcf.writeFixRecord(this, bigFixes.head)
-        for (j <- 0 until bigFixes.head._2.length) deleted(i+j) = true
+        if (!deleted(i)) {
+          vcf.writeFixRecord(this, bigFixes.head)
+          for (j <- 0 until bigFixes.head._2.length) deleted(i+j) = true
+        }
         bigFixes = bigFixes.tail
       }
       vcf.writeRecord(this, i, deleted(i))
