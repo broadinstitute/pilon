@@ -242,15 +242,15 @@ object Pilon {
               Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
               A comma-separated list of categories of issues to try to fix:
-              "bases": try to fix individual bases and small indels;
-              "amb": fix ambiguous bases in fasta output (to most likely alternative).
-              "gaps": try to fill gaps;
-              "local": try to detect and fix local misassemblies;
-              "all": all of the above (default);
-              "none": none of the above; new fasta file will not be written.
-    		      The following are experimental fix types:
-              "breaks": allow local reassembly to open new gaps (with "local").
-              "novel": assemble novel sequence from unaligned non-jump reads.
+                "bases": try to fix individual bases and small indels;
+                "gaps": try to fill gaps;
+                "local": try to detect and fix local misassemblies;
+                "all": all of the above (default);
+                "none": none of the above; new fasta file will not be written.
+              The following are experimental fix types:
+                "amb": fix ambiguous bases in fasta output (to most likely alternative).
+                "breaks": allow local reassembly to open new gaps (with "local").
+                "novel": assemble novel sequence from unaligned non-jump reads.
            --pf
               Only include reads which pass quality filtering by sequencing instrument.
            --targets targetlist
