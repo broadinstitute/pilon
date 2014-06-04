@@ -499,7 +499,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def writeVcf(vcf: Vcf) = {
-    var bigFixes = fixFixList(bigFixList)
+    var fixes = fixFixList(snpFixList ++ smallFixList ++ bigFixList)
     var dupes = duplicationEvents
     for (i <- 0 until size) {
       val loc = locus(i)
@@ -507,12 +507,14 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         vcf.writeDup(this, dupes.head)
         dupes = dupes.tail
       }
-      if (bigFixes.length > 0 && bigFixes.head._1 == loc) {
-        if (!deleted(i)) {
-          vcf.writeFixRecord(this, bigFixes.head)
-          for (j <- 0 until bigFixes.head._2.length) deleted(i+j) = true
+      if (fixes.length > 0 && fixes.head._1 == loc) {
+        val fix = fixes.head
+        // We write a special record if this was a big fix (local reassembly)
+        if ((bigFixList contains fix) && !(smallFixList contains fix)) {
+          vcf.writeFixRecord(this, fix)
+          for (j <- 0 until fix._2.length) deleted(i+j) = true
         }
-        bigFixes = bigFixes.tail
+        fixes = fixes.tail
       }
       vcf.writeRecord(this, i, deleted(i))
     }
