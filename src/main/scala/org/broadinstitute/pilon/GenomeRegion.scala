@@ -451,7 +451,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
             // If we have overlapping changes, keep the one with the most impact
             val fix1len = fix1._2.length + fix1._3.length
             val fix2len = fix2._2.length + fix2._3.length
-            if (fix1len > fix2len)
+            // Prefer fix1 (first in coord order) if same length, as pileup-based indels
+            // get shifted to leftmost coord, and we would rather have those than reassemblies,
+            // all else being equal.
+            if (fix1len >= fix2len)
               fixes = fix1 :: tail
             else
               fixes = fix2 :: tail
