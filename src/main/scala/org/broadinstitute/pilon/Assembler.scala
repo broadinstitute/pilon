@@ -55,8 +55,13 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
 
   def addRead(r: SAMRecord) = {
     val bases = r.getReadString
-    if (bases.size > K) {
-      val quals = r.getBaseQualities
+    val length = bases.size
+    if (length > K) {
+      val quals = {
+        val q = r.getBaseQualities
+        if (q.length > 0) q
+        else Array.fill[Byte](length)(Pilon.defaultQual)
+      }
       val mq = r.getMappingQuality
       addToPileups(bases, quals, mq)
 
@@ -75,9 +80,9 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     val length = bases.length
     for (offset <- 0 to length - K - 1) {
       val kmer = bases.slice(offset, offset + K)
-      val qmer = quals.slice(offset, offset + K)
       if (!(pileups contains kmer))
         pileups(kmer) = new PileUp
+      if (Pilon.debug) println("K=" + K + " " + kmer + " offset=" + offset + " len=" + quals.length + " " + quals)
       pileups(kmer).add(bases(offset + K), quals(offset + K), mq)
     }
   }
