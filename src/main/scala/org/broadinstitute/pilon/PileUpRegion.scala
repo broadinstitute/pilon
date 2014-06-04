@@ -113,11 +113,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     var readOffset = 0
     var refOffset = 0
     val quals = if (r.getBaseQualities.size > 0) r.getBaseQualities
-    else {
-      val q = new Array[Byte](length)
-      for (i <- 0 until length) q(i) = Pilon.defaultQual
-      q
-    }
+                else Array.fill[Byte](length)(Pilon.defaultQual)
 
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
