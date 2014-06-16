@@ -1,14 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/scala"/>
-	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/java"/>
-	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/resources"/>
-	<classpathentry kind="src" output=".target/scala-2.9.1/test-classes" path="src/test/scala"/>
-	<classpathentry kind="src" output=".target/scala-2.9.1/test-classes" path="src/test/java"/>
-	<classpathentry kind="src" output=".target/scala-2.9.1/test-classes" path="src/test/resources"/>
-	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="lib/sam-1.85.jar"/>
-	<classpathentry kind="lib" path="lib/picard-1.85.jar"/>
-	<classpathentry kind="output" path=".target/scala-2.9.1/classes"/>
+  <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/scala"/>
+  <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/java"/>
+  <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/scala"/>
+  <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/java"/>
+  <classpathentry kind="lib" path="./lib/picard-1.98.jar"/>
+  <classpathentry kind="lib" path="./lib/sam-1.98.jar"/>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+  <classpathentry kind="lib" path="/Users/bruce/.ivy2/cache/commons-lang/commons-lang/jars/commons-lang-2.6.jar"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,0 +1,9 @@
+*~
+project/project/
+project/target/
+target/
+.target/
+.cache
+.idea
+.idea_modules
+
