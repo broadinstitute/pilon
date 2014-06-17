@@ -204,7 +204,6 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
   def scan() = {
-    print(bamFile + ": ")
     val r = reader
     for (read <- r.iterator) {
       if (read.getReadUnmappedFlag) unmapped += 1
@@ -221,10 +220,11 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       }
     }
     r.close
-    print("%d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper))
-    if (Pilon.strays) print(", " + strayMateMap.nStrays + " stray")
-    print(", insert size " + insertSizeStats)
-    println
+
+    var summary = bamFile + ": %d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper) 
+    if (Pilon.strays) summary += ", " + strayMateMap.nStrays + " stray"
+    summary += ", insert size " + insertSizeStats
+    println(summary)
   }
   
   def readsInRegion(region: Region) = {

@@ -89,9 +89,8 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     if (Pilon.strays) {
       println("Scanning BAMs")
-      for (bam <- bamFiles)
-        if (bam.bamType != 'unpaired)
-          bam.scan
+      // Scan BAMs in parallel
+      bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan)
 
       if (Pilon.fixList contains 'scaffolds)
         for (bam <- bamFiles filter {_.bamType == 'jumps})
@@ -111,20 +110,27 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	                   new Vcf(Pilon.outputFile(".vcf"), regions.map({r => (r._1, r._2.map({_.size}).sum)}))
                    else null
 
+    val chunks = regions.map(_._2).flatten.par
+    
+    chunks foreach { r =>
+      println("Processing " + r)
+      r.initializePileUps
+      bamFiles foreach { r.processBam(_) }
+      r.postProcess
+      if (Pilon.vcf || !Pilon.fixList.isEmpty) {
+    	r.identifyAndFixIssues
+      }
+      //r.finalizePileUps
+    }
+                   
+
     regions foreach { reg =>
       val name = reg._1
       val sep = if (name.indexOf("|") < 0) "_"
-      else if (name(name.length-1) == '|') ""
-      else "|"
+    	  		else if (name(name.length-1) == '|') ""
+    	  		else "|"
       val newName = name + sep + "pilon"
       reg._2 foreach { r =>
-        println("Processing " + r)
-        r.initializePileUps
-        bamFiles foreach { r.processBam(_) }
-        r.postProcess
-        if (Pilon.vcf || !Pilon.fixList.isEmpty) {
-          r.identifyAndFixIssues
-        }
         if (Pilon.vcf) {
           println("Writing " + r.name + " VCF to " + vcf.file)
           r.writeVcf(vcf)
@@ -134,15 +140,12 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
           r.writeChanges(changesWriter, newName)
 
         }
-        r.finalizePileUps
-      }
-      if (!Pilon.fixList.isEmpty) {
-
-        println("Writing updated " + newName + " to " + fastaFile)
-        val fixedRegions = reg._2 map { _.bases }
-        val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
-        writeFastaElement(fastaWriter, newName, bases)
-        //TODO: write out change file
+      	if (!Pilon.fixList.isEmpty) {
+      	  println("Writing updated " + newName + " to " + fastaFile)
+      	  val fixedRegions = reg._2 map { _.bases }
+      	  val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
+      	  writeFastaElement(fastaWriter, newName, bases)
+      	}
       }
     }
 

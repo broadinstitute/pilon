@@ -49,6 +49,7 @@ object Pilon {
   var multiClosure = false
   var pf = false
   var strays = true
+  var threads = 1
   var trSafe = true
   
   // for logging to output files
@@ -58,6 +59,8 @@ object Pilon {
     commandArgs = args
     println(Version.version)
     optionParse(args.toList)
+    
+    setDefaultParallelism(threads)
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
@@ -146,6 +149,9 @@ object Pilon {
       case "--targets" :: value :: tail =>
         targets = value
         optionParse(tail)
+      case "--threads" :: value :: tail =>
+        threads = value.toInt
+        optionParse(tail)
       case "--tracks" :: tail =>
         tracks = true
         optionParse(tail)
@@ -204,6 +210,20 @@ object Pilon {
   
   def outputFile(name : String) = new File(prefix + name)
   
+  // Ugly, but thank you http://stackoverflow.com/questions/17865823
+  def setDefaultParallelism(numThreads: Int): Unit = {
+	val parPkgObj = scala.collection.parallel.`package`
+	val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
+		_.getName == "defaultTaskSupport"
+	}.get
+
+	defaultTaskSupportField.setAccessible(true)
+	defaultTaskSupportField.set(
+			parPkgObj, 
+			new scala.collection.parallel.ForkJoinTaskSupport(
+					new scala.concurrent.forkjoin.ForkJoinPool(numThreads)))
+  }
+  
   val usage = """
     Usage: pilon --genome genome.fasta [--frags frags.bam] [--jumps jumps.bam] [--unpaired unpaired.bam]
                  [...other options...]
@@ -258,6 +278,8 @@ object Pilon {
               is a fasta element name optionally followed by a base range.  
               Example: "scaffold00001,scaffold00002:10000-20000" would result in processing all of
               scaffold00001 and coordinates 10000-20000 of scaffold00002.
+           --threads
+              Degree of parallelism to use for certain processing (default 1).
            --verbose
               More verbose output.
            --debug
