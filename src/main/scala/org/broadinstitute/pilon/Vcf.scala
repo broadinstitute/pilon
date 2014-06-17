@@ -111,33 +111,30 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     if (embedded) filters ::= "Del"
     if (filters.isEmpty) filters ::= "PASS"
     val cBaseVcf = if (cBase == "N" || cBase == rBase) "." else cBase
-    var line = region.name + tab + loc + tab + "." + tab + rBase + tab + cBaseVcf
-    line += tab + (if (indelOk && bc.deletion) "." else bc.score.toString)
     val filter = filters.mkString(";")
-    line += tab + filter
 
     val ac = callType match {
       case "0/0" => 0
       case "0/1" => 1
       case "1/1" => 2
     }
-    var info = "DP=" + (if (!embedded) pileUp.depth else pileUp.count)
-    info += ";TD=" + (pileUp.depth + pileUp.badPair)
-    info += ";BQ=" + pileUp.meanQual
-    info += ";MQ=" + pileUp.meanMq
-    info += ";QD=" + bc.q
-    info += ";BC=" + pileUp.baseCount
-    info += ";QP=" + pileUp.qualSum.toStringPct
-    info += ";PC=" + pileUp.physCov
-    info += ";IC=" + pileUp.insertions
-    info += ";DC=" + pileUp.deletions
-    info += ";XC=" + pileUp.clips
-    info += ";AC=" + ac
     val af = if (refDP + altDP > 0 && cBaseVcf != ".")
       (altDP.toFloat / (refDP + altDP).toFloat)
     else 0.0
-    info += ";AF=" + ("%.2f".format(af))
-    line += tab + info
+
+    var info = "DP=" + (if (!embedded) pileUp.depth else pileUp.count) +
+    	";TD=" + (pileUp.depth + pileUp.badPair) +
+    	";BQ=" + pileUp.meanQual +
+    	";MQ=" + pileUp.meanMq +
+    	";QD=" + bc.q +
+    	";BC=" + pileUp.baseCount +
+    	";QP=" + pileUp.qualSum.toStringPct +
+    	";PC=" + pileUp.physCov +
+    	";IC=" + pileUp.insertions +
+    	";DC=" + pileUp.deletions +
+    	";XC=" + pileUp.clips +
+    	";AC=" + ac +
+    	";AF=" + ("%.2f".format(af))
 
     var gt = "GT"
     var gtInfo = callType
@@ -146,8 +143,20 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     //  gt += ":AD"
     //  gtInfo += ":" + refDP + "," + altDP 
     //}
-    line += tab + gt + tab + gtInfo
+    
+    var line = region.name + 
+    	tab + loc + 
+    	tab + "." + 
+    	tab + rBase + 
+    	tab + cBaseVcf +
+    	tab + (if (indelOk && bc.deletion) "." else bc.score.toString) +
+    	tab + filter +
+    	tab + info +
+    	tab + gt + 
+    	tab + gtInfo
+
     writer.println(line)
+    
     if (indelOk && bc.indel && !embedded) writeRecord(region, index, bc.deletion, false)
   }
 
