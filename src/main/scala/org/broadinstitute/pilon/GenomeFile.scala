@@ -43,32 +43,32 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     contigs.map(_.getBases.length).sum
   }
 
-	val regions = {
-	 if (targets != "") 
-	   parseTargets(targets)
-	 else 
-	   (contigs map { c => (c.getName(), contigRegions(c)) } )
-	}
-	
-	def getSequence(contig: String): ReferenceSequence = {
-	  referenceSequenceFile.getSequence(contig)
-	}
-	
-	def getSubsequenceAt(contig: String, start: Long, stop: Long): ReferenceSequence = {
-	  referenceSequenceFile.getSubsequenceAt(contig, start, stop)
-	}
-	
-	def contigRegions(contig: ReferenceSequence, maxSize: Int = 10000000) = {
-	  val cLength = contig.length
-	  val nChunks : Int = (cLength + maxSize - 1) / maxSize
-	  val chunkSize : Int = (cLength + nChunks - 1) / nChunks
-	  //println(contig.getName + ": " + cLength + " " + nChunks + " " + chunkSize + " " + (nChunks*chunkSize))
-	  Range(1, cLength+1, chunkSize ) map { base => new GenomeRegion(contig,  base, cLength min base+chunkSize-1) }
-	}
-	 
-	def referenceRegions(maxSize: Int = 10000000) = {
-	  contigs flatMap { c => contigRegions(c, maxSize) }
-	}
+  val regions = {
+    if (targets != "")
+      parseTargets(targets)
+    else
+      (contigs map { c => (c.getName(), contigRegions(c)) })
+  }
+
+  def getSequence(contig: String): ReferenceSequence = {
+    referenceSequenceFile.getSequence(contig)
+  }
+
+  def getSubsequenceAt(contig: String, start: Long, stop: Long): ReferenceSequence = {
+    referenceSequenceFile.getSubsequenceAt(contig, start, stop)
+  }
+
+  def contigRegions(contig: ReferenceSequence, maxSize: Int = 10000000) = {
+    val cLength = contig.length
+    val nChunks: Int = (cLength + maxSize - 1) / maxSize
+    val chunkSize: Int = (cLength + nChunks - 1) / nChunks
+    //println(contig.getName + ": " + cLength + " " + nChunks + " " + chunkSize + " " + (nChunks*chunkSize))
+    Range(1, cLength + 1, chunkSize) map { base => new GenomeRegion(contig, base, cLength min base + chunkSize - 1) }
+  }
+
+  def referenceRegions(maxSize: Int = 10000000) = {
+    contigs flatMap { c => contigRegions(c, maxSize) }
+  }
 	
   def processBam(bam: BamFile) = regions foreach { _._2 foreach { _.processBam(bam) } }
   
@@ -92,9 +92,23 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       // Scan BAMs in parallel
       bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan)
 
-      if (Pilon.fixList contains 'scaffolds)
-        for (bam <- bamFiles filter {_.bamType == 'jumps})
-          Scaffold.analyzeStrays(bam)
+      //if (Pilon.fixList contains 'scaffolds)
+      //  for (bam <- bamFiles filter {_.bamType == 'jumps})
+      //    Scaffold.analyzeStrays(bam)
+    }
+
+    // Process chunks in parallel
+    val chunks = regions.map(_._2).flatten.par
+    chunks foreach { r =>
+      println("Processing " + r)
+      r.initializePileUps
+      bamFiles foreach { r.processBam(_) }
+      r.postProcess
+      if (Pilon.vcf || !Pilon.fixList.isEmpty) {
+    	r.identifyAndFixIssues
+    	// If we don't need pileups for VCF later, free up the memory now!
+    	if (!Pilon.vcf) r.finalizePileUps
+      }
     }
 
     val changesFile = Pilon.outputFile(".changes")
@@ -110,30 +124,18 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 	                   new Vcf(Pilon.outputFile(".vcf"), regions.map({r => (r._1, r._2.map({_.size}).sum)}))
                    else null
 
-    val chunks = regions.map(_._2).flatten.par
-    
-    chunks foreach { r =>
-      println("Processing " + r)
-      r.initializePileUps
-      bamFiles foreach { r.processBam(_) }
-      r.postProcess
-      if (Pilon.vcf || !Pilon.fixList.isEmpty) {
-    	r.identifyAndFixIssues
-      }
-      //r.finalizePileUps
-    }
-                   
-
     regions foreach { reg =>
       val name = reg._1
       val sep = if (name.indexOf("|") < 0) "_"
-    	  		else if (name(name.length-1) == '|') ""
-    	  		else "|"
+    	  else if (name(name.length-1) == '|') ""
+    		  else "|"
       val newName = name + sep + "pilon"
       reg._2 foreach { r =>
         if (Pilon.vcf) {
           println("Writing " + r.name + " VCF to " + vcf.file)
           r.writeVcf(vcf)
+          // free up memory by getting rid of pileups
+          r.finalizePileUps
         }
         if (Pilon.changes) {
           println("Writing " + r.name + " changes to " + changesFile)
