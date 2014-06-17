@@ -79,7 +79,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     reads
   }
   
-  def process(region: GenomeRegion, printInterval: Int = 100000) : Unit = {
+  def process(region: GenomeRegion, printInterval: Int = 100000) = {
 
     val pileUpRegion = region.pileUpRegion
 
@@ -113,10 +113,10 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     r.close
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
-    println("coverage " + meanCoverage)
 
     // Track baseCount for global coverage
     baseCount += pileUpRegion.baseCount - baseCountBefore
+    meanCoverage
   }
 
   var mapped = 0

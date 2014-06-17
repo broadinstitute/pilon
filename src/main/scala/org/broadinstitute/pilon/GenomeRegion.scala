@@ -59,6 +59,18 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   val weightedQual = new Array[Byte](size)
   val weightedMq = new Array[Byte](size)
 
+  var logString = ""
+
+  def log(s: String) = {
+    logString += s
+  }
+  
+  def logln(s: String = "") = {
+    log(s + "\n")
+  }
+  
+  def printLog() = print(logString)
+  
   var changeMap = Map.empty[Int, (Symbol, PileUp)]
 
   def addChange(loc: Int, kind: Symbol, pu: PileUp) = {
@@ -81,7 +93,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def kmerCopyNumber = {
     // really lame quick & dirty implementation, doesn't do rc, 
     // only for this contig, etc
-    println("kcn start")
+    logln("kcn start")
     val seq = (bases.map({_.toChar.toUpper})).mkString("")
 	val k = Assembler.K
 	val halfK = k / 2
@@ -92,7 +104,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       kc(kmer) = kc.getOrElse(kmer, 0) + 1
     for (i <- 0 until kmers.size)
       kcn(i + halfK) = kc(kmers(i))
-    println("kcn end")
+    logln("kcn end")
     kcn
   }
 
@@ -175,8 +187,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       else (Pilon.minDepth * meanCoverage).round.toInt max Pilon.minMinDepth
     }
 
-    println("Total Reads: " + nReads + ", Coverage: " + meanCoverage + ", minDepth: " + minDepth)
-    //println("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
+    logln("Total Reads: " + nReads + ", Coverage: " + meanCoverage + ", minDepth: " + minDepth)
+    //logln("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
 
     if (nReads == 0) {
       return
@@ -228,7 +240,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     // Pass 2: computed values
     val baseCov = fragCoverageDist.mean
     if (Pilon.verbose)
-      println("Frag coverage mean=" + baseCov + ", median=" + fragCoverageDist.median)
+      logln("Frag coverage mean=" + baseCov + ", median=" + fragCoverageDist.median)
     val smoothCov = smooth(fragCoverage, 200)
     for (i <- 0 until size) {
       val n = smoothCov(i)
@@ -239,13 +251,14 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def processBam(bam: BamFile) = {
-    print(bam.bamType.name + " " + bam.bamFile + ": ")
+    log(bam.bamType.name + " " + bam.bamFile + ": ")
     // This is a real kludge...
     val covBefore = new Array[Int](size)
     if (bam.bamType != 'jumps)
       for (i <- 0 until size) 
         covBefore(i) = pileUpRegion.pileups(i).depth.toInt
-    bam.process(this)
+    val coverage = bam.process(this)
+    logln(coverage.toString)
     if (bam.bamType != 'jumps)
       for (i <- 0 until size) 
         fragCoverage(i) += pileUpRegion.pileups(i).depth.toInt - covBefore(i)
@@ -259,7 +272,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def identifyAndFixIssues = {
     if (Pilon.verbose) {
-      println("# IdentifyIssues: " + this)
+      logln("# IdentifyIssues: " + this)
       identifyIssueRegions
     }
     val fix = Pilon.fixList contains 'bases
@@ -291,27 +304,27 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           dels += 1
           delBases += deletion.length
       }
-      if (Pilon.verbose) printChange(i)
+      if (Pilon.verbose) logChange(i)
     }
     
     // Report some stats
     val nConfirmed = confirmed count {x => x}
     val nonN = originalBases count {x => x != 'N'}
-    println("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
+    logln("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
       (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
-    if (Pilon.fixList contains 'bases) print("Corrected ") else print("Found ")
-    if (Pilon.diploid) print((snps + amb) + " snps")
+    if (Pilon.fixList contains 'bases) log("Corrected ") else log("Found ")
+    if (Pilon.diploid) log((snps + amb) + " snps")
     else {
-      print(snps + " snps; ")
-      print(amb + " ambiguous bases")
+      log(snps + " snps; ")
+      log(amb + " ambiguous bases")
     }
-    print("; " + ins + " small insertions totaling " + insBases + " bases")
-    println("; " + dels + " small deletions totaling " + delBases + " bases")
+    log("; " + ins + " small insertions totaling " + insBases + " bases")
+    logln("; " + dels + " small deletions totaling " + delBases + " bases")
     
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0) {
-      for (d <- duplications) println("Large collapsed region: " + d + " size " + d.size)
+      for (d <- duplications) logln("Large collapsed region: " + d + " size " + d.size)
     }
     
     // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
@@ -320,13 +333,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Try to fill gaps
     if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
-      println("# Attempting to fill gaps")
+      logln("# Attempting to fill gaps")
       for (gap <- gaps) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fillGap(gap)
         if (start > 0) {
           bigFixList ::= (start, ref, patch)
-          printFix(gap, start, ref, patch, gap.size, filler.tandemRepeat)
+          logFix(gap, start, ref, patch, gap.size, filler.tandemRepeat)
         }
       }
     }
@@ -334,16 +347,16 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     // Try to reassemble around possible contiguity breaks, but stay away from gaps
     val breaks = possibleBreaks filter { !_.nearAny(gaps, 300) }
     if ((Pilon.fixList contains 'local) && breaks.length > 0) {
-      println("# Attempting to fix local continuity breaks")
+      logln("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
         val filler = new GapFiller(this)
         val (start, ref, patch) = filler.fixBreak(break)
         if (start > 0 && (ref.length max patch.length) > 10) {
          	bigFixList ::= (start, ref, patch)
-         	printFix(break, start, ref, patch, 0, filler.tandemRepeat)
+         	logFix(break, start, ref, patch, 0, filler.tandemRepeat)
         } else if (Pilon.verbose || start == 0) {
-          print ("# ")
-          printFix(break, start, ref, patch, 0, filler.tandemRepeat)
+          log ("# ")
+          logFix(break, start, ref, patch, 0, filler.tandemRepeat)
         }
       }
     }
@@ -352,7 +365,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
   
-  def printFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {
+  def logFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
     val nPatch = countNs(patch)
@@ -360,78 +373,78 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nonGapPatch = patch.length - nPatch
     val regStr = reg.start.toString + "(" + reg.size.toString + ")"
     val regType = if (gapSize > 0) "gap" else "break"
-    //print("fix " + regType + ": " + name + " " + regStr +
+    //log("fix " + regType + ": " + name + " " + regStr +
     //      " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
-    print("fix " + regType + ": " + reg +
+    log("fix " + regType + ": " + reg +
           " " + loc + " -" + nonGapRef + " +" + nonGapPatch)
     if (Pilon.verbose) {
-    	print(" " + (if (ref.length > 0) ref else "."))
-    	print(" " + (if (patch.length > 0) patch else "."))
+    	log(" " + (if (ref.length > 0) ref else "."))
+    	log(" " + (if (patch.length > 0) patch else "."))
     }
-    if (loc == 0) print(" NoSolution")
-    else if (gapSize == 0 && ref.length == 0 && patch.length == 0) print(" NoChange")
-    else if (gapSize == 0 && nPatch == 0) print(" BreakFix")
-    else if (nPatch > 0 && nRef == 0) print(" OpenedGap")
-    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) print(" ClosedGap")
-    else if (gapSize > 0) print(" PartialFill")
-    else print(" Unknown!") // Shouldn't happen...cases should be above!
+    if (loc == 0) log(" NoSolution")
+    else if (gapSize == 0 && ref.length == 0 && patch.length == 0) log(" NoChange")
+    else if (gapSize == 0 && nPatch == 0) log(" BreakFix")
+    else if (nPatch > 0 && nRef == 0) log(" OpenedGap")
+    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) log(" ClosedGap")
+    else if (gapSize > 0) log(" PartialFill")
+    else log(" Unknown!") // Shouldn't happen...cases should be above!
     if (tandemRepeat != "") {
-      print (" TandemRepeat " + tandemRepeat.length)
-      if (Pilon.verbose) print(" " + tandemRepeat)
+      log (" TandemRepeat " + tandemRepeat.length)
+      if (Pilon.verbose) log(" " + tandemRepeat)
     }
-    println()
+    logln()
   }
     
 
   def identifyIssueRegions = {
-    println("# size=" + size + " medianCoverage=" + coverageDist.median + " meanCoverage=" + coverageDist.moments(0))
-    //prettyPrintRegions("Unconfirmed", unConfirmedRegions)
-    prettyPrintRegions("Gaps", gaps)
-    prettyPrintRegions("LowCoverage", lowCoverageRegions)
-    prettyPrintRegions("HighCN", highCopyNumberRegions)
-    prettyPrintRegions("Break?", possibleBreaks)
-    prettyPrintRegions("Clip?", clippingRegions)
-    prettyPrintRegions("Insertion?", possibleInsertions)
-    prettyPrintRegions("Deletion?", possibleDeletions)
-    prettyPrintRegions("CollapsedRepeat?", possibleCollapsedRepeats)
-    prettyPrintRegions("Ambiguous", ambiguousRegions)
+    logln("# size=" + size + " medianCoverage=" + coverageDist.median + " meanCoverage=" + coverageDist.moments(0))
+    //prettylogRegions("Unconfirmed", unConfirmedRegions)
+    prettylogRegions("Gaps", gaps)
+    prettylogRegions("LowCoverage", lowCoverageRegions)
+    prettylogRegions("HighCN", highCopyNumberRegions)
+    prettylogRegions("Break?", possibleBreaks)
+    prettylogRegions("Clip?", clippingRegions)
+    prettylogRegions("Insertion?", possibleInsertions)
+    prettylogRegions("Deletion?", possibleDeletions)
+    prettylogRegions("CollapsedRepeat?", possibleCollapsedRepeats)
+    prettylogRegions("Ambiguous", ambiguousRegions)
 
   }
 
-  def printChange(i: Int, endLine: String = "\n") = {
+  def logChange(i: Int, endLine: String = "\n") = {
     val (kind, pu) = changeMap(i)
     val rBase = refBase(locus(i))
     val cBase = pu.baseCall.base
     kind match {
       case 'snp =>
-        print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
-        if (Pilon.debug) print(" " + pu)
-        print(endLine)
+        log(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+        if (Pilon.debug) log(" " + pu)
+        log(endLine)
       case 'ins =>
-        print(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall)
-        if (Pilon.debug) print(" " + pu)
-        print(endLine)
+        log(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall)
+        if (Pilon.debug) log(" " + pu)
+        log(endLine)
       case 'del =>
-        print(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + ".")
-        if (Pilon.debug) print(" " + pu)
-        print(endLine)
+        log(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + ".")
+        if (Pilon.debug) log(" " + pu)
+        log(endLine)
       case 'amb =>
         if (Pilon.verbose && rBase != cBase) {
-          print(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
-          if (Pilon.debug) print(" " + pu)
-          print(endLine)
+          log(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+          if (Pilon.debug) log(" " + pu)
+          log(endLine)
         }
     }
   }
 
-  def prettyPrintRegions(header: String, regions: List[Region]) = {
+  def prettylogRegions(header: String, regions: List[Region]) = {
     if (regions != Nil) {
       val totalSize: Int = (regions map { _.size }).sum
-      print("# " + header + " n=" + regions.size + " bases=" + totalSize)
+      log("# " + header + " n=" + regions.size + " bases=" + totalSize)
       if (Pilon.debug) {
-    	regions foreach { r => print("  " + r.start + "-" + r.stop) }
+    	regions foreach { r => log("  " + r.start + "-" + r.stop) }
       }
-      println
+      logln()
     }
   }
 
@@ -442,7 +455,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     var outList: FixList = Nil
 
     while (fixes != Nil) {
-      //println(fixes.head)
+      //logln(fixes.head)
       fixes match {
         case fix1 :: fix2 :: tail => {
           val region1 = new Region(name, fix1._1, fix1._1 + ((fix1._2.length - 1) max 0))
@@ -476,7 +489,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def fixIssues(fixList: FixList) = {
     var newBases = bases.clone
     for (fix <- fixFixList(fixList).reverse) {
-      if (Pilon.debug) println("Fix " + fix)
+      if (Pilon.debug) logln("Fix " + fix)
       val (locus, was, patch) = fix
       val start = index(locus)
       if (was.length == patch.length) {
@@ -484,7 +497,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           val iNew = start + i
           val ref = originalBases(iNew).toChar.toUpper
           if (ref != was(i)) 
-            println("Fix mismatch: loc=" + (locus+i) + " ref=" + ref + " was=" + was(i))
+            logln("Fix mismatch: loc=" + (locus+i) + " ref=" + ref + " was=" + was(i))
           newBases(start + i) = patch(i).toByte        
         }
       } else {
@@ -492,10 +505,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         val before = newBases.slice(0, start)
         val after = newBases.slice(start + was.length, newBases.length)
         val ref = originalBases.slice(start, start + was.length).map(_.toChar).mkString("").toUpperCase
-        if (ref != was) println("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
+        if (ref != was) logln("Fix mismatch: loc=" + locus + " ref=" + ref + " was=" + was)
         newBases = before ++ (patch map { _.toByte }) ++ after
         assert(newBases.length == origLength + patch.length - was.length, "Fix patch length mismatch: " + fix)
-        if (Pilon.debug) println("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
+        if (Pilon.debug) logln("Fixing=" + was.length + " " + patch.length + " " + newBases.length)
       }
     }
     bases = newBases
@@ -601,7 +614,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def possibleCollapsedRepeats = {
     highCopyNumberRegions filter { r =>
-      //println(r + " " + deltaFraction(index(r.start)) + " " + deltaFraction(index(r.stop)))
+      //logln(r + " " + deltaFraction(index(r.start)) + " " + deltaFraction(index(r.stop)))
       deltaFraction(index(r.start)) >= 0.5 && deltaFraction(index(r.stop)) >= 0.5
     }
   }
