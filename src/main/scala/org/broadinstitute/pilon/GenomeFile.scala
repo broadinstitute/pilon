@@ -19,8 +19,10 @@
 package org.broadinstitute.pilon
 
 import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
+import scala.util.Random
 import net.sf.picard.reference._
 import Utils._
 
@@ -97,9 +99,13 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       //    Scaffold.analyzeStrays(bam)
     }
 
-    // Process chunks in parallel
-    val chunks = regions.map(_._2).flatten.par
-    chunks foreach { r =>
+    var chunks = regions.map(_._2).flatten
+    if (Pilon.threads > 1) {
+      // Do parallel processing randomly to even out load if all the 
+      // big chunks are ealy in the file
+      chunks = Random.shuffle(chunks)
+    }
+    chunks.par foreach { r =>
       println("Processing " + r)
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
