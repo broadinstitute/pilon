@@ -52,6 +52,9 @@ object Pilon {
   var threads = 1
   var trSafe = true
   
+  // Global computed data
+  var novelContigs = List[String]()
+  
   // for logging to output files
   var commandArgs = Array[String]()
   
@@ -279,7 +282,7 @@ object Pilon {
               Example: "scaffold00001,scaffold00002:10000-20000" would result in processing all of
               scaffold00001 and coordinates 10000-20000 of scaffold00002.
            --threads
-              Degree of parallelism to use for certain processing (default 1).
+              Degree of parallelism to use for certain processing (default 1). Experimental.
            --verbose
               More verbose output.
            --debug

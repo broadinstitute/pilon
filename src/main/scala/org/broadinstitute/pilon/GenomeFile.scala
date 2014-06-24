@@ -98,11 +98,16 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       //  for (bam <- bamFiles filter {_.bamType == 'jumps})
       //    Scaffold.analyzeStrays(bam)
     }
+    
+    // If assemble novel sequence up front, so that we can potentially place the
+    // contigs into scaffolds when we process them.
+    if (Pilon.fixList contains 'novel)
+      Pilon.novelContigs = assembleNovel(bamFiles)    
 
     var chunks = regions.map(_._2).flatten
     if (Pilon.threads > 1) {
       // Do parallel processing randomly to even out load if all the 
-      // big chunks are ealy in the file
+      // big chunks are early in the file
       chunks = Random.shuffle(chunks)
     }
     chunks.par foreach { r =>
@@ -161,7 +166,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     }
 
     if (Pilon.fixList contains 'novel) {
-      val novelContigs = assembleNovel(bamFiles)
+      val novelContigs = Pilon.novelContigs
       for (n <- 0 until novelContigs.length) {
         val header = "pilon_novel_%03d".format(n + 1)
         println("Appending " + header + " length " + novelContigs(n).length)
@@ -192,10 +197,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     val genomeGraph = new Assembler(minDepth = 1)
     print(" graphing genome")
     for (contig <- contigMap.values) {
-      genomeGraph.addSeq(GenomeRegion.baseString(contig.getBases))
+      genomeGraph.addGraphSeq(GenomeRegion.baseString(contig.getBases))
       if (Pilon.verbose) print("..." + contig.getName)
     }
-    genomeGraph.buildGraph
+    //genomeGraph.buildGraph
     if (Pilon.verbose) println
     val assembler = new Assembler()
     bamFiles filter {_.bamType != 'jumps} foreach { bam =>

@@ -97,11 +97,36 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     addToPileups(rcBases, quals, mq)
   }
 
-  def buildGraph = {
-    def addLink(g: KmerGraph, k1: Kmer, k2: Kmer, weight: Int) = {
-      // not using weight for now
-      g(k1) = k2
+  // Used to create an assembly graph directly from sequence, e.g., contigs.
+  def addGraphSeq(bases: String) = {
+    graphSeq(bases)
+    val rcBases = Bases.reverseComplement(bases)
+    graphSeq(rcBases)
+  }
+  
+  def addGraphSeqs(seqs: List[String]) = seqs foreach addGraphSeq
+
+  // Used to create an assembly graph directly from sequence, 
+  // e.g., contigs.
+  def graphSeq(bases: String) = {
+    val length = bases.length
+    for (offset <- 0 to length - K - 1) {
+      val k = bases.slice(offset, offset + K)
+      val nextK = k.substring(1) + bases(offset + K)
+
+      if ((kGraph contains k) && (kGraph(k) != nextK))
+    	addLink(altGraph, k, nextK, 1)
+      else
+    	addLink(kGraph, k, nextK, 1)
     }
+  }
+  
+  def addLink(g: KmerGraph, k1: Kmer, k2: Kmer, weight: Int) = {
+	// not using weight for now
+	g(k1) = k2
+  }
+  
+  def buildGraph = {
 
     if (Pilon.debug) println("building kmer Graph")
 
@@ -255,8 +280,6 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     (pathsForward, pathsReverse, loopSequence)
   }
 
-
-
   def novel(ref: Assembler): List[String] = {
     def novelKmers(seq: String) = seq.sliding(K) count { !ref.kGraph.contains(_)  }
 
@@ -291,8 +314,9 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       //println("L=" + path.length + " K=" + kLength + " N=" + novel + " P=" + novelPct)
       if (novel >= minNovel && novelPct >= minNovelPct) {
         // side effect...if we're accepting this one, add it to ref to avoid future dupes
-        ref.addSeq(path)
-        ref.buildGraph
+        ref.addGraphSeq(path)
+        //ref.addSeq(path)
+        //ref.buildGraph
         if (Pilon.verbose) println("novel " + path.length + " " + novelPct + "% " + path)
         true
       } else false

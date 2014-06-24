@@ -113,7 +113,12 @@ class GapFiller(val region: GenomeRegion) {
   def assembleIntoBreak(break: Region, reads: List[SAMRecord]) = {
     val assembler = new Assembler()
     assembler.addReads(reads)
+    assembler.buildGraph
+    if (Pilon.fixList.contains('novel) && Pilon.novelContigs != Nil) {
+      assembler.addGraphSeqs(Pilon.novelContigs)
+    } 
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
+      
     //if (Pilon.fixList contains 'novelbreaks) assembler.novel
 
     val startOffset = breakRadius
