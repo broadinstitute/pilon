@@ -61,15 +61,20 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   var logString = ""
 
+  // Hack alert...if we're running multithreaded, buffer our output for atomic
+  // write when we're done. Otherwise, we would rather see output as it happens.
   def log(s: String) = {
-    logString += s
+    if (Pilon.threads > 1)
+      logString += s
+    else
+      print(s)
   }
   
   def logln(s: String = "") = {
     log(s + "\n")
   }
   
-  def printLog() = print(logString)
+  def printLog() = if (Pilon.threads > 1) print(logString)
   
   var changeMap = Map.empty[Int, (Symbol, PileUp)]
 
@@ -87,6 +92,22 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   lazy val badCoverageDist = new NormalDistribution(badCoverage, 2)
   lazy val insertSizeDist = new NormalDistribution(insertSize, 2)
   lazy val weightedMqDist = new NormalDistribution(weightedMq, 2)
+  lazy val pctBadOverall = {
+    // Compute the overall percentage of bad coverage to total coverage
+    // in this GenomeRegion. Used to determine a threshold for evidence
+    // of contiguity breaks.
+
+    // do calculations as longs or we'll overflow
+    var totalBad = 0L
+    var totalGood = 0L
+    for (i <- 0 until size) {
+      totalBad += badCoverage(i)
+      totalGood += coverage(i)
+    }
+    if (Pilon.verbose)
+      logln("pctBadOverall: " + totalBad + " " + totalGood + " " + pct(totalBad, totalGood + totalBad))
+    pct(totalBad, totalGood + totalBad)
+  }
 
   val gc = new Array[Byte](size)
 
@@ -597,13 +618,18 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def lowCoverageRegions = summaryRegions(lowCoverage)
   def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 33
   def clippingRegions = summaryRegions(highClipping)
-  def pctBad(i: Int) = {
+
+  def tooBad(i: Int) = {
+    // Heuristic to see whether there is an abnormal percentage of "bad" coverage at this locus.
+    // Taking the overall badness + 20% for now (previously was just pctBad >= 50).
     val good = coverage(i)
     val bad = badCoverage(i)
-    pct(bad, good + bad)
+    val p = pct(bad, good + bad)
+    //p >= 50 (old way)
+    p > pctBadOverall + 20
   }
 
-  def breakp(i: Int) = lowCoverage(i) || highClipping(i) || (pctBad(i) >= 50) || (dipFraction(i) >= 1.5)
+  def breakp(i: Int) = lowCoverage(i) || highClipping(i) || tooBad(i) || (dipFraction(i) >= 1.5)
   def possibleBreaks = summaryRegions(breakp, 200)
 
   def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
