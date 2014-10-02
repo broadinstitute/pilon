@@ -625,7 +625,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val good = coverage(i)
     val bad = badCoverage(i)
     val p = pct(bad, good + bad)
-    //p >= 50 (old way)
+    //p >= 50 // (old way)
     p > pctBadOverall + 20
   }
 

@@ -63,7 +63,7 @@ class GapFiller(val region: GenomeRegion) {
       else if (Pilon.debug) println("Gap closed but bad size: " + break + " " + closedLength)
     }
     if (solutionOK) solution
-    else if (isGap || ((Pilon.fixList contains 'breaks) && loop.length == 0)) {
+    else if (isGap || ((Pilon.fixList contains 'breaks) /* && loop.length == 0 */)) {
       // build partial solution using consensus from each side, opening gap if necessary
       val fromRight = consensusFromRight(pathsFromRight)
       val fromLeft = consensusFromLeft(pathsFromLeft)
@@ -73,9 +73,11 @@ class GapFiller(val region: GenomeRegion) {
       }
       val newStart = start + fromLeft.length
       val newStop = stop - fromRight.length
-      // To be worthy, one side or the other must have extended a non-trivial amount
-      if (newStart >= break.start + GapFiller.minExtend ||
-        newStop <= break.stop - GapFiller.minExtend) {
+      // To be worthy, one side or the other must have extended a non-trivial amount,
+      // and we must have generated some sequence different from what was already there.
+      if ((newStart >= break.start + GapFiller.minExtend ||
+        newStop <= break.stop - GapFiller.minExtend) &&
+        !partialMatchesReference(start, fromLeft, fromRight, stop, loop.length)) {
         if (Pilon.debug) println((break.start, break.stop, newStart, newStop))
         val newGapLength = if (isGap) (Pilon.minGap max (newStop - newStart)) else Pilon.minGap
         val newGap = (1 to newGapLength) map {_ => "N"} mkString("")
@@ -248,6 +250,25 @@ class GapFiller(val region: GenomeRegion) {
     	patch = patch.substring(0, patch.length-1)
     }
     (start, region.refSubString(start, stop-start), patch)
+  }
+
+  def partialMatchesReference(start: Int, fromLeft: String, fromRight: String, stop: Int, loopLength: Int) = {
+    // If we have a non-closed solution, make sure it doesn't just recapitulate the sequence
+    // of the genome (we're not learning anything then).
+
+    // don't fall off either end of the region
+    if ((start + fromLeft.length > region.stop) || (stop - fromRight.length < region.start)) {
+      false
+    } else {
+      val regionLeft = region.subString(start, fromLeft.length)
+      val regionRight = region.subString(stop - fromRight.length, fromRight.length)
+      if (Pilon.debug) {
+        if (fromLeft == regionLeft) print("left overlap!") else print("left mismatch!")
+        if (fromRight == regionRight) print(" right overlap!") else print(" right mismatch!")
+        println(" loop " + loopLength)
+      }
+      fromLeft == regionLeft && fromRight == regionRight
+    }
   }
 
   
