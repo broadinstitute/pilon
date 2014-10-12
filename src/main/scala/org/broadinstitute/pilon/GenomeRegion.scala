@@ -279,7 +279,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       for (i <- 0 until size) 
         covBefore(i) = pileUpRegion.pileups(i).depth.toInt
     val coverage = bam.process(this)
-    logln(coverage.toString)
+    logln("coverage " + coverage.toString)
     if (bam.bamType != 'jumps)
       for (i <- 0 until size) 
         fragCoverage(i) += pileUpRegion.pileups(i).depth.toInt - covBefore(i)
