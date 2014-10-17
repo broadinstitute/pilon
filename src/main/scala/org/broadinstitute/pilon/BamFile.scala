@@ -78,6 +78,12 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     r.close
     reads
   }
+
+  def validateRead(read: SAMRecord) = {
+    ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) &&
+      (Pilon.duplicates || !read.getDuplicateReadFlag)
+  }
+
   
   def process(region: GenomeRegion, printInterval: Int = 100000) = {
 
@@ -89,7 +95,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
     val r = reader
     val reads = r.queryOverlapping(region.name,
-        (region.start-10000) max 0, (region.stop+10000) min region.contig.length)
+      (region.start-10000) max 0, (region.stop+10000) min region.contig.length)
     val readsBefore = pileUpRegion.readCount
     val baseCountBefore = pileUpRegion.baseCount
     val covBefore = pileUpRegion.coverage
@@ -102,15 +108,16 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
         lastLoc = printInterval * (loc / printInterval)
         print("..." + lastLoc)
       }
-      if ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) {
+      if (validateRead(read)) {
         val insertSize = pileUpRegion.addRead(read, region.contigBases)
         if (insertSize > huge) {
-        if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + r)
+          if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
         }
         addInsert(insertSize)
       }
     }
     r.close
+
     val meanCoverage = pileUpRegion.coverage - covBefore
     val nReads = pileUpRegion.readCount - readsBefore
 
@@ -121,6 +128,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   var mapped = 0
   var unmapped = 0
+  var filtered = 0
   var proper = 0
   var insertSizeSum = 0.0
   var insertSizeCount = 0.0
@@ -206,7 +214,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   def scan() = {
     val r = reader
     for (read <- r.iterator) {
-      if (read.getReadUnmappedFlag) unmapped += 1
+      if (!validateRead(read)) filtered += 1
+      else if (read.getReadUnmappedFlag) unmapped += 1
       else {
         mapped += 1
         val pp = read.getProperPairFlag
@@ -221,7 +230,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     }
     r.close
 
-    var summary = bamFile + ": %d reads, %d mapped, %d proper".format(mapped+unmapped, mapped, proper) 
+    val totalReads = mapped + unmapped + filtered
+    var summary = bamFile + ": %d reads, %d filtered, %d mapped, %d proper".format(totalReads, filtered, mapped, proper)
     if (Pilon.strays) summary += ", " + strayMateMap.nStrays + " stray"
     summary += ", insert size " + insertSizeStats
     println(summary)
@@ -229,7 +239,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def readsInRegion(region: Region) = {
     val r = reader
-    val reads = r.queryOverlapping(region.name, region.start, region.stop).toList
+    val reads = r.queryOverlapping(region.name, region.start, region.stop).filter(validateRead(_)).toList
     r.close
     reads
   }
