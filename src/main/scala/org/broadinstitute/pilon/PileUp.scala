@@ -144,9 +144,9 @@ class PileUp {
     val insertion = insertCall != ""
     val deletion = !insertion && deletionCall != ""
     val indel = insertion || deletion
+    val called = (base != 'N' || indel)
     val q = if (n > 0) score / n else 0
     val highConfidence = q >= 10
-    val majority = baseSum > halfTotal
     def callString(indelOk : Boolean = true) = {
       if (indelOk && insertion) insertCall
       else if (indelOk && deletion) deletionCall
@@ -180,7 +180,7 @@ class PileUp {
     val winner = map.toSeq.sortBy({ _._2 }).last
     if (winner._2 < indelList.length / 2) return ""
     val winStr = winner._1
-    if (pct > 50 - winStr.length) 
+    if (pct >= 50 - winStr.length)
       winStr
     else
         ""

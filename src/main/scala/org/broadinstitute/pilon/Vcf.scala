@@ -122,7 +122,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       (altDP.toFloat / (refDP + altDP).toFloat)
     else 0.0
 
-    var info = "DP=" + (if (!embedded) pileUp.depth else pileUp.count) +
+    val info = "DP=" + (if (!embedded) pileUp.depth else pileUp.count) +
     	";TD=" + (pileUp.depth + pileUp.badPair) +
     	";BQ=" + pileUp.meanQual +
     	";MQ=" + pileUp.meanMq +
@@ -130,21 +130,23 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     	";BC=" + pileUp.baseCount +
     	";QP=" + pileUp.qualSum.toStringPct +
     	";PC=" + pileUp.physCov +
-    	";IC=" + pileUp.insertions +
-    	";DC=" + pileUp.deletions +
-    	";XC=" + pileUp.clips +
+      ";IC=" + pileUp.insertions +
+      //";IF=" + pileUp.insPct +
+      ";DC=" + pileUp.deletions +
+      //";DF=" + pileUp.delPct +
+      ";XC=" + pileUp.clips +
     	";AC=" + ac +
     	";AF=" + ("%.2f".format(af))
 
-    var gt = "GT"
-    var gtInfo = callType
+    val gt = "GT"
+    val gtInfo = callType
     //AD removed
     //if (ac > 0) {
     //  gt += ":AD"
     //  gtInfo += ":" + refDP + "," + altDP 
     //}
     
-    var line = region.name + 
+    val line = region.name +
     	tab + loc + 
     	tab + "." + 
     	tab + rBase + 

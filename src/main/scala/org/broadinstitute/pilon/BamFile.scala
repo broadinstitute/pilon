@@ -80,8 +80,10 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   }
 
   def validateRead(read: SAMRecord) = {
-    ((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) &&
+    (Pilon.pf || !read.getReadFailsVendorQualityCheckFlag) &&
       (Pilon.duplicates || !read.getDuplicateReadFlag)
+    //((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) &&
+    //  (Pilon.duplicates || !read.getDuplicateReadFlag)
   }
 
   
