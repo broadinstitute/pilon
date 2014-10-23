@@ -74,7 +74,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   def getUnaligned = {
     val r = reader
-    val reads = r.queryUnmapped.toList
+    val reads = r.queryUnmapped.filter(validateRead(_)).toList
     r.close
     reads
   }

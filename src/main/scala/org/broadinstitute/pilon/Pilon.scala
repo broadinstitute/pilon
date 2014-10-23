@@ -279,9 +279,9 @@ object Pilon {
                 "breaks": allow local reassembly to open new gaps (with "local").
                 "novel": assemble novel sequence from unaligned non-jump reads.
            --duplicates
-              Use reads marked as duplicates in the input BAMs (duplicates are ignored by default).
+              Use reads marked as duplicates in the input BAMs (ignored by default).
            --pf
-              Only include reads which pass quality filtering by sequencing instrument.
+              Use reads which fail sequencer quality filtering (ignored by default).
            --targets targetlist
               Only process the specified target(s).  Targets are comma-separated, and each target
               is a fasta element name optionally followed by a base range.  

@@ -63,7 +63,7 @@ class GapFiller(val region: GenomeRegion) {
       else if (Pilon.debug) println("Gap closed but bad size: " + break + " " + closedLength)
     }
     if (solutionOK) solution
-    else if (isGap || ((Pilon.fixList contains 'breaks) /* && loop.length == 0 */)) {
+    else if (isGap || ((Pilon.fixList contains 'breaks) && loop.length == 0)) {
       // build partial solution using consensus from each side, opening gap if necessary
       val fromRight = consensusFromRight(pathsFromRight)
       val fromLeft = consensusFromLeft(pathsFromLeft)

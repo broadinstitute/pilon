@@ -82,7 +82,7 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       val kmer = bases.slice(offset, offset + K)
       if (!(pileups contains kmer))
         pileups(kmer) = new PileUp
-      if (Pilon.debug) println("K=" + K + " " + kmer + " offset=" + offset + " len=" + quals.length + " " + quals)
+      //if (Pilon.debug) println("K=" + K + " " + kmer + " offset=" + offset + " len=" + quals.length + " " + quals)
       pileups(kmer).add(bases(offset + K), quals(offset + K), mq)
     }
   }
