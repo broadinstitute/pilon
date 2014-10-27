@@ -48,7 +48,7 @@ object Pilon {
   var minDepth = 0.1
   var minQual = 0
   var multiClosure = false
-  var pf = false
+  var nonPf = false
   var strays = true
   var threads = 1
   var trSafe = true
@@ -151,7 +151,7 @@ object Pilon {
         prefix = value
         optionParse(tail)
       case "--pf" :: tail =>
-        pf = true
+        nonPf = true
         optionParse(tail)
       case "--targets" :: value :: tail =>
         targets = value
@@ -280,8 +280,8 @@ object Pilon {
                 "novel": assemble novel sequence from unaligned non-jump reads.
            --duplicates
               Use reads marked as duplicates in the input BAMs (ignored by default).
-           --pf
-              Use reads which fail sequencer quality filtering (ignored by default).
+           --nonpf
+              Use reads which failed sequencer quality filtering (ignored by default).
            --targets targetlist
               Only process the specified target(s).  Targets are comma-separated, and each target
               is a fasta element name optionally followed by a base range.  
