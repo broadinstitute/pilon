@@ -150,7 +150,7 @@ object Pilon {
       case "--output" :: value :: tail =>
         prefix = value
         optionParse(tail)
-      case "--pf" :: tail =>
+      case "--nonpf" :: tail =>
         nonPf = true
         optionParse(tail)
       case "--targets" :: value :: tail =>
