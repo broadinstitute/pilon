@@ -60,7 +60,8 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     referenceSequenceFile.getSubsequenceAt(contig, start, stop)
   }
 
-  def contigRegions(contig: ReferenceSequence, maxSize: Int = 10000000) = {
+  def contigRegions(contig: ReferenceSequence) = {
+    val maxSize = Pilon.chunkSize
     val cLength = contig.length
     val nChunks: Int = (cLength + maxSize - 1) / maxSize
     val chunkSize: Int = (cLength + nChunks - 1) / nChunks
@@ -68,10 +69,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     Range(1, cLength + 1, chunkSize) map { base => new GenomeRegion(contig, base, cLength min base + chunkSize - 1) }
   }
 
-  def referenceRegions(maxSize: Int = 10000000) = {
-    contigs flatMap { c => contigRegions(c, maxSize) }
-  }
-	
   def processBam(bam: BamFile) = regions foreach { _._2 foreach { _.processBam(bam) } }
   
   def validateBam(bamFile: BamFile) = {
@@ -144,24 +141,26 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     	  else if (name(name.length-1) == '|') ""
     		  else "|"
       val newName = name + sep + "pilon"
-      reg._2 foreach { r =>
+      var offset = 0
+      reg._2 foreach { r: GenomeRegion =>
         if (Pilon.vcf) {
-          println("Writing " + r.name + " VCF to " + vcf.file)
+          println("Writing " + r + " VCF to " + vcf.file)
           r.writeVcf(vcf)
           // free up memory by getting rid of pileups
           r.finalizePileUps
         }
         if (Pilon.changes) {
-          println("Writing " + r.name + " changes to " + changesFile)
-          r.writeChanges(changesWriter, newName)
-
+          println("Writing " + r + " changes to " + changesFile)
+          r.writeChanges(changesWriter, newName, offset)
+          offset += r.bases.size - r.size
         }
-      	if (!Pilon.fixList.isEmpty) {
-      	  println("Writing updated " + newName + " to " + fastaFile)
-      	  val fixedRegions = reg._2 map { _.bases }
-      	  val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
-      	  writeFastaElement(fastaWriter, newName, bases)
-      	}
+      }
+      // Write the FASTA all at once rather than in chunks for formatting reasons
+      if (!Pilon.fixList.isEmpty) {
+        println("Writing updated " + newName + " to " + fastaFile)
+        val fixedRegions = reg._2 map { _.bases }
+        val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
+        writeFastaElement(fastaWriter, newName, bases)
       }
     }
 

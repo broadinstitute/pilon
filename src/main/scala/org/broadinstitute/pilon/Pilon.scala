@@ -37,6 +37,7 @@ object Pilon {
   var vcf = false
   var debug = false
   // heuristics and control parameters
+  var chunkSize = 10000000
   var defaultQual: Byte = 15
   var diploid = false
   var duplicates = false
@@ -100,6 +101,9 @@ object Pilon {
         sys.exit(0)
       case "--changes" :: tail =>
         changes = true
+        optionParse(tail)
+      case "--chunksize" :: value :: tail =>
+        chunkSize = value.toInt
         optionParse(tail)
       case "--debug" :: tail =>
         debug = true
@@ -265,6 +269,9 @@ object Pilon {
            --variant
               Sets up heuristics for variant calling, as opposed to assembly improvement;
               equivalent to "--vcf --fix all,breaks".
+           --chunksize
+              Input FASTA elements larger than this will be processed in smaller pieces not to
+              exceed this size (default 10000000).
            --diploid
               Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
