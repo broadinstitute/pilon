@@ -115,7 +115,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
         if (insertSize > huge) {
           if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
         }
-        addInsert(insertSize)
+        addInsert(insertSize, read.getReadNegativeStrandFlag)
       }
     }
     r.close
@@ -132,37 +132,70 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var unmapped = 0
   var filtered = 0
   var proper = 0
-  var insertSizeSum = 0.0
-  var insertSizeCount = 0.0
-  var insertSizeSumSq = 0.0
+
+  class InsertSizeStats {
+    var count = 0
+    var sum = 0.0
+    var sumSq = 0.0
+
+    def add(size: Int) = {
+      sum += size
+      sumSq += size * size
+      count += 1
+    }
+
+    def mean = if (count > 0) (sum / count) else 0.0
+
+    def sigma = {
+      if (sum > 0) {
+        scala.math.sqrt(((sumSq / count) - (mean * mean)).abs)
+      } else 0.0
+    }
+
+    def reset = {
+      count = 0
+      sum = 0.0
+      sumSq = 0.0
+    }
+
+    override def toString = "%.0f+/-%.0f".format(mean, sigma)
+  }
+
+  val insertStatsFR = new InsertSizeStats()
+  val insertStatsRF = new InsertSizeStats()
 
   val huge = 10 * BamFile.maxInsertSizes(bamType)
 
-  def addInsert(insertSize: Int) = {
+  def addInsert(insertSize: Int, rc: Boolean = false) = {
+    val fr = (insertSize > 0) ^ rc
+    if (Pilon.debug) println("i=" + insertSize + " rc=" + rc)
     if (insertSize > 0 && insertSize < huge) {
-      insertSizeCount += 1
-      insertSizeSum += insertSize
-      insertSizeSumSq += insertSize * insertSize
+      if (fr) insertStatsFR.add(insertSize)
+      else insertStatsRF.add(insertSize)
     }
   }
-  
-  def insertSizeMean = if (insertSizeSum > 0) (insertSizeSum / insertSizeCount) else 0.0
-  
-  def insertSizeSigma = {
-    if (insertSizeSum > 0) {
-      val mean = insertSizeMean
-      scala.math.sqrt(((insertSizeSumSq / insertSizeCount) - (mean * mean)).abs)
-    } else 0.0 
+
+  def pctFR = Utils.pct(insertStatsFR.count, insertStatsFR.count + insertStatsRF.count)
+
+  def insertSizeMean = {
+    if (pctFR >= 50) insertStatsFR.mean else insertStatsRF.mean
   }
-  
-  def insertSizeStats = "%.0f+/-%.0f".format(insertSizeMean, insertSizeSigma)
+
+  def insertSizeSigma = {
+    if (pctFR >= 50) insertStatsFR.sigma else insertStatsRF.sigma
+  }
 
   def maxInsertSize = {
     // Returns reasonable max insert size for this bam, either computed or defaulted
-    if (insertSizeCount >= 1000) (insertSizeMean + 3 * insertSizeSigma).round.toInt
-    else BamFile.maxInsertSizes(bamType)    
+
+    // Find which orientation has the larger inserts.
+    val insertStats = if (pctFR >= 50) insertStatsFR else insertStatsRF
+    if (insertStats.count >= 1000)
+      (insertStats.mean + 3 * insertStats.sigma).round.toInt
+    else
+      BamFile.maxInsertSizes(bamType)
   }
-  
+
   class MateMap(reads: Seq[SAMRecord] = Nil) {
     val readMap = Map[String, SAMRecord]()
     val mateMap = Map[SAMRecord, SAMRecord]()
@@ -223,7 +256,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
         val pp = read.getProperPairFlag
         if (pp) {
           proper += 1
-          addInsert(read.getInferredInsertSize)
+          addInsert(read.getInferredInsertSize, read.getReadNegativeStrandFlag)
         } else if (Pilon.strays && !(pp | read.getReadUnmappedFlag | read.getMateUnmappedFlag)) {
           // if it's not a proper pair but both ends are mapped, it's a stray mate
           strayMateMap.addRead(read)
@@ -235,7 +268,12 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val totalReads = mapped + unmapped + filtered
     var summary = bamFile + ": %d reads, %d filtered, %d mapped, %d proper".format(totalReads, filtered, mapped, proper)
     if (Pilon.strays) summary += ", " + strayMateMap.nStrays + " stray"
-    summary += ", insert size " + insertSizeStats
+    val insertCount = insertStatsFR.count + insertStatsRF.count
+    if (pctFR >= 10)
+      summary += ", FR " + pctFR + "% " + insertStatsFR
+    if (pctFR <= 90)
+      summary += ", RF " + (100 - pctFR) + "% " + insertStatsRF
+    summary += ", max " + maxInsertSize
     println(summary)
   }
   
@@ -290,7 +328,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       val after = end > midpoint
       val r1dir = (before && !rc) || (after && rc)
       val inRegion = flanks.inRegion(start) || flanks.inRegion(end)
-      r1mapped && r1dir && inRegion
+      //r1mapped && r1dir && inRegion
+      r1mapped && inRegion
     }
     if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)
