@@ -26,9 +26,11 @@ import net.sf.samtools._
 object BamFile {
   val indexSuffix = ".bai"
   val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 5000))
+  val minOrientationPct = 10
 }
 
 class BamFile(val bamFile: File, val bamType: Symbol) {
+  import BamFile._
   val path = bamFile.getCanonicalPath()
   var baseCount: Long = 0
 
@@ -158,6 +160,10 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       sumSq = 0.0
     }
 
+    def maxInsertSize = {
+      if (count > 1000) (mean + 3.0 * sigma).round.toInt else 0
+    }
+
     override def toString = "%.0f+/-%.0f".format(mean, sigma)
   }
 
@@ -187,13 +193,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   def maxInsertSize = {
     // Returns reasonable max insert size for this bam, either computed or defaulted
-
-    // Find which orientation has the larger inserts.
-    val insertStats = if (pctFR >= 50) insertStatsFR else insertStatsRF
-    if (insertStats.count >= 1000)
-      (insertStats.mean + 3 * insertStats.sigma).round.toInt
-    else
-      BamFile.maxInsertSizes(bamType)
+    val maxFromStats = insertStatsFR.maxInsertSize max insertStatsRF.maxInsertSize
+    if (maxFromStats > 0) maxFromStats else BamFile.maxInsertSizes(bamType)
   }
 
   class MateMap(reads: Seq[SAMRecord] = Nil) {
@@ -257,7 +258,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
         if (pp) {
           proper += 1
           addInsert(read.getInferredInsertSize, read.getReadNegativeStrandFlag)
-        } else if (Pilon.strays && !(pp | read.getReadUnmappedFlag | read.getMateUnmappedFlag)) {
+        } else if (Pilon.strays && !read.getMateUnmappedFlag) {
           // if it's not a proper pair but both ends are mapped, it's a stray mate
           strayMateMap.addRead(read)
         }
@@ -269,9 +270,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     var summary = bamFile + ": %d reads, %d filtered, %d mapped, %d proper".format(totalReads, filtered, mapped, proper)
     if (Pilon.strays) summary += ", " + strayMateMap.nStrays + " stray"
     val insertCount = insertStatsFR.count + insertStatsRF.count
-    if (pctFR >= 10)
+    if (pctFR >= minOrientationPct)
       summary += ", FR " + pctFR + "% " + insertStatsFR
-    if (pctFR <= 90)
+    if (pctFR <= 100 - minOrientationPct)
       summary += ", RF " + (100 - pctFR) + "% " + insertStatsRF
     summary += ", max " + maxInsertSize
     println(summary)
@@ -318,6 +319,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val mm = mateMap.mateMap
 
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
+    val frPct = pctFR
+
     val mm2 = mm filter { pair =>  
       val (r1, r2) = pair
       val r1mapped = !(r1.getReadUnmappedFlag || r1.getProperPairFlag)
@@ -326,10 +329,16 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       val end = r1.getAlignmentEnd
       val before = start < midpoint
       val after = end > midpoint
-      val r1dir = (before && !rc) || (after && rc)
+      val goodOrientation = {
+        val frOrientation = (before && !rc) || (after && rc)
+        // If we are almost all FR or RF, use only appropriately mapped anchors
+        if (frPct > 100 - minOrientationPct) frOrientation
+        else if (frPct < minOrientationPct) !frOrientation
+        // Otherwise, either orientation could be useful
+        else true
+      }
       val inRegion = flanks.inRegion(start) || flanks.inRegion(end)
-      //r1mapped && r1dir && inRegion
-      r1mapped && inRegion
+      r1mapped && goodOrientation && inRegion
     }
     if (Pilon.debug) 
       println("# Filtered jumps " + mm2.size + "/" + mm.size)
