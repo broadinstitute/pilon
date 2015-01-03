@@ -49,8 +49,14 @@ class GapFiller(val region: GenomeRegion) {
     //val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
     val reads = recruitReads(break)
     var (start, pathsFromLeft, pathsFromRight, stop, loop) = assembleIntoBreak(break, reads)
+    if (Pilon.verbose) println("L=%d R=%d".format(pathsFromLeft.length, pathsFromRight.length))
     tandemRepeat = loop
     val solutions = breakJoins(start, pathsFromLeft, pathsFromRight, stop)
+    if (Pilon.verbose) {
+      println("S=%d".format(solutions.length))
+      if (solutions.length > 1) solutions.foreach(println)
+    }
+
     val solution =
       if (solutions.length == 1 || (Pilon.multiClosure && solutions.length > 1)) solutions.head
       else noSolution

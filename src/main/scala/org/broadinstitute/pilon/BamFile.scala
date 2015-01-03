@@ -83,9 +83,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   def validateRead(read: SAMRecord) = {
     (Pilon.nonPf || !read.getReadFailsVendorQualityCheckFlag) &&
-      (Pilon.duplicates || !read.getDuplicateReadFlag)
-    //((!Pilon.pf) || (!read.getReadFailsVendorQualityCheckFlag)) &&
-    //  (Pilon.duplicates || !read.getDuplicateReadFlag)
+      (Pilon.duplicates || !read.getDuplicateReadFlag) &&
+    !read.getNotPrimaryAlignmentFlag
   }
 
   
@@ -133,6 +132,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var mapped = 0
   var unmapped = 0
   var filtered = 0
+  var secondary = 0
   var proper = 0
 
   class InsertSizeStats {
