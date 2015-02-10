@@ -162,7 +162,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
             }
             pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
           }
-        case CigarOperator.M =>
+        case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
           for (i <- 0 until len) {
             val rOff = readOffset + i
             if (trusted(rOff)) {
@@ -189,6 +189,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           }
         case CigarOperator.H =>
           // Hard clipped bases are not present in read, nothing to do here
+        case CigarOperator.N =>
+          // Skip ref bases, hopefully the consumesReferenceBases() is implemented properly!
         case _ =>
           println("unknown cigar op=" + op + " in " + r.getCigarString)
       }
