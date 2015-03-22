@@ -103,12 +103,12 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   def addRead(r: SAMRecord, refBases: Array[Byte]) = {
     val length = r.getReadLength
     val bases = r.getReadBases
+    val mq = r.getMappingQuality
     val paired = r.getReadPairedFlag
-    val valid = (!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex))
+    val valid = (mq >= Pilon.minMq) && ((!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex)))
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
     val aEnd = r.getAlignmentEnd
-    val mq = r.getMappingQuality
     val cigar = r.getCigar
     var readOffset = 0
     var refOffset = 0

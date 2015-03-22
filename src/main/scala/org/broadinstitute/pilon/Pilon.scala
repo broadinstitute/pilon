@@ -48,6 +48,7 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
+  var minMq = 0
   var multiClosure = false
   var nonPf = false
   var strays = true
@@ -144,6 +145,9 @@ object Pilon {
         optionParse(tail)
       case "--mingap" :: value :: tail =>
         minGap = value.toInt
+        optionParse(tail)
+      case "--minmq" :: value :: tail =>
+        minMq = value.toInt
         optionParse(tail)
       case "--minqual" :: value :: tail =>
         minQual = value.toInt
@@ -318,6 +322,8 @@ object Pilon {
               is 10% of mean coverage or 5, whichever is greater).
            --mingap
               Minimum size for unclosed gaps (default 10)
+           --minmq
+              Minimum alignment mapping quality for a read to count in pileups (default 0)
            --minqual
               Minimum base quality to consider for pileups (default 0)
            --nostrays
