@@ -19,7 +19,7 @@
 package org.broadinstitute.pilon
 
 import scala.collection.JavaConversions._
-import net.sf.samtools._
+import htsjdk.samtools._
 import Utils._
 
 class PileUpRegion(name: String, start: Int, stop: Int)
@@ -45,7 +45,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
       }
     }
   }
-
+  
   def remove(locus: Int, base: Char, qual: Int, mq: Int,
     pair: Boolean) = {
     if (inRegion(locus)) {

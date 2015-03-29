@@ -29,7 +29,7 @@ package org.broadinstitute.pilon
 
 import scala.collection.JavaConversions._
 import collection.mutable.{ Map, HashMap, Set, HashSet }
-import net.sf.samtools._
+import htsjdk.samtools._
 
 
 class MatePair(r1: SAMRecord, r2: SAMRecord) {

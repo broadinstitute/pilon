@@ -19,7 +19,7 @@
 package org.broadinstitute.pilon
 
 import collection.mutable.Map
-import net.sf.picard.reference._
+import htsjdk.samtools.reference._
 import Utils._
 import java.io.PrintWriter
 

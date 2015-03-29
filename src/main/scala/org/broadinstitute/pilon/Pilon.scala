@@ -54,7 +54,7 @@ object Pilon {
   var strays = true
   var threads = 1
   var trSafe = true
-  
+
   // Global computed data
   var novelContigs = List[String]()
   

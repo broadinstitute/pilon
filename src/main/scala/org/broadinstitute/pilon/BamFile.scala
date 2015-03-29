@@ -21,7 +21,7 @@ package org.broadinstitute.pilon
 import collection.mutable.Map
 import java.io.File
 import scala.collection.JavaConversions._
-import net.sf.samtools._
+import htsjdk.samtools._
 
 object BamFile {
   val indexSuffix = ".bai"
@@ -35,8 +35,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var baseCount: Long = 0
 
   def reader = {
-    val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
-    r.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
+    //val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
+    val r = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamFile)
     r
   }
 

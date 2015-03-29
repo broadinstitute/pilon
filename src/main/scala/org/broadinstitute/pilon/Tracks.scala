@@ -28,7 +28,7 @@ package org.broadinstitute.pilon
 import java.io._
 
 import scala.collection.JavaConversions._
-import net.sf.samtools._
+import htsjdk.samtools._
 
 class Tracks(val reference: GenomeFile, val prefix : String = "") {
   def standardTracks = {

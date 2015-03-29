@@ -20,7 +20,7 @@ package org.broadinstitute.pilon
 
 import collection.JavaConversions._
 import collection.mutable.Map
-import net.sf.samtools._
+import htsjdk.samtools._
 
 
 object GapFiller {

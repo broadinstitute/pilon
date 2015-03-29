@@ -20,7 +20,7 @@ package org.broadinstitute.pilon
 import scala.annotation.tailrec
 import collection.JavaConversions._
 import collection.mutable.{ Map, HashMap, Set, HashSet }
-import net.sf.samtools._
+import htsjdk.samtools._
 
 object Assembler {
   var K = 47

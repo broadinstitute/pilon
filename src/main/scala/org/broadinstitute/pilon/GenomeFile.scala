@@ -23,7 +23,7 @@ import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
 import scala.util.Random
-import net.sf.picard.reference._
+import htsjdk.samtools.reference._
 import Utils._
 
 class GenomeFile(val referenceFile: File, val targets : String = "") {
