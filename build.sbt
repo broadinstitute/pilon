@@ -2,12 +2,12 @@ name := "pilon"
 
 version := "1.12"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.6"
 
 scalacOptions += "-deprecation"
 
 scalacOptions += "-feature"
 
-seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
+Seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
 libraryDependencies += "commons-lang" % "commons-lang" % "2.6"
