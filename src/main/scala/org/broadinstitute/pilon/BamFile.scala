@@ -136,9 +136,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var proper = 0
 
   class InsertSizeStats {
-    var count = 0
-    var sum = 0.0
-    var sumSq = 0.0
+    var count: Long = 0
+    var sum: Long = 0
+    var sumSq: Long = 0
 
     def add(size: Int) = {
       sum += size
@@ -146,18 +146,18 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       count += 1
     }
 
-    def mean = if (count > 0) (sum / count) else 0.0
+    def mean = if (count > 0) (sum.toDouble / count.toDouble) else 0.0
 
     def sigma = {
       if (sum > 0) {
-        scala.math.sqrt(((sumSq / count) - (mean * mean)).abs)
+        scala.math.sqrt(((sumSq.toDouble / count.toDouble) - (mean * mean)).abs)
       } else 0.0
     }
 
     def reset = {
       count = 0
-      sum = 0.0
-      sumSq = 0.0
+      sum = 0
+      sumSq = 0
     }
 
     def maxInsertSize = {
