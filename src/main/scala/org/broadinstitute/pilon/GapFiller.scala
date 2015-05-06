@@ -20,6 +20,7 @@ package org.broadinstitute.pilon
 
 import collection.JavaConversions._
 import collection.mutable.Map
+import java.io.File
 import htsjdk.samtools._
 
 
@@ -121,6 +122,7 @@ class GapFiller(val region: GenomeRegion) {
   def assembleIntoBreak(break: Region, reads: List[SAMRecord]) = {
     val assembler = new Assembler()
     assembler.addReads(reads)
+    if (Pilon.dumpReads) writeBam(break.toString, reads)
     assembler.buildGraph
     if (Pilon.fixList.contains('novel) && Pilon.novelContigs != Nil) {
       assembler.addGraphSeqs(Pilon.novelContigs)
@@ -314,5 +316,21 @@ class GapFiller(val region: GenomeRegion) {
   def recruitLocalReads(reg: Region) = recruitFrags(reg) ++ recruitUnpaired(reg)
 
   def recruitReads(reg: Region) = recruitLocalReads(reg) ++ recruitJumps(reg)
-  
+
+  def writeBam(fileName: String, reads: List[SAMRecord]) {
+    val file = new File(fileName + ".sam")
+    val header = new SAMFileHeader()
+    header.addSequence(new SAMSequenceRecord(region.contig.getName, region.contig.getBases.length))
+    var readGroups: List[SAMReadGroupRecord] = Nil
+    for (r <- reads) {
+      val rg = r.getReadGroup
+      if (!readGroups.contains(rg)) {
+        header.addReadGroup(rg)
+        readGroups = rg :: readGroups
+      }
+    }
+    val writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, file)
+    for (r <- reads) writer.addAlignment(r)
+    writer.close()
+  }
 }

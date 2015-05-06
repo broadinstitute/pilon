@@ -305,8 +305,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
               (region.stop + flank))
   }
   
-  def recruitBadMates(region: Region) = {
-    val midpoint = region.midpoint
+  def recruitBadMates(region: Region) = {    val midpoint = region.midpoint
     val flanks = flankRegion(region)
     val mateMap = new MateMap(readsInRegion(flanks)) 
 
@@ -347,3 +346,4 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   override def toString() = path
 }
+

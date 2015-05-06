@@ -87,6 +87,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
     }
   }
 
+  def dumpReads(prefix: String, reads: List[SAMRecord]): Unit = {
+
+  }
+
   // Used to create an assembly graph from sequence, e.g., contigs.
   // Uses fake base and mapping qualities.
   def addSeq(bases: String) = {

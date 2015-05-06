@@ -41,6 +41,7 @@ object Pilon {
   var defaultQual: Byte = 15
   var diploid = false
   var duplicates = false
+  var dumpReads = false
   var fixList = fixChoices
   var flank = 10
   var gapMargin = 100000
@@ -115,6 +116,9 @@ object Pilon {
         optionParse(tail)
       case "--diploid" :: tail =>
         diploid = true
+        optionParse(tail)
+      case "--dumpreads" :: tail =>
+        dumpReads = true
         optionParse(tail)
       case "--duplicates" :: tail =>
         duplicates = true
@@ -289,6 +293,8 @@ object Pilon {
                 "amb": fix ambiguous bases in fasta output (to most likely alternative).
                 "breaks": allow local reassembly to open new gaps (with "local").
                 "novel": assemble novel sequence from unaligned non-jump reads.
+           --dumpreads
+              Dump reads for local re-assemblies.
            --duplicates
               Use reads marked as duplicates in the input BAMs (ignored by default).
            --nonpf
