@@ -224,9 +224,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val n = pu.depth
       val bc = pu.baseCall
       val b = bc.base
-      val q = bc.q
       val homo = bc.homo
-      val m = pu.weightedMq
       //val (b, p, q, m) = bc
       val r = refBase(i + start)
       //val minDepth = meanCoverage * 25 / 100
