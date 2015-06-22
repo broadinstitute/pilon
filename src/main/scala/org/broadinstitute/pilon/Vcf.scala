@@ -46,7 +46,10 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##INFO=<ID=MQ,Number=1,Type=Integer,Description=\"Mean read mapping quality at locus\">")
     writer.println("##INFO=<ID=QD,Number=1,Type=Integer,Description=\"Variant confidence/quality by depth\">")
     writer.println("##INFO=<ID=BC,Number=4,Type=Integer,Description=\"Count of As, Cs, Gs, Ts at locus\">")
-    writer.println("##INFO=<ID=QP,Number=4,Type=Integer,Description=\"Percentage of As, Cs, Gs, Ts weighted by Q & MQ at locus\">")
+    if (Pilon.vcfQE)
+      writer.println("##INFO=<ID=QE,Number=4,Type=Integer,Description=\"Evidence for As, Cs, Gs, Ts weighted by Q & MQ at locus\">")
+    else
+      writer.println("##INFO=<ID=QP,Number=4,Type=Integer,Description=\"Percentage of As, Cs, Gs, Ts weighted by Q & MQ at locus\">")
     writer.println("##INFO=<ID=IC,Number=1,Type=Integer,Description=\"Number of reads with insertion here\">")
     writer.println("##INFO=<ID=DC,Number=1,Type=Integer,Description=\"Number of reads with deletion here\">")
     writer.println("##INFO=<ID=XC,Number=1,Type=Integer,Description=\"Number of reads clipped here\">")
@@ -128,7 +131,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     	";MQ=" + pileUp.meanMq +
     	";QD=" + bc.q +
     	";BC=" + pileUp.baseCount +
-    	";QP=" + pileUp.qualSum.toStringPct +
+      (if (Pilon.vcfQE) ";QE=" + pileUp.qualSum.toString else ";QP=" + pileUp.qualSum.toStringPct ) +
     	";PC=" + pileUp.physCov +
       ";IC=" + pileUp.insertions +
       //";IF=" + pileUp.insPct +

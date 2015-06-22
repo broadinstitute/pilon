@@ -35,6 +35,7 @@ object Pilon {
   var tracks = false
   var verbose = false
   var vcf = false
+  var vcfQE = false
   var debug = false
   // heuristics and control parameters
   var chunkSize = 10000000
@@ -189,6 +190,9 @@ object Pilon {
       case "--vcf" :: tail =>
         vcf = true
         optionParse(tail)
+      case "--vcfqe" :: tail =>
+        vcfQE = true
+        optionParse(tail)
       case "--verbose" :: tail =>
         verbose = true
         optionParse(tail)
@@ -270,9 +274,12 @@ object Pilon {
               If specified, a file listing changes in the <output>.fasta will be generated.
            --vcf
               If specified, a vcf file will be generated
+           --vcfqe
+               If specified, the VCF will contain a QE (quality-weighted evidence) field rather
+               than the default QP (quality-weighted percentage of evidence) field.
            --tracks
-              This options will cause many track files (*.bed, *.wig) suitable for viewing in
-              IGV to be written.
+               This options will cause many track files (*.bed, *.wig) suitable for viewing in
+               a genome browser to be written.
          CONTROL:
            --variant
               Sets up heuristics for variant calling, as opposed to assembly improvement;
