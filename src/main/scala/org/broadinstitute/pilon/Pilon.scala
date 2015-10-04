@@ -102,6 +102,10 @@ object Pilon {
         println(usage)
         print(help)
         sys.exit(0)
+      case "--version" :: tail =>
+        // Version already printed before argument parsing, so just exit
+        // println(Version.version)
+        sys.exit(0)
       case "--changes" :: tail =>
         changes = true
         optionParse(tail)
@@ -317,6 +321,8 @@ object Pilon {
               More verbose output.
            --debug
               Debugging output (implies verbose).
+           --version
+              Print version string and exit.
          HEURISTICS:
            --defaultqual qual
               Assumes bases are of this quality if quals are no present in input BAMs (default 15).
