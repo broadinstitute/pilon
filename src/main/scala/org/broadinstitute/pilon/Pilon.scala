@@ -312,9 +312,11 @@ object Pilon {
               Use reads which failed sequencer quality filtering (ignored by default).
            --targets targetlist
               Only process the specified target(s).  Targets are comma-separated, and each target
-              is a fasta element name optionally followed by a base range.  
+              is a fasta element name optionally followed by a base range.
               Example: "scaffold00001,scaffold00002:10000-20000" would result in processing all of
               scaffold00001 and coordinates 10000-20000 of scaffold00002.
+              If "targetlist" is the name of a file, each line will be treated as a target
+              specification.
            --threads
               Degree of parallelism to use for certain processing (default 1). Experimental.
            --verbose
