@@ -23,6 +23,7 @@ import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
 import scala.util.Random
+import scala.io.Source
 import htsjdk.samtools.reference._
 import Utils._
 
@@ -215,7 +216,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     contigs
   }
 
-  def parseTargets(targetString: String) = {
+  def parseTargetString(targetString: String) = {
     val targetHelp = "Target string must be of the form \"element:start-stop\""
     val targets = for (target <- targetString.split(",")) yield {
       val t1 = target.split(":")
@@ -233,6 +234,21 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       (contig.getName, List(region))
     }
     targets.toList
+  }
+
+  def parseTargetFile(fileName: String) = {
+    try {
+      println("target file: " + fileName)
+      Source.fromFile(fileName).getLines.flatMap({parseTargetString(_)}).toList
+    } catch {
+      case ioe: Exception => Nil
+    }
+  }
+
+  def parseTargets(targetStr: String) = {
+    val targetsFromFile = parseTargetFile(targetStr)
+    if (targetsFromFile.isEmpty) parseTargetString(targetStr)
+    else targetsFromFile
   }
   
   override def toString() = referenceFile.getCanonicalPath()
