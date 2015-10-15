@@ -127,20 +127,23 @@ class PileUp {
   
   class BaseCall {
     val n = count
-    val qs = qualSum
-    val total = qs.sum //+ insQual + delQual
-    val order = qs.order
-    val baseIndex = order(0)
+    val (baseIndex, altBaseIndex) = {
+      val order = qualSum.order
+      (order(0), order(1))
+    }
     val base = if (n > 0) indexBase(baseIndex) else 'N'
-    val baseSum = qs.sums(baseIndex)
-    val altBaseIndex = order(1)
+    val baseSum = qualSum.sums(baseIndex)
     val altBase = indexBase(altBaseIndex)
-    val altBaseSum = qs.sums(altBaseIndex)
-    val homoScore = baseSum - (total - baseSum)
-    val halfTotal = total / 2
-    val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
-    var homo = homoScore >= heteroScore
-    val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
+    val altBaseSum = qualSum.sums(altBaseIndex)
+    var (homo, score) = {
+      val total = qualSum.sum //+ insQual + delQual
+      val homoScore = baseSum - (total - baseSum)
+      val halfTotal = total / 2
+      val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
+      val homo = homoScore >= heteroScore
+      val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
+      (homo, score)
+    }
     val insertion = insertCall != ""
     val deletion = !insertion && deletionCall != ""
     val indel = insertion || deletion
@@ -152,7 +155,7 @@ class PileUp {
       else if (indelOk && deletion) deletionCall
       else base.toString //+ (if (!homo) "/" + altBase else "")
     }
-    def baseMatch(refBase: Char) {
+    def baseMatch(refBase: Char) {//
       refBase == base	// TODO: handle IUPAC codes
     }
     override def toString = {
@@ -184,6 +187,22 @@ class PileUp {
       winStr
     else
         ""
+  }
+
+  def hetIndelCall(indelList: List[Array[Byte]], pct: Int): (String, Boolean) = {
+    val map = Map.empty[String, Int]
+    if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ("", false)
+    for (indel <- indelList) {
+      val indelStr = indel.toSeq map {_.toChar} mkString  ""
+      map(indelStr) = map.getOrElse(indelStr, 0) + 1
+    }
+    val winner = map.toSeq.sortBy({ _._2 }).last
+    if (winner._2 < indelList.length / 2) return ("", false)
+    val winStr = winner._1
+    if (pct >= 50 - winStr.length)
+      (winStr, false)
+    else
+      ("", false)
   }
 
   override def toString = {
