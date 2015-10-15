@@ -135,7 +135,7 @@ class PileUp {
     val baseSum = qualSum.sums(baseIndex)
     val altBase = indexBase(altBaseIndex)
     val altBaseSum = qualSum.sums(altBaseIndex)
-    var (homo, score) = {
+    val (homo, score) = {
       val total = qualSum.sum //+ insQual + delQual
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
@@ -144,23 +144,74 @@ class PileUp {
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
       (homo, score)
     }
-    val insertion = insertCall != ""
-    val deletion = !insertion && deletionCall != ""
-    val indel = insertion || deletion
-    val called = (base != 'N' || indel)
-    val q = if (n > 0) score / n else 0
-    val highConfidence = q >= 10
+    val (insertion, deletion, indel, homoIndel) = {
+      val (ins, homoIns) = insertCall
+      if (ins != "")
+        (ins, "", true, homoIns)
+      else {
+        val (del, homoDel) = deletionCall
+        if (del != "")
+          ("", del, true, homoDel)
+        else
+          ("", "", false, true)
+      }
+    }
+    def isInsertion = insertion != ""
+    def isDeletion = deletion != ""
+    def called = (base != 'N' || indel)
+    def q = if (n > 0) score / n else 0
+    def highConfidence = q >= 10
+
     def callString(indelOk : Boolean = true) = {
-      if (indelOk && insertion) insertCall
-      else if (indelOk && deletion) deletionCall
+      if (indelOk && isInsertion) insertion
+      else if (indelOk && isDeletion) deletion
       else base.toString //+ (if (!homo) "/" + altBase else "")
     }
+
     def baseMatch(refBase: Char) {//
       refBase == base	// TODO: handle IUPAC codes
     }
+
+    def insertCall = hetIndelCall(insertionList, insPct)
+
+    def deletionCall = hetIndelCall(deletionList, delPct)
+
+    def indelCall(indelList: List[Array[Byte]], pct: Int): String = {
+      val map = Map.empty[String, Int]
+      if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ""
+      for (indel <- indelList) {
+        val indelStr = indel.toSeq map {_.toChar} mkString  ""
+        map(indelStr) = map.getOrElse(indelStr, 0) + 1
+      }
+      val winner = map.toSeq.sortBy({ _._2 }).last
+      if (winner._2 < indelList.length / 2) return ""
+      val winStr = winner._1
+      if (pct >= 50 - winStr.length)
+        winStr
+      else
+        ""
+    }
+
+    def hetIndelCall(indelList: List[Array[Byte]], pct: Int): (String, Boolean) = {
+      // Return call and flag indicating whether it is homozygous
+      val map = Map.empty[String, Int]
+      if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ("", true)
+      for (indel <- indelList) {
+        val indelStr = indel.toSeq map {_.toChar} mkString  ""
+        map(indelStr) = map.getOrElse(indelStr, 0) + 1
+      }
+      val winner = map.toSeq.sortBy({ _._2 }).last
+      if (winner._2 < indelList.length / 2) return ("", true)
+      val winStr = winner._1
+      if (pct >= 50 - winStr.length)
+        (winStr, true)
+      else
+        ("", true)
+    }
+
     override def toString = {
-      if (insertion) "bc=i" + insertCall + ",cq=" + insQual / insertions
-      else if (deletion) "bc=d" + deletionCall + ",cq=" + delQual / deletions
+      if (isInsertion) "bc=i" + insertCall + ",cq=" + insQual / insertions
+      else if (isDeletion) "bc=d" + deletionCall + ",cq=" + delQual / deletions
       else 
     	  "bc=" + base + (if (!homo) "/" + altBase else "") +",cq=" + q
     }
@@ -168,42 +219,6 @@ class PileUp {
   
   def baseCall = new BaseCall
   
-  def insertCall = indelCall(insertionList, insPct)
-  def deletionCall = indelCall(deletionList, delPct)
-  //def insertCall = indelCall(insertionList)
-  //def deletionCall = indelCall(deletionList)
-
-  def indelCall(indelList: List[Array[Byte]], pct: Int): String = {
-    val map = Map.empty[String, Int]
-    if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ""
-    for (indel <- indelList) {
-      val indelStr = indel.toSeq map {_.toChar} mkString  ""
-      map(indelStr) = map.getOrElse(indelStr, 0) + 1
-    }
-    val winner = map.toSeq.sortBy({ _._2 }).last
-    if (winner._2 < indelList.length / 2) return ""
-    val winStr = winner._1
-    if (pct >= 50 - winStr.length)
-      winStr
-    else
-        ""
-  }
-
-  def hetIndelCall(indelList: List[Array[Byte]], pct: Int): (String, Boolean) = {
-    val map = Map.empty[String, Int]
-    if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ("", false)
-    for (indel <- indelList) {
-      val indelStr = indel.toSeq map {_.toChar} mkString  ""
-      map(indelStr) = map.getOrElse(indelStr, 0) + 1
-    }
-    val winner = map.toSeq.sortBy({ _._2 }).last
-    if (winner._2 < indelList.length / 2) return ("", false)
-    val winStr = winner._1
-    if (pct >= 50 - winStr.length)
-      (winStr, false)
-    else
-      ("", false)
-  }
 
   override def toString = {
     "<PileUp " + (new BaseCall).toString + ",b=" + baseCount + "/" + qualSum.toStringPct + ",c=" + depth + "/" + (depth + badPair) + 

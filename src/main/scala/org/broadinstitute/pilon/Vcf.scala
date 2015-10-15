@@ -81,12 +81,12 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     val depth = pileUp.depth.toInt
     var loc = locus
     val (rBase, cBase, callType, refDP, altDP) = {
-      if (indelOk && !embedded && bc.deletion) {
+      if (indelOk && !embedded && bc.isDeletion) {
         loc -= 1
         val rBase = region.refBase(loc)
         //(rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
         (rBase + bcString, rBase.toString, "1/1", pileUp.mqSum - pileUp.delQual, pileUp.delQual)
-      } else if (indelOk && !embedded && bc.insertion) {
+      } else if (indelOk && !embedded && bc.isInsertion) {
         loc -= 1
         val rBase = region.refBase(loc)
         //(rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
@@ -154,7 +154,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     	tab + "." + 
     	tab + rBase + 
     	tab + cBaseVcf +
-    	tab + (if (indelOk && bc.deletion) "." else bc.score.toString) +
+    	tab + (if (indelOk && bc.isDeletion) "." else bc.score.toString) +
     	tab + filter +
     	tab + info +
     	tab + gt + 
@@ -162,7 +162,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
 
     writer.println(line)
     
-    if (indelOk && bc.indel && !embedded) writeRecord(region, index, bc.deletion, false)
+    if (indelOk && bc.indel && !embedded) writeRecord(region, index, bc.isDeletion, false)
   }
 
   def writeFixRecord(region: GenomeRegion, fix: GenomeRegion.Fix) = {

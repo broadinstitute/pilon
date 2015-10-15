@@ -240,10 +240,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (n >= minDepth && r != 'N' && !deleted(i) && bc.called) {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
-        else if (bc.insertion) addChange(i, 'ins, pu)
-        else if (bc.deletion) {
+        else if (bc.isInsertion) addChange(i, 'ins, pu)
+        else if (bc.isDeletion) {
           addChange(i, 'del, pu)
-          for (j <- 1 until pu.deletionCall.length) {
+          for (j <- 1 until bc.deletion.length) {
             deleted(i + j) = true
             pileUpRegion(i + j).deletions += pu.deletions
           }
@@ -304,7 +304,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     for (i <- changeList) {
       val (kind, pu) = changeMap(i)
       val rBase = refBase(locus(i))
-      val cBase = pu.baseCall.base
+      val bc = pu.baseCall
+      val cBase = bc.base
       kind match {
         case 'snp =>
           if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
@@ -313,12 +314,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           amb += 1
         case 'ins =>
-          val insert = pu.insertCall
+          val insert = bc.insertion
           if (fix) smallFixList ::= (locus(i), "", insert)
           ins += 1
           insBases += insert.length
         case 'del =>
-          val deletion = pu.deletionCall
+          val deletion = bc.deletion
           if (fix) smallFixList ::= (locus(i), deletion, "")
           dels += 1
           delBases += deletion.length
@@ -440,11 +441,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         if (Pilon.debug) log(" " + pu)
         log(endLine)
       case 'ins =>
-        log(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.insertCall)
+        log(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.baseCall.insertion)
         if (Pilon.debug) log(" " + pu)
         log(endLine)
       case 'del =>
-        log(name + " " + locus(i) + " " + kind.name + " " + pu.deletionCall + " " + ".")
+        log(name + " " + locus(i) + " " + kind.name + " " + pu.baseCall.deletion + " " + ".")
         if (Pilon.debug) log(" " + pu)
         log(endLine)
       case 'amb =>
