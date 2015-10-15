@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 Broad Institute, Inc.
+ * Copyright 2012-2015 Broad Institute, Inc.
  *
  * This file is part of Pilon.
  *
@@ -169,7 +169,7 @@ class PileUp {
   def deletionCall = indelCall(deletionList, delPct)
   //def insertCall = indelCall(insertionList)
   //def deletionCall = indelCall(deletionList)
-  
+
   def indelCall(indelList: List[Array[Byte]], pct: Int): String = {
     val map = Map.empty[String, Int]
     if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ""
@@ -185,7 +185,6 @@ class PileUp {
     else
         ""
   }
-
 
   override def toString = {
     "<PileUp " + (new BaseCall).toString + ",b=" + baseCount + "/" + qualSum.toStringPct + ",c=" + depth + "/" + (depth + badPair) + 

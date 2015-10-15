@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 Broad Institute, Inc.
+ * Copyright 2012-2015 Broad Institute, Inc.
  *
  * This file is part of Pilon.
  *
