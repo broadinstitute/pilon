@@ -174,7 +174,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   def addInsert(insertSize: Int, rc: Boolean = false) = {
     val fr = (insertSize > 0) ^ rc
-    if (Pilon.debug) println("i=" + insertSize + " rc=" + rc)
+    //if (Pilon.debug) println("i=" + insertSize + " rc=" + rc)
     if (insertSize > 0 && insertSize < huge) {
       if (fr) insertStatsFR.add(insertSize)
       else insertStatsRF.add(insertSize)

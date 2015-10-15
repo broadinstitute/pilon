@@ -158,7 +158,7 @@ class PileUp {
     }
     def isInsertion = insertion != ""
     def isDeletion = deletion != ""
-    def called = (base != 'N' || indel)
+    def called = (base != 'N') || indel
     def q = if (n > 0) score / n else 0
     def highConfidence = q >= 10
 
@@ -194,8 +194,10 @@ class PileUp {
 
     def hetIndelCall(indelList: List[Array[Byte]], pct: Int): (String, Boolean) = {
       // Return call and flag indicating whether it is homozygous
+
+      // quick exit if nothing to call
+      if (depth < Pilon.minMinDepth || pct < 5 || indelList.isEmpty) return ("", true)
       val map = Map.empty[String, Int]
-      if (depth < Pilon.minMinDepth || pct < 33 || indelList.isEmpty) return ("", true)
       for (indel <- indelList) {
         val indelStr = indel.toSeq map {_.toChar} mkString  ""
         map(indelStr) = map.getOrElse(indelStr, 0) + 1
@@ -203,10 +205,23 @@ class PileUp {
       val winner = map.toSeq.sortBy({ _._2 }).last
       if (winner._2 < indelList.length / 2) return ("", true)
       val winStr = winner._1
-      if (pct >= 50 - winStr.length)
-        (winStr, true)
-      else
-        ("", true)
+      if (Pilon.debug) {
+        val indel = if (indelList == insertionList) "ins" else "del"
+        println("indel %s %d %d %d %d".format(indel, depth, indelList.length, winner._2, winStr.length))
+      }
+      if (Pilon.oldIndel) {
+        // old method only calls homozygous indels
+        if (pct >= 33 && pct >= 50 - winStr.length)
+          (winStr, true)
+        else
+          ("", true)
+      } else {
+        // new method can call heterozygous indels
+        if (pct >= 50 - winStr.length)
+          (winStr, true)
+        else
+          ("", true)
+      }
     }
 
     override def toString = {

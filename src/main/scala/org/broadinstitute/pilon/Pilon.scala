@@ -53,6 +53,7 @@ object Pilon {
   var minMq = 0
   var multiClosure = false
   var nonPf = false
+  var oldIndel = false
   var strays = true
   var threads = 1
   var trSafe = true
@@ -163,6 +164,9 @@ object Pilon {
         optionParse(tail)
       case "--multiclosure" :: tail =>      // undocumented experimental option
         multiClosure = true
+        optionParse(tail)
+      case "--oldindel" :: tail =>      // undocumented experimental option
+        oldIndel = true
         optionParse(tail)
       case "--output" :: value :: tail =>
         prefix = value
