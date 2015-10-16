@@ -240,8 +240,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (n >= minDepth && r != 'N' && !deleted(i) && bc.called) {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
-        else if (bc.isInsertion) addChange(i, 'ins, pu)
-        else if (bc.isDeletion) {
+        else if (bc.isInsertion && bc.homoIndel) addChange(i, 'ins, pu)
+        else if (bc.isDeletion && bc.homoIndel) {
           addChange(i, 'del, pu)
           for (j <- 1 until bc.deletion.length) {
             deleted(i + j) = true

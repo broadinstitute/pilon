@@ -84,13 +84,15 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       if (indelOk && !embedded && bc.isDeletion) {
         loc -= 1
         val rBase = region.refBase(loc)
+        val callType = if (bc.homoIndel) "1/1" else "0/1"
         //(rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
-        (rBase + bcString, rBase.toString, "1/1", pileUp.mqSum - pileUp.delQual, pileUp.delQual)
+        (rBase + bcString, rBase.toString, callType, pileUp.mqSum - pileUp.delQual, pileUp.delQual)
       } else if (indelOk && !embedded && bc.isInsertion) {
         loc -= 1
         val rBase = region.refBase(loc)
+        val callType = if (bc.homoIndel) "1/1" else "0/1"
         //(rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
-        (rBase.toString, rBase + bcString, "1/1", pileUp.mqSum - pileUp.insQual, pileUp.insQual)
+        (rBase.toString, rBase + bcString, callType, pileUp.mqSum - pileUp.insQual, pileUp.insQual)
       } else if (bc.homo) {
         val rBase = region.refBase(loc)
         if (rBase == bc.base || bcString == "N")
@@ -110,7 +112,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     var filters = List[String]()
     if (depth < region.minDepth) filters ::= "LowCov"
     //if (!bc.highConfidence && !bc.indel) filters ::= "LowConf"
-    if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel)) filters ::= "Amb"
+    if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel && bc.homoIndel))
+      filters ::= "Amb"
     if (embedded) filters ::= "Del"
     if (filters.isEmpty) filters ::= "PASS"
     val cBaseVcf = if (cBase == "N" || cBase == rBase) "." else cBase
@@ -162,7 +165,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
 
     writer.println(line)
     
-    if (indelOk && bc.indel && !embedded) writeRecord(region, index, bc.isDeletion, false)
+    if (indelOk && bc.indel && !embedded) writeRecord(region, index, bc.isDeletion && bc.homoIndel, false)
   }
 
   def writeFixRecord(region: GenomeRegion, fix: GenomeRegion.Fix) = {

@@ -216,9 +216,20 @@ class PileUp {
         else
           ("", true)
       } else {
-        // new method can call heterozygous indels
-        if (pct >= 50 - winStr.length)
+        // new method to call heterozygous indels
+        // the mean pct of reads containing a het indel of a given legnth is something like this:
+        val middle = (50 - winStr.length) max 10
+        // we define the low het cutoff as half that:
+        val low = middle / 2
+        // and the high cutoff is symmetrical about the middle:
+        val high = middle + middle - low
+        // if we're above the high, it's a homozygous call:
+        if (pct > high)
           (winStr, true)
+        // else if it's in the low-to-high range it's het (or ambiguous)
+        else if (pct >= low)
+          (winStr, false)
+        // otherwise, no indel call here
         else
           ("", true)
       }
