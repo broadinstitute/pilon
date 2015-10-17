@@ -85,14 +85,18 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
         loc -= 1
         val rBase = region.refBase(loc)
         val callType = if (bc.homoIndel) "1/1" else "0/1"
+        val p = pileUp.delPct
         //(rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
-        (rBase + bcString, rBase.toString, callType, pileUp.mqSum - pileUp.delQual, pileUp.delQual)
+        //(rBase + bcString, rBase.toString, callType, pileUp.mqSum - pileUp.delQual, pileUp.delQual)
+        (rBase + bcString, rBase.toString, callType, 100 - p, p)
       } else if (indelOk && !embedded && bc.isInsertion) {
         loc -= 1
         val rBase = region.refBase(loc)
         val callType = if (bc.homoIndel) "1/1" else "0/1"
+        val p = pileUp.insPct
         //(rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
-        (rBase.toString, rBase + bcString, callType, pileUp.mqSum - pileUp.insQual, pileUp.insQual)
+        //(rBase.toString, rBase + bcString, callType, pileUp.mqSum - pileUp.insQual, pileUp.insQual)
+        (rBase.toString, rBase + bcString, callType, 100 - p, p)
       } else if (bc.homo) {
         val rBase = region.refBase(loc)
         if (rBase == bc.base || bcString == "N")

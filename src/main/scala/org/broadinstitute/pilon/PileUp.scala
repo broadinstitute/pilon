@@ -114,15 +114,18 @@ class PileUp {
   
   def totalQSum = qualSum.sum + insQual + delQual
   
-  //def insPct = pct(insertions, count)
-  //def delPct = pct(deletions, count + deletions)
-  def insPct = pct(insQual, mqSum)
-  def delPct = pct(delQual, mqSum)
-  def indelPct = insPct + delPct
+  //def insPct =
+  //def delPct = pct(deletions, count.toInt + deletions)
+  //def insPct = pct(insQual, mqSum)
+  //def delPct = pct(delQual, mqSum)
+  def insPct = pct(insQual, mqSum) max pct(insertions, count.toInt)
+  def delPct = pct(delQual, mqSum) max pct(deletions, count.toInt + deletions)
+
   def qualPct = {
     val (base, max, sum) = qualSum.maxBase
     pct(max, sum)
   }  
+
   def clipPct = pct(clips, depth)
   
   class BaseCall {
@@ -172,9 +175,15 @@ class PileUp {
       refBase == base	// TODO: handle IUPAC codes
     }
 
-    def insertCall = hetIndelCall(insertionList, insPct)
+    def insertCall = {
+      if (insertions > 0) hetIndelCall(insertionList, insPct)
+      else ("", true)
+    }
 
-    def deletionCall = hetIndelCall(deletionList, delPct)
+    def deletionCall = {
+      if (deletions > 0) hetIndelCall(deletionList, delPct)
+      else ("", true)
+    }
 
     def indelCall(indelList: List[Array[Byte]], pct: Int): String = {
       val map = Map.empty[String, Int]
@@ -219,7 +228,7 @@ class PileUp {
       } else {
         // new heuristics to call heterozygous indels
         // the mean pct of reads containing a het indel of a given legnth is something like this:
-        val middle = (50 - winStr.length) max 10
+        val middle = (45 - winStr.length) max 10
         // we define the low het cutoff as half that:
         val low = middle / 2
         // and the high cutoff is symmetrical about the middle:
