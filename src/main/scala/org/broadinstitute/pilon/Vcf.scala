@@ -112,7 +112,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     var filters = List[String]()
     if (depth < region.minDepth) filters ::= "LowCov"
     //if (!bc.highConfidence && !bc.indel) filters ::= "LowConf"
-    if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel && bc.homoIndel))
+    //if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel && bc.homoIndel))
+    if (!Pilon.diploid && callType == "0/1")
       filters ::= "Amb"
     if (embedded) filters ::= "Del"
     if (filters.isEmpty) filters ::= "PASS"

@@ -209,6 +209,7 @@ class PileUp {
         val indel = if (indelList == insertionList) "ins" else "del"
         println("indel %s %d %d %d %d".format(indel, depth, indelList.length, winner._2, winStr.length))
       }
+      if (winStr contains 'N') return ("", true)
       if (Pilon.oldIndel) {
         // old method only calls homozygous indels
         if (pct >= 33 && pct >= 50 - winStr.length)
@@ -216,7 +217,7 @@ class PileUp {
         else
           ("", true)
       } else {
-        // new method to call heterozygous indels
+        // new heuristics to call heterozygous indels
         // the mean pct of reads containing a het indel of a given legnth is something like this:
         val middle = (50 - winStr.length) max 10
         // we define the low het cutoff as half that:
