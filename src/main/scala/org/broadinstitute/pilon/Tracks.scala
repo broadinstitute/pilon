@@ -181,8 +181,8 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     if (options != "") headLine += " " + options
     writer.println(headLine)
     for ((cName, regions) <- reference.regions) {
-    	writer.println("fixedStep chrom=" + cName + " start=1 step=1")
     	regions foreach { region =>
+        writer.println("fixedStep chrom=%s start=%d step=1".format(cName, region.start))
     	  for (rIndex <- 0 to region.size-1) {
     	    val value = func(region, rIndex)
     	    writer.println(value)
