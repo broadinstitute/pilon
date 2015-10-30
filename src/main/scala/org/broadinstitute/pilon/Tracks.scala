@@ -207,20 +207,18 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     writer.println(headLine)
     
     for ((cName, regions) <- reference.regions) {
-    	regions foreach { r: GenomeRegion =>
-    	  regionsToBed(r.unConfirmedRegions, "?", writer, "255,0,0") }
-    	regions foreach { r: GenomeRegion =>
-    	  regionsToBed(r.possibleCollapsedRepeats, "#", writer, "0,0,255") }
-    	regions foreach { r: GenomeRegion =>
-    	  regionsToBed(r.changeRegions, "X", writer, "255,0,0") }
-    	regions foreach { r: GenomeRegion =>
-    	  regionsToBed(r.possibleInsertions, "I", writer, "255,255,0") }
-        regions foreach { r: GenomeRegion =>
-          regionsToBed(r.possibleDeletions, "D", writer, "255,0,255") }
-        regions foreach { r: GenomeRegion =>
-          regionsToBed(r.gaps, "G", writer, "32,32,32") }
-        regions foreach { r: GenomeRegion =>
-          regionsToBed(r.possibleBreaks, "B", writer, "0,255,255") }
+      regions foreach { r: GenomeRegion =>
+        regionsToBed(r.unConfirmedRegions, "?", writer, "0,128,128")
+        regionsToBed(r.changeRegions, "X", writer, "255,0,0")
+        regionsToBed(r.lowCoverageRegions, "LowCov", writer, "128,0,128")
+        regionsToBed(r.possibleCollapsedRepeats, "Copy#", writer, "128,128,0")
+        regionsToBed(r.duplicationEvents, "Duplication", writer, "255,128,0")
+        regionsToBed(r.gaps, "Gap", writer, "0,0,0")
+        regionsToBed(r.possibleBreaks, "Break", writer, "255,0,255")
+        for ((region, outcome) <- r.reassemblyFixes) {
+          regionsToBed(List(region), outcome, writer, "0,128,0")
+        }
+      }
     }
     writer.close()       
   }

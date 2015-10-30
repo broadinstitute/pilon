@@ -365,8 +365,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
 
     // Try to reassemble around possible contiguity breaks, but stay away from gaps
-    val breaks = possibleBreaks filter { !_.nearAny(gaps, 300) }
-    if ((Pilon.fixList contains 'local) && breaks.length > 0) {
+    val breaks = possibleBreaks
+    if ((Pilon.fixList contains 'local) && !breaks.isEmpty) {
       logln("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
         val filler = new GapFiller(this)
@@ -384,7 +384,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     // Apply the bigger fixes
     fixIssues(smallFixList ++ bigFixList)
   }
-  
+
+  val reassemblyFixes = Map.empty[Region, String]
+
   def logFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
@@ -401,18 +403,20 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     	log(" " + (if (ref.length > 0) ref else "."))
     	log(" " + (if (patch.length > 0) patch else "."))
     }
-    if (loc == 0) log(" NoSolution")
-    else if (gapSize == 0 && ref.length == 0 && patch.length == 0) log(" NoChange")
-    else if (gapSize == 0 && nPatch == 0) log(" BreakFix")
-    else if (nPatch > 0 && nRef == 0) log(" OpenedGap")
-    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) log(" ClosedGap")
-    else if (gapSize > 0) log(" PartialFill")
-    else log(" Unknown!") // Shouldn't happen...cases should be above!
+    var msg = ""
+    if (loc == 0) msg = "NoSolution"
+    else if (gapSize == 0 && ref.length == 0 && patch.length == 0) msg = "NoChange"
+    else if (gapSize == 0 && nPatch == 0) msg = "BreakFix"
+    else if (nPatch > 0 && nRef == 0) msg = "OpenedGap"
+    else if (gapSize > 0 && nRef == gapSize && nPatch == 0) msg = "ClosedGap"
+    else if (gapSize > 0) msg = "PartialFill"
+    else msg = "Unknown!" // Shouldn't happen...cases should be above!
     if (tandemRepeat != "") {
-      log (" TandemRepeat " + tandemRepeat.length)
-      if (Pilon.verbose) log(" " + tandemRepeat)
-    }
-    logln()
+      reassemblyFixes(reg) = "TandemRepeat"
+      msg = msg + " TandemRepeat " + tandemRepeat.length
+    } else reassemblyFixes(reg) = msg
+
+    logln(" " + msg)
   }
     
 
@@ -424,8 +428,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     prettylogRegions("HighCN", highCopyNumberRegions)
     prettylogRegions("Break?", possibleBreaks)
     prettylogRegions("Clip?", clippingRegions)
-    prettylogRegions("Insertion?", possibleInsertions)
-    prettylogRegions("Deletion?", possibleDeletions)
+    //prettylogRegions("Insertion?", possibleInsertions)
+    //prettylogRegions("Deletion?", possibleDeletions)
     prettylogRegions("CollapsedRepeat?", possibleCollapsedRepeats)
     prettylogRegions("Ambiguous", ambiguousRegions)
 
@@ -609,12 +613,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def ambiguousRegions = summaryRegions({ i: Int => ambiguous(i) }) filter { r => r.start != r.stop }
   def changeRegions = summaryRegions({ i: Int => changed(i) || deleted(i) }, 1)
-  def gaps = summaryRegions({ i: Int => refBase(locus(i)) == 'N' }) filter { _.size >= 10}
-  def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def unConfirmedRegions = summaryRegions({ i: Int => !confirmed(i) })
 
-  def lowCoverage(i: Int) = coverage(i) < Pilon.minMinDepth
+  def gaps = summaryRegions({ i: Int => refBase(locus(i)) == 'N' }) filter { _.size >= 10}
+
+  def lowCoverage(i: Int) = (coverage(i) < Pilon.minMinDepth) && (refBase(locus(i)) != 'N')
   def lowCoverageRegions = summaryRegions(lowCoverage)
+  def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 33
   def clippingRegions = summaryRegions(highClipping)
 
@@ -628,14 +633,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     p > pctBadOverall + 20
   }
 
+  // These are possible local continuity breaks for local reassembly (stay away from gaps)
   def breakp(i: Int) = lowCoverage(i) || highClipping(i) || tooBad(i) || (dipFraction(i) >= 1.5)
-  def possibleBreaks = summaryRegions(breakp, 200)
+  def possibleBreaks = summaryRegions(breakp, 200) filter { !_.nearAny(gaps, 300) }
 
-  def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
-  def possibleInsertions = summaryRegions(insertionp)
+  //def insertionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) <= -3.0
+  //def possibleInsertions = summaryRegions(insertionp)
 
-  def deletionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) >= 3.0
-  def possibleDeletions = summaryRegions(deletionp)
+  //def deletionp(i: Int) = breakp(i) && insertSizeDist.toSigma(insertSize(i)) >= 3.0
+  //def possibleDeletions = summaryRegions(deletionp)
 
   def possibleCollapsedRepeats = {
     highCopyNumberRegions filter { r =>
@@ -650,7 +656,6 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //val regions = summaryRegions({ i: Int => smoothCoverage(i)/median > 1.5 }, 1000) 
     val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 2000) 
     regions filter {_.size > 10000}
-    
   }
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
