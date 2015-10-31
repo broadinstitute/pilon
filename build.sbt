@@ -1,6 +1,6 @@
 name := "pilon"
 
-version := "1.13"
+version := "1.14"
 
 scalaVersion := "2.11.6"
 
