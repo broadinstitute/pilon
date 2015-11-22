@@ -221,25 +221,26 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     }
 
     def addStrays = {
-      findStrays map addRead
+      for (r <- findStrays) addRead(r)
     }
     
     def findStrays = {
-      var nStrays = 0
-      def findMates(rm1: ReadMap, rm2: ReadMap): List[SAMRecord] = {
-        rm1.map( { pair =>
-          val (name, read) = pair
-          if (!(rm2 contains name)) strayMateMap.lookup(read)
-          else null
-        }).filter({_ != null}).toList
+      var strays: List[SAMRecord] = Nil
+
+      def findMates(rm1: ReadMap, rm2: ReadMap) = {
+        for ((name, read) <- rm1; if (!(rm2 contains name))) {
+          val mate = strayMateMap.lookupMate(read)
+          if (mate != null) strays ::= mate
+        }
       }
-      //val mates = readMap.map({pair => strayMateMap.lookup(pair._2)}).filter({_ != null}).toList
-      val mates = findMates(readMap1, readMap2) ++ findMates(readMap2, readMap1)
-      if (Pilon.debug) println("findStrays: " + mates.length)
-      mates
+      findMates(readMap1, readMap2)
+      findMates(readMap2, readMap1)
+      if (Pilon.debug) println("findStrays: " + strays.length)
+      strays
     }
     
-    def lookup(read: SAMRecord): SAMRecord = {
+    def lookupMate(read: SAMRecord): SAMRecord = {
+      // Look for the mate int the other readMap
       val mateReadMap = if (read.getFirstOfPairFlag) readMap2 else readMap1
       mateReadMap.getOrElse(read.getReadName, null)
     }
@@ -323,7 +324,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
               (region.stop + flank))
   }
   
-  def recruitBadMates(region: Region) = {    val midpoint = region.midpoint
+  def recruitBadMates(region: Region) = {
+    val midpoint = region.midpoint
     val flanks = flankRegion(region)
     val mateMap = new MateMap(readsInRegion(flanks)) 
 
@@ -336,29 +338,29 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val frPct = pctFR
 
-    val mm2 = mateMap.pairs filter { pair =>
-      val (r1, r2) = pair
-      val r1mapped = !(r1.getReadUnmappedFlag || r1.getProperPairFlag)
-      val rc = r1.getReadNegativeStrandFlag
-      val start = r1.getAlignmentStart
-      val end = r1.getAlignmentEnd
-      val before = start < midpoint
-      val after = end > midpoint
-      val goodOrientation = {
-        val frOrientation = (before && !rc) || (after && rc)
-        // If we are almost all FR or RF, use only appropriately mapped anchors
-        if (frPct > 100 - minOrientationPct) frOrientation
-        else if (frPct < minOrientationPct) !frOrientation
-        // Otherwise, either orientation could be useful
-        else true
+    var mates: List[SAMRecord] = Nil
+    for ((r1, r2) <- mateMap.pairs) {
+      if (!(r1.getReadUnmappedFlag || r1.getProperPairFlag)) {
+        val rc = r1.getReadNegativeStrandFlag
+        val start = r1.getAlignmentStart
+        val end = r1.getAlignmentEnd
+        val before = start < midpoint
+        val after = end > midpoint
+        val goodOrientation = {
+          val frOrientation = (before && !rc) || (after && rc)
+          // If we are almost all FR or RF, use only appropriately mapped anchors
+          if (frPct > 100 - minOrientationPct) frOrientation
+          else if (frPct < minOrientationPct) !frOrientation
+          // Otherwise, either orientation could be useful
+          else true
+        }
+        if (goodOrientation && (flanks.inRegion(start) || flanks.inRegion(end)))
+        mates ::= r2
       }
-      val inRegion = flanks.inRegion(start) || flanks.inRegion(end)
-      r1mapped && goodOrientation && inRegion
     }
-    if (Pilon.debug) 
-      println("# Filtered jumps " + mm2.size + "/" + mateMap.nStrays)
-    //mm2.values.toList
-    mm2 map {_._2}
+    if (Pilon.debug)
+      println("# Filtered jumps " + mates.size + "/" + mateMap.nStrays)
+    mates
   }
   
   override def toString() = path
