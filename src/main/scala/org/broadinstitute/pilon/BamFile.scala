@@ -18,7 +18,7 @@
 
 package org.broadinstitute.pilon
 
-import collection.mutable.Map
+import collection.mutable.{HashMap,Map}
 import java.io.File
 import scala.collection.JavaConversions._
 import htsjdk.samtools._
@@ -203,10 +203,11 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   }
 
   class MateMap(reads: Seq[SAMRecord] = Nil) {
-    val readMap = Map[String, SAMRecord]()
-    val mateMap = Map[SAMRecord, SAMRecord]()
-    val readMap1 = Map[String, SAMRecord]()
-    val readMap2 = Map[String, SAMRecord]()
+    type ReadMap = HashMap[String, SAMRecord]
+    //val readMap: ReadMap = HashMap()
+    //val mateMap = Map[SAMRecord, SAMRecord]()
+    val readMap1: ReadMap = HashMap()
+    val readMap2: ReadMap = HashMap()
     var n = 0
     
     addReads(reads)
@@ -215,44 +216,51 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     
     def addRead(read: SAMRecord) = {
       val readName = read.getReadName
-      if (readMap contains readName) {
-        val mate = readMap(readName)
-        readMap -= readName
-        mateMap += read -> mate
-        mateMap += mate -> read
-      } else readMap += readName -> read
-      n += 1
+      val readMap = if (read.getFirstOfPairFlag) readMap1 else readMap2
+      readMap(readName) = read
     }
-    
+
     def addStrays = {
-      for (mate <- findStrays) {
-        val name = mate.getReadName
-        val read = readMap(name)
- 	      readMap -= name
-   	    mateMap += read -> mate
-   	    mateMap += mate -> read
-   	  }
+      findStrays map addRead
     }
     
     def findStrays = {
       var nStrays = 0
-      val mates = readMap.map({pair => strayMateMap.lookup(pair._2)}).filter({_ != null}).toList
+      def findMates(rm1: ReadMap, rm2: ReadMap): List[SAMRecord] = {
+        rm1.map( { pair =>
+          val (name, read) = pair
+          if (!(rm2 contains name)) strayMateMap.lookup(read)
+          else null
+        }).filter({_ != null}).toList
+      }
+      //val mates = readMap.map({pair => strayMateMap.lookup(pair._2)}).filter({_ != null}).toList
+      val mates = findMates(readMap1, readMap2) ++ findMates(readMap2, readMap1)
       if (Pilon.debug) println("findStrays: " + mates.length)
       mates
     }
     
-    def lookup(read: SAMRecord): SAMRecord = mateMap.getOrElse(read, null)
+    def lookup(read: SAMRecord): SAMRecord = {
+      val mateReadMap = if (read.getFirstOfPairFlag) readMap2 else readMap1
+      mateReadMap.getOrElse(read.getReadName, null)
+    }
 
-    def nPairs = mateMap.size / 2
+    def pairs() = {
+      var pairList = List[(SAMRecord, SAMRecord)]()
+      for ((name, read1) <- readMap1; if (readMap2 contains name)) {
+        val read2 = readMap2(name)
+        pairList ::= (read1, read2)
+        pairList ::= (read2, read1)
+      }
+      pairList
+    }
 
-    def nStrays = mateMap.size
 
-    def printDebug = println("mm: " + readMap.size + "/" + mateMap.size/2)
+    def nStrays = pairs.length
+
+    def printDebug = println("mm: " + readMap1.size + "+" + readMap2.size + "=" + nStrays/2)
   }
   
   val strayMateMap = new MateMap()
-  
-  def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
   def scan(seqsOfInterest: Set[String]) = {
     val r = reader
@@ -325,12 +333,10 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       if (Pilon.debug) mateMap.printDebug 
     }
     
-    val mm = mateMap.mateMap
-
     // Filter to find pairs where r1 is anchored and r2 is unmapped (we'll include r2)
     val frPct = pctFR
 
-    val mm2 = mm filter { pair =>  
+    val mm2 = mateMap.pairs filter { pair =>
       val (r1, r2) = pair
       val r1mapped = !(r1.getReadUnmappedFlag || r1.getProperPairFlag)
       val rc = r1.getReadNegativeStrandFlag
@@ -350,8 +356,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       r1mapped && goodOrientation && inRegion
     }
     if (Pilon.debug) 
-      println("# Filtered jumps " + mm2.size + "/" + mm.size)
-    mm2.values.toList
+      println("# Filtered jumps " + mm2.size + "/" + mateMap.nStrays)
+    //mm2.values.toList
+    mm2 map {_._2}
   }
   
   override def toString() = path

@@ -220,7 +220,7 @@ object Scaffold {
   }
 
   def analyzeStrays(bam: BamFile) = {
-    val mm = bam.strayMateMap.mateMap
+    val mm = bam.strayMateMap.pairs
     val sigma = bam.insertSizeSigma
     val scaffolds = bam.getSeqs
     val scaffoldSizes = scaffolds.map({_.getSequenceLength})
