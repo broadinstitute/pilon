@@ -53,6 +53,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       (contigs map { c => (c.getName(), contigRegions(c)) })
   }
 
+  // This are the input fasta elements o in
+  val contigsOfInterest = (regions map {_._1}).toSet
+
   def getSequence(contig: String): ReferenceSequence = {
     referenceSequenceFile.getSequence(contig)
   }
@@ -72,11 +75,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
   def processBam(bam: BamFile) = regions foreach { _._2 foreach { _.processBam(bam) } }
   
-  def validateBam(bamFile: BamFile) = {
-    val seqs = bamFile.getSeqNames
-    require(!seqs.intersect(contigMap.keySet).isEmpty, bamFile + " doesn't match " + referenceFile)
-  }
-  
+
   def writeFastaElement(writer: PrintWriter, header: String, sequence: String) = {
     writer.println(">" + header)
     sequence sliding(80, 80) foreach writer.println
@@ -85,12 +84,12 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def processRegions(bamFiles: List[BamFile]) = {
     println("Input genome size: " + genomeSize)
 
-    bamFiles foreach validateBam
+    bamFiles foreach {_.validateSeqs(contigsOfInterest)}
 
     if (Pilon.strays) {
       println("Scanning BAMs")
       // Scan BAMs in parallel
-      bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan)
+      bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
 
       //if (Pilon.fixList contains 'scaffolds)
       //  for (bam <- bamFiles filter {_.bamType == 'jumps})

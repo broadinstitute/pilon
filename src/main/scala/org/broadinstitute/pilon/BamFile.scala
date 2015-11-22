@@ -61,7 +61,12 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val seqs = getSeqs
     seqs.map({ _.getSequenceName }).toSet
   }
-  
+
+  def validateSeqs(seqsOfInterest: Set[String]) = {
+    require(!getSeqNames.intersect(seqsOfInterest).isEmpty, bamFile + " doesn't have sequence for any of " + seqsOfInterest.mkString(", "))
+  }
+
+
   lazy val header = {
     val r = reader
     val h = r.getFileHeader()    
@@ -200,6 +205,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   class MateMap(reads: Seq[SAMRecord] = Nil) {
     val readMap = Map[String, SAMRecord]()
     val mateMap = Map[SAMRecord, SAMRecord]()
+    val readMap1 = Map[String, SAMRecord]()
+    val readMap2 = Map[String, SAMRecord]()
     var n = 0
     
     addReads(reads)
@@ -247,7 +254,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   def mateMap(reads: Seq[SAMRecord]) = new MateMap(reads).mateMap
   
-  def scan() = {
+  def scan(seqsOfInterest: Set[String]) = {
     val r = reader
     for (read <- r.iterator) {
       if (!validateRead(read)) filtered += 1
@@ -259,8 +266,11 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
           proper += 1
           addInsert(read.getInferredInsertSize, read.getReadNegativeStrandFlag)
         } else if (Pilon.strays && !read.getMateUnmappedFlag) {
-          // if it's not a proper pair but both ends are mapped, it's a stray mate
-          strayMateMap.addRead(read)
+          // If it's not a proper pair but both ends are mapped, it's a stray mate.
+          // We'll track them iff they are among the seqs we are processing.
+          if ((seqsOfInterest contains read.getReferenceName)
+            || (seqsOfInterest contains read.getMateReferenceName))
+            strayMateMap.addRead(read)
         }
       }
     }
