@@ -308,7 +308,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val flanks = flankRegion(region)
     var reads = readsInRegion(flanks) 
     if (Pilon.debug) println("readsInRegion flanks: " + flanks + " " + reads.length + " reads")
-    if (Pilon.strays) {
+    if (Pilon.strays && bamType != 'unpaired) {
       val mm = new MateMap(reads)
       if (Pilon.debug) mm.printDebug
       reads ++= mm.findStrays
