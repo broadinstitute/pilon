@@ -50,8 +50,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     pair: Boolean) = {
     if (inRegion(locus)) {
       if (pair) {
-        pileups(index(locus)).remove(base, qual, mq)
-        baseCount -= 1
       } else {
         if (!pair) pileups(index(locus)).badPair -= 1
       }

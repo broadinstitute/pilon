@@ -27,9 +27,10 @@ object BamFile {
   val indexSuffix = ".bai"
   val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 5000))
   val minOrientationPct = 10
+  val maxFragInsertSize = 700
 }
 
-class BamFile(val bamFile: File, val bamType: Symbol) {
+class BamFile(val bamFile: File, var bamType: Symbol) {
   import BamFile._
   val path = bamFile.getCanonicalPath()
   var baseCount: Long = 0
@@ -43,7 +44,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   {
     // validate at object creation time by opening file and reader
     val r = reader
-    require(r.hasIndex(), path + " must be indexed BAM")
+    require(r.hasIndex, path + " must be indexed BAM")
     r.close
   }
 
@@ -174,19 +175,23 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
 
   val insertStatsFR = new InsertSizeStats()
   val insertStatsRF = new InsertSizeStats()
+  val insertStatsUnpaired = new InsertSizeStats()
 
   val huge = 10 * BamFile.maxInsertSizes(bamType)
 
-  def addInsert(insertSize: Int, rc: Boolean = false) = {
+  def addInsert(insertSize: Int, rc: Boolean = false, unpaired: Boolean = false) = {
     val fr = (insertSize > 0) ^ rc
     //if (Pilon.debug) println("i=" + insertSize + " rc=" + rc)
     if (insertSize > 0 && insertSize < huge) {
-      if (fr) insertStatsFR.add(insertSize)
+      if (unpaired) insertStatsUnpaired.add(insertSize)
+      else if (fr) insertStatsFR.add(insertSize)
       else insertStatsRF.add(insertSize)
     }
   }
 
-  def pctFR = Utils.pct(insertStatsFR.count, insertStatsFR.count + insertStatsRF.count)
+  def pctFR = Utils.pct(insertStatsFR.count, insertStatsFR.count + insertStatsRF.count + insertStatsUnpaired.count)
+  def pctRF = Utils.pct(insertStatsRF.count, insertStatsFR.count + insertStatsRF.count + insertStatsUnpaired.count)
+  def pctUnpaired = Utils.pct(insertStatsUnpaired.count, insertStatsFR.count + insertStatsRF.count + insertStatsUnpaired.count)
 
   def insertSizeMean = {
     if (pctFR >= 50) insertStatsFR.mean else insertStatsRF.mean
@@ -262,6 +267,18 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   }
   
   val strayMateMap = new MateMap()
+
+  def autoBam(): Symbol = {
+    val fr = pctFR
+    val rf = pctRF
+    val un = pctUnpaired
+
+    if (un >= fr && un >= rf) 'unpaired
+    else {
+      val insertSize = if (rf > fr) insertStatsRF.mean else insertStatsFR.mean
+      if (insertSize >= maxFragInsertSize) 'jump else 'frag
+    }
+  }
   
   def scan(seqsOfInterest: Set[String]) = {
     val r = reader
@@ -269,17 +286,21 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       if (!validateRead(read)) filtered += 1
       else if (read.getReadUnmappedFlag) unmapped += 1
       else {
-        mapped += 1
-        val pp = read.getProperPairFlag
-        if (pp) {
-          proper += 1
-          addInsert(read.getInferredInsertSize, read.getReadNegativeStrandFlag)
-        } else if (Pilon.strays && !read.getMateUnmappedFlag) {
-          // If it's not a proper pair but both ends are mapped, it's a stray mate.
-          // We'll track them iff they are among the seqs we are processing.
-          if ((seqsOfInterest contains read.getReferenceName)
-            || (seqsOfInterest contains read.getMateReferenceName))
-            strayMateMap.addRead(read)
+        if (read.getReadPairedFlag) {
+          mapped += 1
+          val pp = read.getProperPairFlag
+          if (pp) {
+            proper += 1
+            addInsert(read.getInferredInsertSize, read.getReadNegativeStrandFlag)
+          } else if (Pilon.strays && !read.getMateUnmappedFlag) {
+            // If it's not a proper pair but both ends are mapped, it's a stray mate.
+            // We'll track them iff they are among the seqs we are processing.
+            if ((seqsOfInterest contains read.getReferenceName)
+              || (seqsOfInterest contains read.getMateReferenceName))
+              strayMateMap.addRead(read)
+          } else {
+            addInsert(read.getReadLength, read.getReadNegativeStrandFlag, true)
+          }
         }
       }
     }
@@ -291,9 +312,12 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
     val insertCount = insertStatsFR.count + insertStatsRF.count
     if (pctFR >= minOrientationPct)
       summary += ", FR " + pctFR + "% " + insertStatsFR
-    if (pctFR <= 100 - minOrientationPct)
-      summary += ", RF " + (100 - pctFR) + "% " + insertStatsRF
+    if (pctRF >= minOrientationPct)
+      summary += ", RF " + pctRF + "% " + insertStatsRF
+    if (pctUnpaired >= minOrientationPct)
+      summary += ", Unpaired " + pctUnpaired + "% " + insertStatsUnpaired
     summary += ", max " + maxInsertSize
+    summary += " " + autoBam
     println(summary)
   }
   
