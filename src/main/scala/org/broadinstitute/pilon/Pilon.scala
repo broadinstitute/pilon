@@ -71,8 +71,7 @@ object Pilon {
     optionParse(args.toList)
 
     if (outdir != "") {
-      outdirFile = new File(outdir)
-      File.PathStatus()
+      // TODO: should create directory if it doesn't exist
     }
     
     setDefaultParallelism(threads)

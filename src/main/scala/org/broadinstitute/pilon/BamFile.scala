@@ -25,7 +25,7 @@ import htsjdk.samtools._
 
 object BamFile {
   val indexSuffix = ".bai"
-  val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 5000), ('bam -> 10000))
+  val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 10000), ('bam -> 10000))
   val minOrientationPct = 10
   val maxFragInsertSize = 700
 }
@@ -177,7 +177,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
   val insertStatsRF = new InsertSizeStats()
   val insertStatsUnpaired = new InsertSizeStats()
 
-  val huge = 10 * BamFile.maxInsertSizes(bamType)
+  val huge = 5 * BamFile.maxInsertSizes(bamType)
 
   def addInsert(insertSize: Int, rc: Boolean = false, unpaired: Boolean = false) = {
     val fr = (insertSize > 0) ^ rc
@@ -319,7 +319,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
     summary += ", max " + maxInsertSize
     if (bamType == 'bam) {
       bamType = autoBam
-      summary += " " + bamType.toString
+      summary += " " + bamType.name
     }
     println(summary)
   }
