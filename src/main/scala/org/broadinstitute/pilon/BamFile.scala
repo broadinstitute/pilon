@@ -25,7 +25,7 @@ import htsjdk.samtools._
 
 object BamFile {
   val indexSuffix = ".bai"
-  val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 5000))
+  val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 5000), ('bam -> 10000))
   val minOrientationPct = 10
   val maxFragInsertSize = 700
 }
@@ -276,7 +276,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
     if (un >= fr && un >= rf) 'unpaired
     else {
       val insertSize = if (rf > fr) insertStatsRF.mean else insertStatsFR.mean
-      if (insertSize >= maxFragInsertSize) 'jump else 'frag
+      if (insertSize >= maxFragInsertSize) 'jumps else 'frags
     }
   }
   
@@ -286,8 +286,8 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
       if (!validateRead(read)) filtered += 1
       else if (read.getReadUnmappedFlag) unmapped += 1
       else {
+        mapped += 1
         if (read.getReadPairedFlag) {
-          mapped += 1
           val pp = read.getProperPairFlag
           if (pp) {
             proper += 1
@@ -298,9 +298,9 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
             if ((seqsOfInterest contains read.getReferenceName)
               || (seqsOfInterest contains read.getMateReferenceName))
               strayMateMap.addRead(read)
-          } else {
-            addInsert(read.getReadLength, read.getReadNegativeStrandFlag, true)
           }
+        } else {
+          addInsert(read.getReadLength, read.getReadNegativeStrandFlag, true)
         }
       }
     }
@@ -317,7 +317,10 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
     if (pctUnpaired >= minOrientationPct)
       summary += ", Unpaired " + pctUnpaired + "% " + insertStatsUnpaired
     summary += ", max " + maxInsertSize
-    summary += " " + autoBam
+    if (bamType == 'bam) {
+      bamType = autoBam
+      summary += " " + bamType.toString
+    }
     println(summary)
   }
   

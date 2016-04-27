@@ -107,6 +107,9 @@ object Pilon {
         // Version already printed before argument parsing, so just exit
         // println(Version.version)
         sys.exit(0)
+      case "--bam" :: value :: tail =>
+        bamFiles ::= new BamFile(new File(value), 'bam)
+        optionParse(tail)
       case "--changes" :: tail =>
         changes = true
         optionParse(tail)
@@ -275,9 +278,14 @@ object Pilon {
            --unpaired unpaired.bam
               A bam file consisting of unpaired alignments, aligned to the --genome argument 
               using bwa or bowtie2.  This argument may be specifed more than once.
+           --bam any.bam
+              A bam file of unknown type; Pilon will scan it and attempt to classify it as one
+              of the above bam types.
          OUTPUTS:
-           --output
+           --output prefix
               Prefix for output files
+           --outdir directory
+              Use this directory for all output files.
            --changes
               If specified, a file listing changes in the <output>.fasta will be generated.
            --vcf
