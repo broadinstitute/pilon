@@ -30,7 +30,7 @@ import java.io._
 import scala.collection.JavaConversions._
 import htsjdk.samtools._
 
-class Tracks(val reference: GenomeFile, val prefix : String = "") {
+class Tracks(val reference: GenomeFile) {
   def standardTracks = {
     makeBedTrack("Pilon.bed", "Pilon")
     changesTrack("Changes.wig")
@@ -168,13 +168,8 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
     { (r: GenomeRegion, i: Int) => r.clips(i) })
   }
 
-  def prefixedFile(fileName: String) = {
-    val prefixedFileName = if (prefix == "") fileName else prefix + fileName
-    new File(prefixedFileName)
-  }
-
   def makeTrack(fileName: String, name: String, func: (GenomeRegion, Int) => Int, options: String = "") = {
-    val file = prefixedFile(fileName)
+    val file = Pilon.outputFile(fileName)
     println ("Creating " + name + " track in file " + file.getPath())
     val writer = new PrintWriter(file)
     var headLine = "track type=wiggle_0 graphType=line color=0,0,255 altColor=255,0,0 name=\"" + name + "\""
@@ -199,7 +194,7 @@ class Tracks(val reference: GenomeFile, val prefix : String = "") {
   }
   
   def makeBedTrack(fileName: String, name: String, options: String = "") = {
-    val file = prefixedFile(fileName)
+    val file = Pilon.outputFile(fileName)
     println ("Creating " + name + " track in file " + file.getPath())
     val writer = new PrintWriter(file)
     var headLine = "track description=\"Issues found by Pilon\" name=\"" + name + "\""

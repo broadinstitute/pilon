@@ -124,8 +124,8 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     val changesFile = Pilon.outputFile(".changes")
     val changesWriter = if (Pilon.changes)
-	                      new PrintWriter(new BufferedWriter(new FileWriter(changesFile)))
-                      else null
+                          new PrintWriter(new BufferedWriter(new FileWriter(changesFile)))
+                        else null
     val fastaFile = Pilon.outputFile(".fasta")
     val fastaWriter = if (!Pilon.fixList.isEmpty)
 	                      new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))

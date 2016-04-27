@@ -31,6 +31,7 @@ object Pilon {
   var genomePath = ""
   // parameters governing output
   var prefix = "pilon"
+  var outdir = ""
   var changes = false
   var tracks = false
   var verbose = false
@@ -68,6 +69,11 @@ object Pilon {
     commandArgs = args
     println(Version.version)
     optionParse(args.toList)
+
+    if (outdir != "") {
+      outdirFile = new File(outdir)
+      File.PathStatus()
+    }
     
     setDefaultParallelism(threads)
 
@@ -90,7 +96,7 @@ object Pilon {
     genome.processRegions(bamFiles)
 
     if (tracks) { 
-      val tracks = new Tracks(genome, prefix)
+      val tracks = new Tracks(genome)
       tracks.standardTracks
     }
     
@@ -174,6 +180,9 @@ object Pilon {
       case "--output" :: value :: tail =>
         prefix = value
         optionParse(tail)
+      case "--outdir" :: value :: tail =>
+        outdir = value
+        optionParse(tail)
       case "--nonpf" :: tail =>
         nonPf = true
         optionParse(tail)
@@ -242,7 +251,11 @@ object Pilon {
     }
   }
   
-  def outputFile(name : String) = new File(prefix + name)
+  def outputFile(name : String) = {
+    val fileName = prefix + name
+    val filePath = if (Pilon.outdir == "") fileName else Pilon.outdir + "/" + fileName
+    new File(filePath)
+  }
   
   // Ugly, but thank you http://stackoverflow.com/questions/17865823
   def setDefaultParallelism(numThreads: Int): Unit = {
