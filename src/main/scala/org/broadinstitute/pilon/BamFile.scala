@@ -203,7 +203,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
 
   def maxInsertSize = {
     // Returns reasonable max insert size for this bam, either computed or defaulted
-    val maxFromStats = insertStatsFR.maxInsertSize max insertStatsRF.maxInsertSize
+    val maxFromStats = insertStatsFR.maxInsertSize max insertStatsRF.maxInsertSize max insertStatsUnpaired.maxInsertSize
     if (maxFromStats > 0) maxFromStats else BamFile.maxInsertSizes(bamType)
   }
 
