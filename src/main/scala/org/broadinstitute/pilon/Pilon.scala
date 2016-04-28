@@ -71,9 +71,14 @@ object Pilon {
     optionParse(args.toList)
 
     if (outdir != "") {
-      // TODO: should create directory if it doesn't exist
+      val dir = new File(outdir)
+      dir.mkdirs
+      if (!dir.exists) {
+        println("Unable to create output directory " + outdir)
+        sys.exit(1)
+      }
     }
-    
+
     setDefaultParallelism(threads)
 
     // Stray computation is expensive up front, so only turn it on
