@@ -85,6 +85,15 @@ object Bases {
     val bits = bit(toIndex(base1)) | bit(toIndex(base2))
     mapToIUPAC(bits)
   }
+
+  def baseMatch(iupac: Char, base: Char) = {
+    // returns true if "base" is a subset of iupac
+    (iupac == base) || {
+      val iuBits = mapToBits(iupac)
+      val baseBits = mapToBits(base)
+      (iuBits & baseBits) == baseBits
+    }
+  }
     
 }
 

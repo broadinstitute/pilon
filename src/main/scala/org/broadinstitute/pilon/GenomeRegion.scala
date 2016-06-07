@@ -251,7 +251,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           // for ambiguous bases, fix them if --fix fixamb or if original base
           // not one of the top two alternatives
           if (homo) addChange(i, 'snp, pu)
-          else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
+          else if (Pilon.iupac || fixamb || bc.altBase != r) addChange(i, 'amb, pu)
         }
       }
     }
@@ -311,7 +311,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'amb =>
-          if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+          val calledBase = if (Pilon.iupac) Bases.toIUPAC(bc.base, bc.altBase) else cBase
+          if (fix) snpFixList ::= (locus(i), rBase.toString, calledBase.toString)
           amb += 1
         case 'ins =>
           val insert = bc.insertion

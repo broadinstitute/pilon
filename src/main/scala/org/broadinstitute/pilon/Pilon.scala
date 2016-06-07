@@ -47,6 +47,7 @@ object Pilon {
   var fixList = fixChoices
   var flank = 10
   var gapMargin = 100000
+  var iupac = false
   var minMinDepth = 5
   var minGap = 10
   var minDepth = 0.1
@@ -141,6 +142,9 @@ object Pilon {
         optionParse(tail)
       case "--duplicates" :: tail =>
         duplicates = true
+        optionParse(tail)
+      case "--iupac" :: tail =>
+        iupac = true
         optionParse(tail)
       case "--fix" :: value :: tail =>
         parseFixList(value)
@@ -337,6 +341,8 @@ object Pilon {
               Dump reads for local re-assemblies.
            --duplicates
               Use reads marked as duplicates in the input BAMs (ignored by default).
+           --iupac
+              Output IUPAC ambiguous base codes in the output FASTA file when appropriate.
            --nonpf
               Use reads which failed sequencer quality filtering (ignored by default).
            --targets targetlist

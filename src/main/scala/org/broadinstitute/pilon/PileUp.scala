@@ -175,6 +175,10 @@ class PileUp {
       refBase == base	// TODO: handle IUPAC codes
     }
 
+    def iupacBase = {
+      if (homo) base else Bases.toIUPAC(base, altBase)
+    }
+
     def insertCall = {
       if (insertions > 0) hetIndelCall(insertionList, insPct)
       else ("", true)
