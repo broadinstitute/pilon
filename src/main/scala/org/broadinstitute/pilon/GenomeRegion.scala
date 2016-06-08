@@ -217,7 +217,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //meanReadLength = pileUpRegion.meanReadLength
 
     // Pass 1: pull out values from pileups & call base changes
-    val fixamb = Pilon.fixList contains 'amb
+    val fixamb = Pilon.iupac || (Pilon.fixList contains 'amb)
 
     for (i <- 0 until size) {
       val pu = pileUpRegion(i)
@@ -251,7 +251,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           // for ambiguous bases, fix them if --fix fixamb or if original base
           // not one of the top two alternatives
           if (homo) addChange(i, 'snp, pu)
-          else if (Pilon.iupac || fixamb || bc.altBase != r) addChange(i, 'amb, pu)
+          else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
         }
       }
     }
@@ -311,7 +311,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'amb =>
-          val calledBase = if (Pilon.iupac) Bases.toIUPAC(bc.base, bc.altBase) else cBase
+          val calledBase = if (Pilon.iupac) Bases.toIUPAC(cBase, bc.altBase) else cBase
           if (fix) snpFixList ::= (locus(i), rBase.toString, calledBase.toString)
           amb += 1
         case 'ins =>
