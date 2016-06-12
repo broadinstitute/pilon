@@ -113,9 +113,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       bamFiles foreach { r.processBam(_) }
       r.postProcess
       if (Pilon.vcf || !Pilon.fixList.isEmpty) {
-    	r.identifyAndFixIssues
-    	// If we don't need pileups for VCF later, free up the memory now!
-    	if (!Pilon.vcf) r.finalizePileUps
+        r.identifyAndFixIssues
+        // If we don't need pileups for VCF later, free up the memory now!
+        if (!Pilon.vcf) r.finalizePileUps
       }
       println(r + " log:")
       r.printLog

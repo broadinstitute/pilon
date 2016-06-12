@@ -311,8 +311,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'amb =>
-          val calledBase = if (Pilon.iupac) Bases.toIUPAC(cBase, bc.altBase) else cBase
-          if (fix) snpFixList ::= (locus(i), rBase.toString, calledBase.toString)
+          if (fix) {
+            if (Pilon.iupac) {
+              // we put these on the small fix list because iupac codes can mess up assembly
+              // flank anchor kmers
+              smallFixList ::= (locus(i), rBase.toString, Bases.toIUPAC(cBase, bc.altBase).toString)
+            } else {
+              snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+            }
+          }
           amb += 1
         case 'ins =>
           val insert = bc.insertion
