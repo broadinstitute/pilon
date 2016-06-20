@@ -91,9 +91,9 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       // Scan BAMs in parallel
       bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
 
-      //if (Pilon.fixList contains 'scaffolds)
-      //  for (bam <- bamFiles filter {_.bamType == 'jumps})
-      //    Scaffold.analyzeStrays(bam)
+      if (Pilon.fixList contains 'scaffolds)
+        for (bam <- bamFiles filter {_.bamType == 'jumps})
+          Scaffold.analyzeStrays(bam)
     }
     
     // If assemble novel sequence up front, so that we can potentially place the
