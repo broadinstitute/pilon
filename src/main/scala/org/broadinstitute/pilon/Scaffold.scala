@@ -270,11 +270,43 @@ object Scaffold {
 
   def analyze(bamFiles: List[BamFile]) {
     println("Analyze scaffolds")
-    for (bam <- bamFiles filter {_.bamType == 'unpaired})
-      analyzeUnpaired(bam)
+    if (Pilon.fixList contains 'hgap) {
+      for (bam <- bamFiles filter {_.bamType == 'unpaired})
+        analyzeUnpaired(bam)
+      sys.exit(0);
+    }
 
     for (bam <- bamFiles filter {_.bamType == 'jumps})
       analyzeStrays(bam)
+  }
+
+  val MinOverlap = 500
+
+  class CantaleveredAlignment(val align: SAMRecord, val contig: SAMSequenceRecord) {
+    val contigLength = contig.getSequenceLength
+    val alignStart = align.getStart
+    val alignEnd = align.getEnd
+    val unclippedStart = align.getUnclippedStart
+    val unclippedEnd = align.getUnclippedEnd
+
+    val cantaleveredLeft =
+      unclippedStart < 1 && unclippedEnd == alignEnd && alignEnd > MinOverlap
+    val cantaleveredRight =
+      unclippedEnd > contigLength && unclippedStart == alignStart && alignStart < contigLength - MinOverlap
+    val cantalevered = cantaleveredLeft || cantaleveredRight
+
+    def contigName = contig.getSequenceName
+
+    override
+    def toString = {
+      var str = "%s(%d) %d %d/%d %d/%d".format(contigName, contigLength, align.getReadLength, alignStart, unclippedStart, alignEnd, unclippedEnd)
+      if (cantaleveredLeft) str += " L"
+      if (cantaleveredRight) str += " R"
+      str
+    }
+
+
+
   }
 
   def analyzeUnpaired(bam: BamFile) = {
@@ -283,11 +315,16 @@ object Scaffold {
     val scaffolds = bam.getSeqs
     val scaffoldSizes = scaffolds.map({_.getSequenceLength})
     val genomeSize = scaffoldSizes.sum
-    println("Analyzing large-scale structure using " + bam)
     println("analyzing unpaired in " + bam)
-    println("genome size " + genomeSize)
-    println("read length " + readLength)
-    println("max imsert " + bam.maxInsertSize)
+
+    val reader = bam.reader
+    for (read <- reader.iterator if (!read.getReadUnmappedFlag))  {
+      val contig = scaffolds(read.getReferenceIndex())
+      val ca = new CantaleveredAlignment(read, contig)
+      if (ca.cantalevered)
+        println(ca)
+    }
+    reader.close
   }
 
   def dumpCoords(coords: Array[MatePair]) = coords foreach println

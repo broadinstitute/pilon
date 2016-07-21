@@ -90,12 +90,12 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       println("Scanning BAMs")
       // Scan BAMs in parallel
       //bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
-      bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
-
-      if (Pilon.fixList contains 'scaffolds)
-        Scaffold.analyze(bamFiles)
+      bamFiles.par.map(_.scan(contigsOfInterest))
     }
-    
+
+    if ((Pilon.fixList contains 'scaffolds) || (Pilon.fixList contains 'hgap))
+      Scaffold.analyze(bamFiles)
+
     // If assemble novel sequence up front, so that we can potentially place the
     // contigs into scaffolds when we process them.
     if (Pilon.fixList contains 'novel)
