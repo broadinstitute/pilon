@@ -23,7 +23,7 @@ import java.io.File
 object Pilon {
   // types of fixing we know about
   val fixChoices = Set('bases, 'gaps, 'local)
-  val experimentalFixChoices = Set('amb, 'breaks, 'novel, 'scaffolds)
+  val experimentalFixChoices = Set('amb, 'breaks, 'hgap, 'novel, 'scaffolds)
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -84,7 +84,7 @@ object Pilon {
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
-    strays &= (fixList contains 'gaps) || (fixList contains 'local)
+    strays &= (fixList contains 'gaps) || (fixList contains 'local) || (fixList contains 'scaffolds)
     
     if (bamFiles.length == 0) {
       println(usage)

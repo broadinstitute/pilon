@@ -89,11 +89,11 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     if (Pilon.strays) {
       println("Scanning BAMs")
       // Scan BAMs in parallel
+      //bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
       bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
 
       if (Pilon.fixList contains 'scaffolds)
-        for (bam <- bamFiles filter {_.bamType == 'jumps})
-          Scaffold.analyzeStrays(bam)
+        Scaffold.analyze(bamFiles)
     }
     
     // If assemble novel sequence up front, so that we can potentially place the
@@ -112,7 +112,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
       r.postProcess
-      if (Pilon.vcf || !Pilon.fixList.isEmpty) {
+      if (Pilon.vcf || !Pilon.fixList.intersect(Set('bases, 'gaps, 'local)).isEmpty) {
         r.identifyAndFixIssues
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps

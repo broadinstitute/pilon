@@ -268,6 +268,27 @@ object Scaffold {
     }
   }
 
+  def analyze(bamFiles: List[BamFile]) {
+    println("Analyze scaffolds")
+    for (bam <- bamFiles filter {_.bamType == 'unpaired})
+      analyzeUnpaired(bam)
+
+    for (bam <- bamFiles filter {_.bamType == 'jumps})
+      analyzeStrays(bam)
+  }
+
+  def analyzeUnpaired(bam: BamFile) = {
+    val readLength = bam.insertSizeMean
+    val sigma = bam.insertSizeSigma
+    val scaffolds = bam.getSeqs
+    val scaffoldSizes = scaffolds.map({_.getSequenceLength})
+    val genomeSize = scaffoldSizes.sum
+    println("Analyzing large-scale structure using " + bam)
+    println("analyzing unpaired in " + bam)
+    println("genome size " + genomeSize)
+    println("read length " + readLength)
+    println("max imsert " + bam.maxInsertSize)
+  }
 
   def dumpCoords(coords: Array[MatePair]) = coords foreach println
 }
