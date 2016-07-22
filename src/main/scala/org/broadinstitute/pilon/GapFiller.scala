@@ -279,7 +279,43 @@ class GapFiller(val region: GenomeRegion) {
     }
   }
 
-  
+  def closeCircle(estimatedLength: Int) = {
+    // assume our GenomeRegion is a potentially circular structure; try to fill by
+    println("insert size: " + region.insertSizeDist)
+    val trimFlanks = ((region.size - estimatedLength) / 2) max 0
+    val rightEnd = trimFlanks
+    val rightFlank = new Region(region.name, rightEnd, rightEnd + breakRadius)
+    println("right: " + rightFlank)
+    val leftEnd = region.size - trimFlanks
+    val leftFlank = new Region(region.name, leftEnd - breakRadius, leftEnd)
+
+    var reads = List[SAMRecord]()
+
+    val unpairedBams = region.bamsOfType('unpaired)
+    for (bam <- unpairedBams) {
+      reads ++= bam.readsInRegion(leftFlank)
+      reads ++= bam.readsInRegion(rightFlank)
+    }
+    println("recruited " + reads.length + " reads")
+
+    val left = region.subString(leftFlank.start, leftFlank.size)
+    val right = region.subString(rightFlank.start, rightFlank.size)
+    println("left: " + left);
+    println("right: " + right);
+
+    val assembler = new Assembler()
+    assembler.addReads(reads)
+    assembler.buildGraph
+    val (forward, reverse, loop) = assembler.multiBridge(left, right)
+    println("loop: " + loop)
+    println("forard: " + forward)
+    println("reverse: " + reverse)
+
+    tandemRepeat = loop
+    //val solutions = breakJoins(rightEnd, pathsFromLeft, pathsFromRight, leftEnd)
+
+  }
+
   def breakRadius = {
     val minRadius = 3 * Assembler.K
     val inserts = region.bamsOfType('frags) map {bam => bam.insertSizeMean /*+ bam.insertSizeSigma*/}

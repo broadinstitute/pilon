@@ -93,8 +93,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       bamFiles.par.map(_.scan(contigsOfInterest))
     }
 
-    if ((Pilon.fixList contains 'scaffolds) || (Pilon.fixList contains 'hgap))
-      Scaffold.analyze(bamFiles)
+    val circles = Scaffold.findHgapCircles(bamFiles)
 
     // If assemble novel sequence up front, so that we can potentially place the
     // contigs into scaffolds when we process them.
@@ -116,6 +115,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         r.identifyAndFixIssues
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
+      }
+      if (circles contains r.contig.getName) {
+        println(r + " might be a circle!")
+        r.closeCircle(circles(r.contig.getName))
       }
       println(r + " log:")
       r.printLog

@@ -270,14 +270,16 @@ object Scaffold {
 
   def analyze(bamFiles: List[BamFile]) {
     println("Analyze scaffolds")
-    if (Pilon.fixList contains 'hgap) {
-      for (bam <- bamFiles filter {_.bamType == 'unpaired})
-        analyzeUnpaired(bam)
-      sys.exit(0);
-    }
-
     for (bam <- bamFiles filter {_.bamType == 'jumps})
       analyzeStrays(bam)
+  }
+
+
+  def findHgapCircles(bamFiles: List[BamFile]): Map[String, Int] = {
+    if (Pilon.fixList contains 'hgap) {
+      val endAlignments = bamFiles filter {_.bamType == 'unpaired} flatMap findEndAlignments
+      findCircles(endAlignments)
+    } else return new HashMap()
   }
 
   val EndMinOverlap = 500
@@ -333,29 +335,37 @@ object Scaffold {
     }
   }
 
-  def analyzeUnpaired(bam: BamFile) = {
+  def findEndAlignments(bam: BamFile) = {
     val readLength = bam.insertSizeMean
     val sigma = bam.insertSizeSigma
     val scaffolds = bam.getSeqs
-    val scaffoldSizes = scaffolds.map({_.getSequenceLength})
+    val scaffoldSizes = scaffolds.map({
+      _.getSequenceLength
+    })
     val genomeSize = scaffoldSizes.sum
     println("analyzing unpaired in " + bam)
 
-    val byRead = new HashMap[String, List[EndAlignment]]
-
     val reader = bam.reader
-    for (read <- reader.iterator if (!read.getReadUnmappedFlag))  {
+    var eaList: List[EndAlignment] = Nil
+    for (read <- reader.iterator if (!read.getReadUnmappedFlag)) {
       val contig = scaffolds(read.getReferenceIndex())
       val ca = new EndAlignment(read, contig)
       if (ca.cantalevered) {
-        //println(ca)
-        val readName = read.getReadName
-        if (!(byRead contains readName))
-          byRead(readName) = Nil
-        byRead(readName) ::= ca
+        eaList ::= ca
       }
     }
     reader.close
+    eaList
+  }
+
+  def findCircles(endAlignments: List[EndAlignment]) = {
+    val byRead = new HashMap[String, List[EndAlignment]]
+    for (ca <- endAlignments) {
+      val readName = ca.readName
+      if (!(byRead contains readName))
+        byRead(readName) = Nil
+      byRead(readName) ::= ca
+    }
 
     val byPair = new HashMap[(String, String, Boolean), List[EndAlignmentPair]]
 
@@ -385,15 +395,23 @@ object Scaffold {
       }
     }
 
+    val circles: Map[String, Int] = new HashMap()
+
     for (circleList <- circleLists) {
-      val median = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median
-      val length = ((circleList map { _.impliedLength }).sum + circleList.length / 2) / circleList.length
-      println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName + " " + circleList.length + " " + length + " " + median)
+      val contig = circleList.head.ca1.contigName
+      val medianLength = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median.toInt
+      circles(contig) = medianLength
+
+      println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName +
+        " " + circleList.length + " " + medianLength)
       for (pair <- circleList) {
         println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
       }
     }
 
+    println(circles)
+
+    circles
   }
 
   def dumpCoords(coords: Array[MatePair]) = coords foreach println

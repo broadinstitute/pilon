@@ -395,6 +395,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   val reassemblyFixes = Map.empty[Region, String]
 
+
+  def closeCircle(estimatedLength: Int) = {
+    val filler = new GapFiller(this)
+    filler.closeCircle(estimatedLength)
+  }
+
   def logFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {
     def countNs(s: String) = s count {_ == 'N'}
     val nRef = countNs(ref)
