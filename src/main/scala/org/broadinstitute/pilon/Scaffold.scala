@@ -294,10 +294,14 @@ object Scaffold {
     val unclippedEnd = align.getUnclippedEnd
     val endLength = EndMaxLength min (contigLength / 2)
 
-    val cantaleveredLeft =
-      unclippedStart < endLength && unclippedEnd == alignEnd && alignEnd > EndMinOverlap
-    val cantaleveredRight =
-      unclippedEnd > contigLength - endLength && unclippedStart == alignStart && alignStart < contigLength - EndMinOverlap
+    val cantaleveredLeft = unclippedStart < endLength &&
+      unclippedEnd == alignEnd &&
+      alignEnd > EndMinOverlap &&
+      (unclippedStart < 1 || unclippedStart == alignStart)
+    val cantaleveredRight = unclippedEnd > contigLength - endLength &&
+      unclippedStart == alignStart &&
+      alignStart < contigLength - EndMinOverlap &&
+      (unclippedEnd > contigLength || unclippedEnd == alignEnd)
     val cantalevered = cantaleveredLeft || cantaleveredRight
 
     def contigName = contig.getSequenceName
@@ -323,6 +327,10 @@ object Scaffold {
       if (ca1End < ca2End) (a1, a2) else (a2, a1)
     }
     def ends = (ca1.contigEndName, ca2.contigEndName, ca1.rc ^ ca2.rc)
+
+    def impliedLength = {
+      (Math.abs(ca2.unclippedStart - ca1.unclippedStart) + Math.abs(ca2.unclippedEnd - ca1.unclippedEnd) + 1) / 2
+    }
   }
 
   def analyzeUnpaired(bam: BamFile) = {
@@ -347,6 +355,7 @@ object Scaffold {
         byRead(readName) ::= ca
       }
     }
+    reader.close
 
     val byPair = new HashMap[(String, String, Boolean), List[EndAlignmentPair]]
 
@@ -366,15 +375,25 @@ object Scaffold {
 
     val byPairSorted = byPair.toList sortWith (_._2.length > _._2.length)
 
+    var circleLists: List[List[EndAlignmentPair]] = Nil
     for ((pairEnds, pairList) <- byPairSorted if pairList.length >= EndMinLinks) {
       val pair = pairList.head
       if (pair.ca1.contigName == pair.ca2.contigName && pair.ca1.contigEndName != pair.ca2.contigEndName) {
-        print("circle ==> ")
-        println(pairEnds + " " + pairList.length)
+        //print("circle ==> ")
+        //println(pairEnds + " " + pairList.length)
+        circleLists ::= pairList
       }
     }
 
-    reader.close
+    for (circleList <- circleLists) {
+      val median = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median
+      val length = ((circleList map { _.impliedLength }).sum + circleList.length / 2) / circleList.length
+      println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName + " " + circleList.length + " " + length + " " + median)
+      for (pair <- circleList) {
+        println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
+      }
+    }
+
   }
 
   def dumpCoords(coords: Array[MatePair]) = coords foreach println
