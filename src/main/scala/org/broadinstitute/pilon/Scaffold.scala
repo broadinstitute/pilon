@@ -280,9 +280,11 @@ object Scaffold {
       analyzeStrays(bam)
   }
 
-  val MinOverlap = 500
+  val MinOverlap = 300
 
   class CantaleveredAlignment(val align: SAMRecord, val contig: SAMSequenceRecord) {
+    val readName = align.getReadName
+    val rc = align.getReadNegativeStrandFlag
     val contigLength = contig.getSequenceLength
     val alignStart = align.getStart
     val alignEnd = align.getEnd
@@ -297,16 +299,27 @@ object Scaffold {
 
     def contigName = contig.getSequenceName
 
-    override
-    def toString = {
-      var str = "%s(%d) %d %d/%d %d/%d".format(contigName, contigLength, align.getReadLength, alignStart, unclippedStart, alignEnd, unclippedEnd)
-      if (cantaleveredLeft) str += " L"
-      if (cantaleveredRight) str += " R"
-      str
+    def contigEndName = {
+      var str = contigName
+      if (cantaleveredLeft) str += "L"
+      if (cantaleveredRight) str += "R"
+      str //+ (if (align.getReadNegativeStrandFlag) "-" else "+")
     }
 
+    override
+    def toString = {
+      var str = "%s(%d) %d %d/%d %d/%d ".format(contigEndName, contigLength, align.getReadLength, alignStart, unclippedStart, alignEnd, unclippedEnd)
+      str
+    }
+  }
 
-
+  class CantaleveredAlignmentPair(val a1: CantaleveredAlignment, val a2: CantaleveredAlignment) {
+    val (ca1, ca2) = {
+      val ca1End = a1.contigEndName
+      val ca2End = a2.contigEndName
+      if (ca1End < ca2End) (a1, a2) else (a2, a1)
+    }
+    def ends = (ca1.contigEndName, ca2.contigEndName, ca1.rc ^ ca2.rc)
   }
 
   def analyzeUnpaired(bam: BamFile) = {
@@ -317,13 +330,40 @@ object Scaffold {
     val genomeSize = scaffoldSizes.sum
     println("analyzing unpaired in " + bam)
 
+    val byRead = new HashMap[String, List[CantaleveredAlignment]]
+
     val reader = bam.reader
     for (read <- reader.iterator if (!read.getReadUnmappedFlag))  {
       val contig = scaffolds(read.getReferenceIndex())
       val ca = new CantaleveredAlignment(read, contig)
-      if (ca.cantalevered)
-        println(ca)
+      if (ca.cantalevered) {
+        val readName = read.getReadName
+        if (!(byRead contains readName))
+          byRead(readName) = Nil
+        byRead(readName) ::= ca
+      }
     }
+
+    val byPair = new HashMap[(String, String, Boolean), List[CantaleveredAlignmentPair]]
+
+    for ((name, caList) <- byRead) {
+      if (caList.length > 1) {
+        for (pair <- caList combinations 2) {
+          val caPair = new CantaleveredAlignmentPair(pair(0), pair(1))
+          val pairEnds = caPair.ends
+          if (!(byPair contains pairEnds))
+            byPair(pairEnds) = Nil
+          byPair(pairEnds) ::= caPair
+        }
+      }
+    }
+
+    val byPairSorted = byPair.toList sortWith (_._2.length > _._2.length)
+
+    for ((pairEnds, pairList) <- byPairSorted) {
+      println(pairEnds + " " + pairList.length)
+    }
+
     reader.close
   }
 
