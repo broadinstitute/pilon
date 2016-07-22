@@ -280,9 +280,11 @@ object Scaffold {
       analyzeStrays(bam)
   }
 
-  val MinOverlap = 300
+  val EndMinOverlap = 500
+  val EndMaxLength = 5000
+  val EndMinLinks = 5
 
-  class CantaleveredAlignment(val align: SAMRecord, val contig: SAMSequenceRecord) {
+  class EndAlignment(val align: SAMRecord, val contig: SAMSequenceRecord) {
     val readName = align.getReadName
     val rc = align.getReadNegativeStrandFlag
     val contigLength = contig.getSequenceLength
@@ -290,11 +292,12 @@ object Scaffold {
     val alignEnd = align.getEnd
     val unclippedStart = align.getUnclippedStart
     val unclippedEnd = align.getUnclippedEnd
+    val endLength = EndMaxLength min (contigLength / 2)
 
     val cantaleveredLeft =
-      unclippedStart < 1 && unclippedEnd == alignEnd && alignEnd > MinOverlap
+      unclippedStart < endLength && unclippedEnd == alignEnd && alignEnd > EndMinOverlap
     val cantaleveredRight =
-      unclippedEnd > contigLength && unclippedStart == alignStart && alignStart < contigLength - MinOverlap
+      unclippedEnd > contigLength - endLength && unclippedStart == alignStart && alignStart < contigLength - EndMinOverlap
     val cantalevered = cantaleveredLeft || cantaleveredRight
 
     def contigName = contig.getSequenceName
@@ -313,7 +316,7 @@ object Scaffold {
     }
   }
 
-  class CantaleveredAlignmentPair(val a1: CantaleveredAlignment, val a2: CantaleveredAlignment) {
+  class EndAlignmentPair(val a1: EndAlignment, val a2: EndAlignment) {
     val (ca1, ca2) = {
       val ca1End = a1.contigEndName
       val ca2End = a2.contigEndName
@@ -330,13 +333,14 @@ object Scaffold {
     val genomeSize = scaffoldSizes.sum
     println("analyzing unpaired in " + bam)
 
-    val byRead = new HashMap[String, List[CantaleveredAlignment]]
+    val byRead = new HashMap[String, List[EndAlignment]]
 
     val reader = bam.reader
     for (read <- reader.iterator if (!read.getReadUnmappedFlag))  {
       val contig = scaffolds(read.getReferenceIndex())
-      val ca = new CantaleveredAlignment(read, contig)
+      val ca = new EndAlignment(read, contig)
       if (ca.cantalevered) {
+        //println(ca)
         val readName = read.getReadName
         if (!(byRead contains readName))
           byRead(readName) = Nil
@@ -344,12 +348,14 @@ object Scaffold {
       }
     }
 
-    val byPair = new HashMap[(String, String, Boolean), List[CantaleveredAlignmentPair]]
+    val byPair = new HashMap[(String, String, Boolean), List[EndAlignmentPair]]
 
     for ((name, caList) <- byRead) {
       if (caList.length > 1) {
+        //println(name)
         for (pair <- caList combinations 2) {
-          val caPair = new CantaleveredAlignmentPair(pair(0), pair(1))
+          //println("  " + pair(0).contigEndName + " " + pair(1).contigEndName)
+          val caPair = new EndAlignmentPair(pair(0), pair(1))
           val pairEnds = caPair.ends
           if (!(byPair contains pairEnds))
             byPair(pairEnds) = Nil
@@ -360,8 +366,12 @@ object Scaffold {
 
     val byPairSorted = byPair.toList sortWith (_._2.length > _._2.length)
 
-    for ((pairEnds, pairList) <- byPairSorted) {
-      println(pairEnds + " " + pairList.length)
+    for ((pairEnds, pairList) <- byPairSorted if pairList.length >= EndMinLinks) {
+      val pair = pairList.head
+      if (pair.ca1.contigName == pair.ca2.contigName && pair.ca1.contigEndName != pair.ca2.contigEndName) {
+        print("circle ==> ")
+        println(pairEnds + " " + pairList.length)
+      }
     }
 
     reader.close
