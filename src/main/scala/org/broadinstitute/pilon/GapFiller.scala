@@ -314,7 +314,7 @@ class GapFiller(val region: GenomeRegion) {
     assembler.addReads(reads)
     assembler.buildGraph
     val (forward, reverse, loop) = assembler.multiBridge(left, right)
-    if (!loop.isEmpty)
+    if (Pilon.verbose && !loop.isEmpty)
       println(" loop length " + loop.length)
 
     tandemRepeat = loop

@@ -401,9 +401,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val filler = new GapFiller(this)
     val solutions = filler.closeCircle(estimatedLength)
     if (solutions.isEmpty) {
-      logln("NoSolution")
+      log(" NoSolution")
+      if (!filler.tandemRepeat.isEmpty)
+        log(" TandemRepeat " + filler.tandemRepeat.length)
+      logln()
     } else {
-      log(" Closed")
+      log(" ClosedCircle")
       bigFixList ++= solutions
       for ((loc, was, is) <- solutions)
         log(" " + loc + " -" + was.length + " +" + is.length)
