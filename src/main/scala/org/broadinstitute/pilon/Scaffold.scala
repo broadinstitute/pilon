@@ -402,14 +402,17 @@ object Scaffold {
       val medianLength = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median.toInt
       circles(contig) = medianLength
 
-      println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName +
-        " " + circleList.length + " " + medianLength)
+      if (Pilon.verbose)
+        println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName +
+          " " + circleList.length + " " + medianLength)
       for (pair <- circleList) {
-        println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
+        if (Pilon.verbose)
+          println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
       }
     }
 
-    println(circles)
+    if (!circles.isEmpty)
+      println("Candidate circles: " + circles)
 
     circles
   }

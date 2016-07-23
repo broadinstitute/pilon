@@ -281,14 +281,17 @@ class GapFiller(val region: GenomeRegion) {
 
   def closeCircle(estimatedLength: Int): List[(Int, String, String)] = {
     // assume our GenomeRegion is a potentially circular structure; try to fill by
-    println("insert size: " + region.insertSizeDist)
+    if (Pilon.debug) println("insert size: " + region.insertSizeDist)
     val trimFlanks = ((region.size - estimatedLength) / 2) max 0
     val rightEnd = trimFlanks
     val rightFlank = new Region(region.name, rightEnd, rightEnd + breakRadius)
-    println("right: " + rightFlank)
     val leftEnd = region.size - trimFlanks
     val leftFlank = new Region(region.name, leftEnd - breakRadius, leftEnd)
-    println("left: " + leftFlank)
+
+    if (Pilon.verbose) {
+      println("left: " + leftFlank)
+      println("right: " + rightFlank)
+    }
 
     var reads = List[SAMRecord]()
 
@@ -297,20 +300,22 @@ class GapFiller(val region: GenomeRegion) {
       reads ++= bam.readsInRegion(leftFlank)
       reads ++= bam.readsInRegion(rightFlank)
     }
-    println("recruited " + reads.length + " reads")
+    if (Pilon.verbose)
+      println("recruited " + reads.length + " reads")
 
     val left = region.subString(leftFlank.start, leftFlank.size)
     val right = region.subString(rightFlank.start, rightFlank.size)
-    println("left: " + left)
-    println("right: " + right)
+    if (Pilon.verbose) {
+      println("left: " + left)
+      println("right: " + right)
+    }
 
     val assembler = new Assembler()
     assembler.addReads(reads)
     assembler.buildGraph
     val (forward, reverse, loop) = assembler.multiBridge(left, right)
-    println("loop: " + loop)
-    //println("forard: " + forward)
-    //println("reverse: " + reverse)
+    if (!loop.isEmpty)
+      println(" loop length " + loop.length)
 
     tandemRepeat = loop
     var patches: List[String] = Nil
@@ -320,16 +325,19 @@ class GapFiller(val region: GenomeRegion) {
         patches ::= patch
     }
     val lengths = patches.map(_.length).toSet
-    println(patches.length + " patches; lengths " + lengths)
+    if (Pilon.verbose)
+      println(patches.length + " patches; lengths " + lengths)
     if (lengths.size == 1) {
       val patch = patches.head
-      println("  " + patch)
+      if (Pilon.verbose) println("  " + patch)
       val rightSolution = (1, region.subString(1, rightEnd + breakRadius), "")
       val leftSolution = trimPatch(leftEnd - breakRadius, patch, region.stop)
       if (Pilon.debug) println("  left: " + leftSolution)
       if (Pilon.debug) println("  right: " + rightSolution)
-      List(leftSolution, rightSolution)
-    } else Nil
+      List(rightSolution, leftSolution)
+    } else {
+      Nil
+    }
   }
 
   def breakRadius = {

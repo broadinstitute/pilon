@@ -396,8 +396,19 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   val reassemblyFixes = Map.empty[Region, String]
 
   def closeCircle(estimatedLength: Int) = {
+    logln("# Attempting to close circle")
+    log("fix circle: " + name + " " + estimatedLength)
     val filler = new GapFiller(this)
-    bigFixList ++= filler.closeCircle(estimatedLength)
+    val solutions = filler.closeCircle(estimatedLength)
+    if (solutions.isEmpty) {
+      logln("NoSolution")
+    } else {
+      log(" Closed")
+      bigFixList ++= solutions
+      for ((loc, was, is) <- solutions)
+        log(" " + loc + " -" + was.length + " +" + is.length)
+      logln()
+    }
   }
 
   def logFix(reg: Region, loc: Int, ref: String, patch: String, gapSize: Int, tandemRepeat: String = "") = {

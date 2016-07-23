@@ -112,7 +112,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       bamFiles foreach { r.processBam(_) }
       r.postProcess
       if (circles contains r.contig.getName) {
-        println(r + " might be a circle!")
+        if (Pilon.verbose) println(r + " might be a circle!")
         r.closeCircle(circles(r.contig.getName))
       }
       if (Pilon.vcf || !Pilon.fixList.intersect(Set('bases, 'gaps, 'local)).isEmpty) {
