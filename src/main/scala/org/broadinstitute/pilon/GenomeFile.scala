@@ -111,14 +111,14 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
       r.postProcess
+      if (circles contains r.contig.getName) {
+        println(r + " might be a circle!")
+        r.closeCircle(circles(r.contig.getName))
+      }
       if (Pilon.vcf || !Pilon.fixList.intersect(Set('bases, 'gaps, 'local)).isEmpty) {
         r.identifyAndFixIssues
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
-      }
-      if (circles contains r.contig.getName) {
-        println(r + " might be a circle!")
-        r.closeCircle(circles(r.contig.getName))
       }
       println(r + " log:")
       r.printLog

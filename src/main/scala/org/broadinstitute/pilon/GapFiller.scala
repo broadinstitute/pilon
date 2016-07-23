@@ -279,7 +279,7 @@ class GapFiller(val region: GenomeRegion) {
     }
   }
 
-  def closeCircle(estimatedLength: Int) = {
+  def closeCircle(estimatedLength: Int): List[(Int, String, String)] = {
     // assume our GenomeRegion is a potentially circular structure; try to fill by
     println("insert size: " + region.insertSizeDist)
     val trimFlanks = ((region.size - estimatedLength) / 2) max 0
@@ -288,6 +288,7 @@ class GapFiller(val region: GenomeRegion) {
     println("right: " + rightFlank)
     val leftEnd = region.size - trimFlanks
     val leftFlank = new Region(region.name, leftEnd - breakRadius, leftEnd)
+    println("left: " + leftFlank)
 
     var reads = List[SAMRecord]()
 
@@ -300,20 +301,35 @@ class GapFiller(val region: GenomeRegion) {
 
     val left = region.subString(leftFlank.start, leftFlank.size)
     val right = region.subString(rightFlank.start, rightFlank.size)
-    println("left: " + left);
-    println("right: " + right);
+    println("left: " + left)
+    println("right: " + right)
 
     val assembler = new Assembler()
     assembler.addReads(reads)
     assembler.buildGraph
     val (forward, reverse, loop) = assembler.multiBridge(left, right)
     println("loop: " + loop)
-    println("forard: " + forward)
-    println("reverse: " + reverse)
+    //println("forard: " + forward)
+    //println("reverse: " + reverse)
 
     tandemRepeat = loop
-    //val solutions = breakJoins(rightEnd, pathsFromLeft, pathsFromRight, leftEnd)
-
+    var patches: List[String] = Nil
+    for (f <- forward; r <- reverse) {
+      val patch = properOverlap(f, r, GapFiller.k)
+      if (!patch.isEmpty)
+        patches ::= patch
+    }
+    val lengths = patches.map(_.length).toSet
+    println(patches.length + " patches; lengths " + lengths)
+    if (lengths.size == 1) {
+      val patch = patches.head
+      println("  " + patch)
+      val rightSolution = (1, region.subString(1, rightEnd + breakRadius), "")
+      val leftSolution = trimPatch(leftEnd - breakRadius, patch, region.stop)
+      if (Pilon.debug) println("  left: " + leftSolution)
+      if (Pilon.debug) println("  right: " + rightSolution)
+      List(leftSolution, rightSolution)
+    } else Nil
   }
 
   def breakRadius = {
