@@ -399,13 +399,14 @@ object Scaffold {
 
     for (circleList <- circleLists) {
       val contig = circleList.head.ca1.contigName
+      val sortedList = circleList.sortBy(_.impliedLength)
       val medianLength = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median.toInt
       circles(contig) = medianLength
 
       if (Pilon.verbose)
         println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName +
           " " + circleList.length + " " + medianLength)
-      for (pair <- circleList) {
+      for (pair <- sortedList) {
         if (Pilon.verbose)
           println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
       }

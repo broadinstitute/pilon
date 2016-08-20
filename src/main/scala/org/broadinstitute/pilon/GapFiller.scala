@@ -315,18 +315,22 @@ class GapFiller(val region: GenomeRegion) {
     assembler.buildGraph
     val (forward, reverse, loop) = assembler.multiBridge(left, right)
     if (Pilon.verbose && !loop.isEmpty)
-      println(" loop length " + loop.length)
+      println(" loop: " + loop.length + " " + loop)
 
     tandemRepeat = loop
-    var patches: List[String] = Nil
+    var patches = Set[String]()
     for (f <- forward; r <- reverse) {
       val patch = properOverlap(f, r, GapFiller.k)
-      if (!patch.isEmpty)
-        patches ::= patch
+      if (!patch.isEmpty) {
+        patches += patch
+      }
+    }
+    if (Pilon.verbose) {
+      for (patch <- patches) println("patch " + patch.length + ": " + patch)
     }
     val lengths = patches.map(_.length).toSet
     if (Pilon.verbose)
-      println(patches.length + " patches; lengths " + lengths)
+      println(patches.size + " patches; lengths " + lengths)
     if (lengths.size == 1) {
       val patch = patches.head
       if (Pilon.verbose) println("  " + patch)
