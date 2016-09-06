@@ -23,7 +23,7 @@ import java.io.File
 object Pilon {
   // types of fixing we know about
   val fixChoices = Set('bases, 'gaps, 'local)
-  val experimentalFixChoices = Set('amb, 'breaks, 'hgap, 'novel, 'scaffolds)
+  val experimentalFixChoices = Set('amb, 'breaks, 'circles, 'novel, 'scaffolds)
 
   // input parameters
   var bamFiles = List[BamFile]()
