@@ -408,8 +408,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     } else {
       log(" ClosedCircle")
       bigFixList ++= solutions
-      for ((loc, was, is) <- solutions)
+      var delta = 0
+      for ((loc, was, is) <- solutions) {
         log(" " + loc + " -" + was.length + " +" + is.length)
+        delta += is.length - was.length
+      }
+      log(" " + (this.size + delta))
       logln()
     }
   }

@@ -280,8 +280,9 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def closeCircle(estimatedLength: Int): List[(Int, String, String)] = {
-    // assume our GenomeRegion is a potentially circular structure; try to fill by
-    //val breakRadius = 1000;
+    // We expect our estimate lengths to be pretty accurate...allow this much slop:
+    val estimatedLengthSlop = 50
+
     if (Pilon.debug) println("insert size: " + region.insertSizeDist)
     val trimFlanks = ((region.size - estimatedLength) / 2) max 0
     val rightEnd = trimFlanks
@@ -318,14 +319,11 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose && !loop.isEmpty)
       println(" loop: " + loop.length + " " + loop)
 
-    tandemRepeat = loop
-    if ((tandemRepeat.length - estimatedLength).abs < 50)
-      println("Assembled complete circle: " + )
     var patches = Set[String]()
     for (f <- forward; r <- reverse) {
       val patch = properOverlap(f, r, GapFiller.k)
       // We should be very close in our closure estimation from alignments. Don't allow
-      if (!patch.isEmpty && (patch.length - 2 * breakRadius).abs < 50) {
+      if (!patch.isEmpty && (patch.length - 2 * breakRadius).abs < estimatedLengthSlop) {
         patches += patch
       }
     }
@@ -335,7 +333,8 @@ class GapFiller(val region: GenomeRegion) {
     val lengths = patches.map(_.length).toSet
     if (Pilon.verbose)
       println(patches.size + " patches; lengths " + lengths)
-    if (lengths.size == 1) {
+
+    if (lengths.size == 1 && (loop.isEmpty || (loop.length - estimatedLength).abs < estimatedLengthSlop)) {
       val patch = patches.head
       if (Pilon.verbose) println("  " + patch)
       val rightSolution = (1, region.subString(1, rightEnd + breakRadius), "")
@@ -344,6 +343,7 @@ class GapFiller(val region: GenomeRegion) {
       if (Pilon.debug) println("  right: " + rightSolution)
       List(rightSolution, leftSolution)
     } else {
+      tandemRepeat = loop
       Nil
     }
   }

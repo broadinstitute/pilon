@@ -350,6 +350,7 @@ object Scaffold {
     for (read <- reader.iterator if (!read.getReadUnmappedFlag)) {
       val contig = scaffolds(read.getReferenceIndex())
       val ca = new EndAlignment(read, contig)
+      //println(ca)
       if (ca.cantalevered) {
         eaList ::= ca
       }
