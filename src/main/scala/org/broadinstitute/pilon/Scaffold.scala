@@ -400,12 +400,12 @@ object Scaffold {
     for (circleList <- circleLists) {
       val contig = circleList.head.ca1.contigName
       val sortedList = circleList.sortBy(_.impliedLength)
-      val medianLength = new NormalDistribution((circleList map { _.impliedLength }).toArray, 2).median.toInt
-      circles(contig) = medianLength
+      val estimatedLength = estimateLength(sortedList map { _.impliedLength })
+      circles(contig) = estimatedLength
 
       if (Pilon.verbose)
         println(circleList.head.ca1.contigEndName + " " + circleList.head.ca2.contigEndName +
-          " " + circleList.length + " " + medianLength)
+          " " + circleList.length + " " + estimatedLength)
       for (pair <- sortedList) {
         if (Pilon.verbose)
           println("  " + pair.ca1 + " " + pair.ca2 + " " + pair.impliedLength)
@@ -416,6 +416,22 @@ object Scaffold {
       println("Candidate circles: " + circles)
 
     circles
+  }
+
+  def estimateLength(estimates: Seq[Int]): Int = {
+    var start = 0
+    while (start < estimates.length) {
+      val estimate = estimates(start)
+      for (i <- start + 1 until estimates.length) {
+        //println("start=" + start + " est=" + estimate + " i=" + i + " iest=" + estimates(i))
+        if (estimates(i) > estimate + estimate / 5 || i == estimates.length-1) {
+          if (i - start >= EndMinLinks)
+            return estimates((start + i) / 2)
+          else start = i
+        }
+      }
+    }
+    return estimates(estimates.length / 2)
   }
 
   def dumpCoords(coords: Array[MatePair]) = coords foreach println

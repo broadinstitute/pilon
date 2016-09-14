@@ -86,7 +86,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     bamFiles foreach {_.validateSeqs(contigsOfInterest)}
 
-    if (Pilon.strays) {
+    if (Pilon.strays || Pilon.fixList.contains('circles)) {
       println("Scanning BAMs")
       // Scan BAMs in parallel
       //bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
