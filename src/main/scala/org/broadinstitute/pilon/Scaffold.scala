@@ -426,7 +426,7 @@ object Scaffold {
       for (i <- start + 1 until estimates.length) {
         //println("start=" + start + " est=" + estimate + " i=" + i + " iest=" + estimates(i))
         if (estimates(i) > estimate + estimate / 5 || i == estimates.length-1) {
-          if (i - start >= EndMinLinks)
+          if (i + 1 - start >= EndMinLinks)
             return estimates((start + i) / 2)
           else start = i
         }
