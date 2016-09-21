@@ -120,7 +120,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
       if (validateRead(read)) {
         val insertSize = pileUpRegion.addRead(read, region.contigBases)
         if (insertSize > huge) {
-          if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
+          //if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
         }
         addInsert(insertSize, read.getReadNegativeStrandFlag)
       }

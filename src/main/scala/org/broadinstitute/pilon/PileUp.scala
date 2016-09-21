@@ -218,10 +218,6 @@ class PileUp {
       val winner = map.toSeq.sortBy({ _._2 }).last
       if (winner._2 < indelList.length / 2) return ("", true)
       val winStr = winner._1
-      if (Pilon.debug) {
-        val indel = if (indelList == insertionList) "ins" else "del"
-        println("indel %s %d %d %d %d".format(indel, depth, indelList.length, winner._2, winStr.length))
-      }
       if (winStr contains 'N') return ("", true)
       if (Pilon.oldIndel) {
         // old method only calls homozygous indels

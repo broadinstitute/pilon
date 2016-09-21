@@ -284,7 +284,8 @@ class GapFiller(val region: GenomeRegion) {
     val estimatedLengthSlop = 50
 
     if (Pilon.debug) println("insert size: " + region.insertSizeDist)
-    val trimFlanks = ((region.size - estimatedLength) / 2) max 0
+    val trimToLength = if (estimatedLength > 0) estimatedLength else region.size / 2
+    val trimFlanks = ((region.size - trimToLength) / 2) max 0
     val rightEnd = trimFlanks
     val rightFlank = new Region(region.name, rightEnd, rightEnd + breakRadius)
     val leftEnd = region.size - trimFlanks
@@ -297,10 +298,14 @@ class GapFiller(val region: GenomeRegion) {
 
     var reads = List[SAMRecord]()
 
-    val unpairedBams = region.bamsOfType('unpaired)
-    for (bam <- unpairedBams) {
-      reads ++= bam.readsInRegion(leftFlank)
-      reads ++= bam.readsInRegion(rightFlank)
+    if (estimatedLength == 0) {
+      reads = recruitReads(region)
+    } else {
+      val unpairedBams = region.bamsOfType('unpaired)
+      for (bam <- unpairedBams) {
+        reads ++= bam.readsInRegion(leftFlank)
+        reads ++= bam.readsInRegion(rightFlank)
+      }
     }
     if (Pilon.verbose)
       println("recruited " + reads.length + " reads")
@@ -323,7 +328,7 @@ class GapFiller(val region: GenomeRegion) {
     for (f <- forward; r <- reverse) {
       val patch = properOverlap(f, r, GapFiller.k)
       // We should be very close in our closure estimation from alignments. Don't allow
-      if (!patch.isEmpty && (patch.length - 2 * breakRadius).abs < estimatedLengthSlop) {
+      if (!patch.isEmpty && (estimatedLength == 0 || (patch.length - 2 * breakRadius).abs < estimatedLengthSlop)) {
         patches += patch
       }
     }
@@ -334,7 +339,7 @@ class GapFiller(val region: GenomeRegion) {
     if (Pilon.verbose)
       println(patches.size + " patches; lengths " + lengths)
 
-    if (lengths.size == 1 && (loop.isEmpty || (loop.length - estimatedLength).abs < estimatedLengthSlop)) {
+    if (lengths.size == 1 && (estimatedLength == 0 || loop.isEmpty || (loop.length - estimatedLength).abs < estimatedLengthSlop)) {
       val patch = patches.head
       if (Pilon.verbose) println("  " + patch)
       val rightSolution = (1, region.subString(1, rightEnd + breakRadius), "")
