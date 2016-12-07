@@ -294,7 +294,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       logln("# IdentifyIssues: " + this)
       identifyIssueRegions
     }
-    val fix = Pilon.fixList contains 'bases
+    val fixSnps = Pilon.fixList contains 'snps
+    val fixIndels = Pilon.fixList contains 'indels
     var snps = 0
     var ins = 0
     var dels = 0
@@ -308,10 +309,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val cBase = bc.base
       kind match {
         case 'snp =>
-          if (fix) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+          if (fixSnps) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
           snps += 1
         case 'amb =>
-          if (fix) {
+          if (fixSnps) {
             if (Pilon.iupac) {
               // we put these on the small fix list because iupac codes can mess up assembly
               // flank anchor kmers
@@ -323,12 +324,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           amb += 1
         case 'ins =>
           val insert = bc.insertion
-          if (fix) smallFixList ::= (locus(i), "", insert)
+          if (fixIndels) smallFixList ::= (locus(i), "", insert)
           ins += 1
           insBases += insert.length
         case 'del =>
           val deletion = bc.deletion
-          if (fix) smallFixList ::= (locus(i), deletion, "")
+          if (fixIndels) smallFixList ::= (locus(i), deletion, "")
           dels += 1
           delBases += deletion.length
       }
@@ -340,14 +341,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nonN = originalBases count {x => x != 'N'}
     logln("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
       (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
-    if (Pilon.fixList contains 'bases) log("Corrected ") else log("Found ")
+    if (Pilon.fixList contains 'snps) log("Corrected ") else log("Found ")
     if (Pilon.diploid) log((snps + amb) + " snps")
     else {
       log(snps + " snps; ")
       log(amb + " ambiguous bases")
     }
-    log("; " + ins + " small insertions totaling " + insBases + " bases")
-    logln("; " + dels + " small deletions totaling " + delBases + " bases")
+    if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
+    log(ins + " small insertions totaling " + insBases + " bases")
+    logln(", " + dels + " small deletions totaling " + delBases + " bases")
     
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents

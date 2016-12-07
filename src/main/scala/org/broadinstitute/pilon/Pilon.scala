@@ -22,7 +22,7 @@ import java.io.File
 
 object Pilon {
   // types of fixing we know about
-  val fixChoices = Set('bases, 'gaps, 'local)
+  val fixChoices = Set('snps, 'indels, 'gaps, 'local)
   val experimentalFixChoices = Set('amb, 'breaks, 'circles, 'novel, 'scaffolds)
 
   // input parameters
@@ -250,8 +250,16 @@ object Pilon {
           println("Warning: experimental fix option " + f)
           if (plusMinus == '+') fixList += fsym
           else fixList -= fsym
-        }
-        else {
+        } else if (fsym == 'bases) {
+          // for backward compatibility, 'bases applies to both 'snps and 'indels
+          if (plusMinus == '+') {
+            fixList += 'snps
+            fixList += 'indels
+          } else {
+            fixList -= 'snps
+            fixList -= 'indels
+          }
+        } else {
           println("Error: unknown fix option " + f)
           sys.exit(1)
         }
@@ -328,15 +336,18 @@ object Pilon {
               Sample is from diploid organism; will eventually affect calling of heterozygous SNPs
            --fix fixlist
               A comma-separated list of categories of issues to try to fix:
-                "bases": try to fix individual bases and small indels;
+|               "snps": try to fix individual base errors;
+ |              "indels": try to fix small indels;
                 "gaps": try to fill gaps;
                 "local": try to detect and fix local misassemblies;
                 "all": all of the above (default);
+                "bases": shorthand for "snps" and "indels" (for back compatibility);
                 "none": none of the above; new fasta file will not be written.
               The following are experimental fix types:
-                "amb": fix ambiguous bases in fasta output (to most likely alternative).
-                "breaks": allow local reassembly to open new gaps (with "local").
-                "novel": assemble novel sequence from unaligned non-jump reads.
+                "amb": fix ambiguous bases in fasta output (to most likely alternative);
+|               "breaks": allow local reassembly to open new gaps (with "local");
+ |              "circles": try to close circlar elements when used with long corrected reads;
+ |              "novel": assemble novel sequence from unaligned non-jump reads.
            --dumpreads
               Dump reads for local re-assemblies.
            --duplicates
