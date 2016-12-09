@@ -43,7 +43,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
   val genomeSize: Long = {
     // count everything but Ns
-    contigs.map(_.getBases.length).sum
+    contigs.map(_.getBases.length.toLong).sum
   }
 
   val regions = {
