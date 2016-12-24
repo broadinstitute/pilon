@@ -222,17 +222,21 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
   def parseTargetString(targetString: String) = {
     val targetHelp = "Target string must be of the form \"element:start-stop\""
     val targets = for (target <- targetString.split(",")) yield {
-      val t1 = target.split(":")
-      require(t1.size <= 2, targetHelp)
-      val contig = contigMap(t1(0))
-      val region = 
-        if (t1.size == 1) {
-            new GenomeRegion(contig, 1, contig.length)
-        } else {
-        	val t2 = t1(1).split("-")
-        	require(t2.size <= 2, targetHelp)
-        	new GenomeRegion(contig, t2(0).toInt, t2(1).toInt)
-        }
+
+      //matches patterns like abc:def (entire contig) or abc:def:1-100 (first 100 bases)
+      val pattern = "^\\s*(.+)(?::([0-9]+)-([0-9]+)\\s*)?$".r
+      val pattern(contig_name,start,stop) = target
+      val contig = contigMap(contig_name)
+
+      // start and length must both be specified, or neither specified
+      require((start == null && stop == null) || (start != null && stop != null), targetHelp)
+
+      //use entire contig to define a region if start and stop are not specified
+      val region = new GenomeRegion( contig,
+                                     if (start == null) 1 else start.toInt,
+                                     if (start == null) contig.length else stop.toInt
+      )
+
       println("Target: " + region)
       (contig.getName, List(region))
     }
