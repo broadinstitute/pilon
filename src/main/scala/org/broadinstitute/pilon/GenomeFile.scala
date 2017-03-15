@@ -224,8 +224,14 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     val targets = for (target <- targetString.split(",")) yield {
 
       //matches patterns like abc:def (entire contig) or abc:def:1-100 (first 100 bases)
-      val pattern = "^\\s*(.+)(?::([0-9]+)-([0-9]+)\\s*)?$".r
-      val pattern(contig_name,start,stop) = target
+      //val pattern = "^\\s*(.+)(?::([0-9]+)-([0-9]+)\\s*)?$".r
+      val lastColon = target.lastIndexOf(':')
+      val (contig_name, coordString) =
+        if (lastColon > 0) (target.substring(0, lastColon), target.substring(lastColon+1))
+        else (target, "")
+      val pattern = "(?:([0-9]+)-([0-9]+))?\\s*$".r
+      val pattern(start,stop) = coordString
+      println("PARSE TARGET: " + contig_name + " " + start + " " + stop)
       val contig = contigMap(contig_name)
 
       // start and length must both be specified, or neither specified
