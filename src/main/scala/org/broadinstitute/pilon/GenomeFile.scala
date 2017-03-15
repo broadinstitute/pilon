@@ -20,7 +20,6 @@ package org.broadinstitute.pilon
 
 import java.io.{File,PrintWriter,FileWriter,BufferedWriter}
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
 import scala.util.Random
 import scala.io.Source
@@ -223,25 +222,21 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     val targetHelp = "Target string must be of the form \"element:start-stop\""
     val targets = for (target <- targetString.split(",")) yield {
 
-      //matches patterns like abc:def (entire contig) or abc:def:1-100 (first 100 bases)
-      //val pattern = "^\\s*(.+)(?::([0-9]+)-([0-9]+)\\s*)?$".r
-      val lastColon = target.lastIndexOf(':')
-      val (contig_name, coordString) =
-        if (lastColon > 0) (target.substring(0, lastColon), target.substring(lastColon+1))
-        else (target, "")
-      val pattern = "(?:([0-9]+)-([0-9]+))?\\s*$".r
-      val pattern(start,stop) = coordString
-      println("PARSE TARGET: " + contig_name + " " + start + " " + stop)
+      // look for trailing coordinate spec
+      val pattern = "^\\s*(.+):([0-9]+)-([0-9]+)\\s*$".r
+      val (contig_name, start, stop) = try {
+        val pattern(contig_name, start, stop) = target
+        (contig_name, start.toInt, stop.toInt)
+      } catch {
+        case e: MatchError => (target, 1, contigMap(target).length)
+      }
+
       val contig = contigMap(contig_name)
 
       // start and length must both be specified, or neither specified
-      require((start == null && stop == null) || (start != null && stop != null), targetHelp)
 
       //use entire contig to define a region if start and stop are not specified
-      val region = new GenomeRegion( contig,
-                                     if (start == null) 1 else start.toInt,
-                                     if (start == null) contig.length else stop.toInt
-      )
+      val region = new GenomeRegion(contig, start, stop)
 
       println("Target: " + region)
       (contig.getName, List(region))
@@ -251,7 +246,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
   def parseTargetFile(fileName: String) = {
     try {
-      println("target file: " + fileName)
       Source.fromFile(fileName).getLines.flatMap({parseTargetString(_)}).toList
     } catch {
       case ioe: Exception => Nil
