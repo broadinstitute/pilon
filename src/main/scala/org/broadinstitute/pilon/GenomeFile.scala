@@ -222,20 +222,17 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     val targetHelp = "Target string must be of the form \"element:start-stop\""
     val targets = for (target <- targetString.split(",")) yield {
 
-      // look for trailing coordinate spec
-      val pattern = "^\\s*(.+):([0-9]+)-([0-9]+)\\s*$".r
       val (contig_name, start, stop) = try {
+        // look for trailing coordinate spec
+        val pattern = "^\\s*(.+):([0-9]+)-([0-9]+)\\s*$".r
         val pattern(contig_name, start, stop) = target
         (contig_name, start.toInt, stop.toInt)
       } catch {
+        //use entire contig to define a region if start and stop are not specified
         case e: MatchError => (target, 1, contigMap(target).length)
       }
 
       val contig = contigMap(contig_name)
-
-      // start and length must both be specified, or neither specified
-
-      //use entire contig to define a region if start and stop are not specified
       val region = new GenomeRegion(contig, start, stop)
 
       println("Target: " + region)
