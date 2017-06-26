@@ -37,11 +37,14 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   def add(locus: Int, base: Char, qual: Int, mq: Int,
     pair: Boolean) = {
     if (inRegion(locus)) {
+      val i = index(locus)
+      val pu = pileups(i)
       if (pair) {
-        pileups(index(locus)).add(base, qual, mq)
+        pu.add(base, qual, mq)
         baseCount += 1
       } else {
-        if (!pair) pileups(index(locus)).badPair += 1
+        pu.badPair += 1
+        pu.mqSumBad += mq
       }
     }
   }

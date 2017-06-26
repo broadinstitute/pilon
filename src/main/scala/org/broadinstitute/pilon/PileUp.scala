@@ -27,6 +27,7 @@ class PileUp {
   //var mqSum = new BaseSum
   //var qmqSum = new BaseSum
   var mqSum = 0
+  var mqSumBad = 0
   var qSum = 0
   var physCov = 0
   var insertSize = 0
@@ -144,7 +145,7 @@ class PileUp {
       val halfTotal = total / 2
       val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
       //val homo = homoScore >= heteroScore
-      val homo = pct(baseSum, total) > Pilon.callThreshold
+      val homo = total == 0 || pct(baseSum, total) > Pilon.callThreshold
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
       (homo, score)
     }

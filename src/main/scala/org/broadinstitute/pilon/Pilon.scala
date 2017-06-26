@@ -200,11 +200,13 @@ object Pilon {
       case "--strain" :: tail =>
         strain = true
         callThreshold = 90
-        minQual = 5
-        minMq = 5
-        minDepth = 2
-        minQDepth = 50
         fixList = Set('snps, 'indels)
+        flank = 0
+        minDepth = 2
+        minMq = 5
+        minQual = 5
+        minQDepth = 50
+        //vcfQE = true
         optionParse(tail)
       case "--targets" :: value :: tail =>
         targets = value

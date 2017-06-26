@@ -355,11 +355,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
     val smallCount = snps + ins + dels
-    logln("Small event rate: 1/" + (if (smallCount > 0) size / smallCount else 0))
+    logln("Small event rate: 1/" + (if (smallCount > 0) nCovered / smallCount else 0))
     
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
-    if (duplications.size > 0) {
+    if (duplications.size > 0 && !Pilon.strain) {
       for (d <- duplications) logln("Large collapsed region: " + d + " size " + d.size)
     }
     
