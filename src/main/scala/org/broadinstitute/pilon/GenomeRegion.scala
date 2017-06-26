@@ -41,6 +41,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   var meanReadLength = 0
 
   // disposition flags
+  var covered= new Array[Boolean](size)
   var confirmed = new Array[Boolean](size)
   var ambiguous = new Array[Boolean](size)
   var changed = new Array[Boolean](size)
@@ -214,7 +215,6 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (nReads == 0) {
       return
     }
-    //meanReadLength = pileUpRegion.meanReadLength
 
     // Pass 1: pull out values from pileups & call base changes
     val fixamb = Pilon.iupac || (Pilon.fixList contains 'amb)
@@ -230,6 +230,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       //val minDepth = meanCoverage * 25 / 100
       val loc = locus(i)
       coverage(i) = n.toInt
+      covered(i) = n >= minDepth && pu.qSum >= Pilon.minQDepth
       badCoverage(i) = pu.badPair
       physCoverage(i) = pu.physCov
       insertSize(i) = pu.insertSize
@@ -237,7 +238,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       weightedMq(i) = pu.weightedMq.toByte
       clips(i) = pu.clips.toShort
 
-      if (n >= minDepth && r != 'N' && !deleted(i) && bc.called) {
+      if (covered(i) && r != 'N' && !deleted(i) && bc.called) {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
         else if (bc.isInsertion && bc.homoIndel) addChange(i, 'ins, pu)
@@ -337,10 +338,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
     
     // Report some stats
+    val nCovered = covered count {x => x}
     val nConfirmed = confirmed count {x => x}
     val nonN = originalBases count {x => x != 'N'}
-    logln("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
-      (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
+    logln("Covered " + nCovered + " of " + nonN + " bases (" +
+     (nCovered * 100.0 / nonN).formatted("%.2f") + "%)")
+    logln("Confirmed " + nConfirmed + " of " + nCovered + " bases (" +
+      (nConfirmed * 100.0 / nCovered).formatted("%.2f") + "%)")
     if (Pilon.fixList contains 'snps) log("Corrected ") else log("Found ")
     if (Pilon.diploid) log((snps + amb) + " snps")
     else {
@@ -350,6 +354,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
+    val smallCount = snps + ins + dels
+    logln("Small event rate: 1/" + (if (smallCount > 0) size / smallCount else 0))
     
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents

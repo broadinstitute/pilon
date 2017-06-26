@@ -39,6 +39,7 @@ object Pilon {
   var vcfQE = false
   var debug = false
   // heuristics and control parameters
+  var callThreshold = 75
   var chunkSize = 10000000
   var defaultQual: Byte = 15
   var diploid = false
@@ -51,11 +52,13 @@ object Pilon {
   var minMinDepth = 5
   var minGap = 10
   var minDepth = 0.1
+  var minQDepth = 0
   var minQual = 0
   var minMq = 0
   var multiClosure = false
   var nonPf = false
   var oldIndel = false
+  var strain = false
   var strays = true
   var threads = 1
   var trSafe = true
@@ -194,6 +197,15 @@ object Pilon {
       case "--nonpf" :: tail =>
         nonPf = true
         optionParse(tail)
+      case "--strain" :: tail =>
+        strain = true
+        callThreshold = 90
+        minQual = 5
+        minMq = 5
+        minDepth = 2
+        minQDepth = 50
+        fixList = Set('snps, 'indels)
+        optionParse(tail)
       case "--targets" :: value :: tail =>
         targets = value
         optionParse(tail)
@@ -203,9 +215,6 @@ object Pilon {
       case "--tracks" :: tail =>
         tracks = true
         optionParse(tail)
-      //case "--trsafe" :: tail =>
-      //  trSafe = true
-      //  optionParse(tail)
       case "--unpaired" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'unpaired)
         optionParse(tail)

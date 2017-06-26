@@ -143,7 +143,8 @@ class PileUp {
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
       val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
-      val homo = homoScore >= heteroScore
+      //val homo = homoScore >= heteroScore
+      val homo = pct(baseSum, total) > Pilon.callThreshold
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
       (homo, score)
     }
