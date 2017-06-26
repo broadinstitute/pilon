@@ -348,15 +348,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (Pilon.fixList contains 'snps) log("Corrected ") else log("Found ")
     if (Pilon.diploid) log((snps + amb) + " snps")
     else {
-      log(snps + " snps; ")
+      log(snps + " snps" + (if (Pilon.strain && snps > 0) " (1/" + (nCovered / snps) + ")" else "") + "; ")
       log(amb + " ambiguous bases")
     }
     if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
-    val smallCount = snps + ins + dels
-    logln("Small event rate: 1/" + (if (smallCount > 0) nCovered / smallCount else 0))
-    
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0 && !Pilon.strain) {
