@@ -44,6 +44,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   var covered= new Array[Boolean](size)
   var confirmed = new Array[Boolean](size)
   var ambiguous = new Array[Boolean](size)
+  var multi = new Array[Boolean](size)
   var changed = new Array[Boolean](size)
   var deleted = new Array[Boolean](size)
   //var lowCoverage = new Array[Boolean](size)
@@ -254,6 +255,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (homo) addChange(i, 'snp, pu)
           else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
         }
+        multi(i) = !homo && Pilon.strain && bc.aq >= Pilon.minQDepth
       }
     }
 
@@ -354,6 +356,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
+
+    logln("Multiple alleles: " + multi.count({x => x}))
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0 && !Pilon.strain) {
