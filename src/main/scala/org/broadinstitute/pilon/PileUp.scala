@@ -139,7 +139,7 @@ class PileUp {
     val baseSum = qualSum.sums(baseIndex)
     val altBase = indexBase(altBaseIndex)
     val altBaseSum = qualSum.sums(altBaseIndex)
-    val (homo, score) = {
+    val (homo, score, cq, aq) = {
       val total = qualSum.sum //+ insQual + delQual
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
@@ -147,7 +147,7 @@ class PileUp {
       //val homo = homoScore >= heteroScore
       val homo = total == 0 || pct(baseSum, total) > Pilon.callThreshold
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
-      (homo, score)
+      (homo, score, Utils.roundDiv(qSum * baseSum, total), Utils.roundDiv(qSum * altBaseSum, total))
     }
     val (insertion, deletion, indel, homoIndel) = {
       val (ins, homoIns) = insertCall
