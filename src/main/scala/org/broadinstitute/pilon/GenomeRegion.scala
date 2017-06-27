@@ -220,9 +220,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
     maxDepth = highCoverage
 
-    logln("Total Reads: " + nReads + ", Coverage: %.1f".format(meanCoverage) + ", minDepth: " + minDepth)
-    //logln("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
-    logln("High coverage: " + maxDepth)
+    logln("Total Reads: " + nReads + ", Coverage: %.1f".format(meanCoverage) + ", minDepth: " + minDepth
+    + ", maxDepth: " + maxDepth)
 
     if (nReads == 0) {
       return
@@ -676,6 +675,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   def lowCoverage(i: Int) = (coverage(i) < Pilon.minMinDepth) && (refBase(locus(i)) != 'N')
   def lowCoverageRegions = summaryRegions(lowCoverage)
+  def highCoverageRegions = summaryRegions({i => (coverage(i) < Pilon.minMinDepth) && (refBase(locus(i)) != 'N')})
   def highCopyNumberRegions = summaryRegions({ i: Int => copyNumber(i) > 1 })
   def highClipping(i: Int) = coverage(i) >= Pilon.minMinDepth && pct(clips(i), coverage(i)) >= 33
   def clippingRegions = summaryRegions(highClipping)

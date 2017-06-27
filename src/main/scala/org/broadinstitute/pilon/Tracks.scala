@@ -32,25 +32,27 @@ import htsjdk.samtools._
 
 class Tracks(val reference: GenomeFile) {
   def standardTracks = {
-    makeBedTrack("Pilon.bed", "Pilon")
+    if (Pilon.strain) makeBedTrack("Strain.bed", "Strain Features")
+    else makeBedTrack("Pilon.bed", "Pilon")
     changesTrack("Changes.wig")
     unconfirmedTrack("Unconfirmed.wig")
-    copyNumberTrack("CopyNumber.wig")
+    //copyNumberTrack("CopyNumber.wig")
     coverageTrack("Coverage.wig")
-    badCoverageTrack("BadCoverage.wig")
+    coverageClassTrack("CoverageClass.wig")
+    //badCoverageTrack("BadCoverage.wig")
     pctBadTrack("PctBad.wig")
     //coverageTrackSD("CoverageSD.wig")
     //badCoverageTrackSD("BadCoverageSD.wig")
-    deltaCoverageTrack("DeltaCoverage.wig")
-    dipCoverageTrack("DipCoverage.wig")
+    //deltaCoverageTrack("DeltaCoverage.wig")
+    //dipCoverageTrack("DipCoverage.wig")
     //fragCoverageTrack("FragCoverage.wig")
     physicalCoverageTrack("PhysicalCoverage.wig")
     //physicalCoverageTrackSD("PhysicalCoverageSD.wig")
     //insertSizeTrack("InsertSize.wig")
     //insertSizeTrackSD("InsertSizeSD.wig")
-    clippedAlignmentTrack("ClippedAlignments.wig")
-    weightedQualTrack("WeightedQual.wig")
-    weightedMqTrack("WeightedMq.wig")
+    //clippedAlignmentTrack("ClippedAlignments.wig")
+    //weightedQualTrack("WeightedQual.wig")
+    //weightedMqTrack("WeightedMq.wig")
     gcTrack("GC.wig")
     //kmerCopyNumberTrack("KmerCopyNumber.wig")
   }
@@ -77,7 +79,15 @@ class Tracks(val reference: GenomeFile) {
   
   def coverageTrack(file: String) = {
     makeTrack(file, "Coverage",
-        { (r: GenomeRegion, i: Int) => r.coverage(i) })
+      { (r: GenomeRegion, i: Int) => r.coverage(i) })
+  }
+
+  def coverageClassTrack(file : String) = {
+    makeTrack(file, "Coverage",
+      { (r: GenomeRegion, i: Int) =>
+        if (r.coverage(i) < r.minDepth) -1
+        else if (r.coverage(i) > r.maxDepth) 1
+        else 0 })
   }
 
   def fragCoverageTrack(file: String) = {
@@ -184,7 +194,7 @@ class Tracks(val reference: GenomeFile) {
     	  }
     	}
     }
-    writer.close()   
+    writer.close()
   }
   
   def regionsToBed(regions: List[Region], name: String, writer: PrintWriter, rgb: String = "0,255,0") = {
@@ -216,5 +226,29 @@ class Tracks(val reference: GenomeFile) {
       }
     }
     writer.close()       
+  }
+
+  def makeStrainBedTrack(fileName: String, name: String, options: String = "") = {
+    val file = Pilon.outputFile(fileName)
+    println ("Creating " + name + " track in file " + file.getPath())
+    val writer = new PrintWriter(file)
+    var headLine = "track description=\"Issues found by Pilon\" name=\"" + name + "\""
+    if (options != "") headLine += " " + options
+    writer.println(headLine)
+
+    for ((cName, regions) <- reference.regions) {
+      regions foreach { r: GenomeRegion =>
+        regionsToBed(r.lowCoverageRegions, "LC", writer, "128,0,128")
+        regionsToBed(r.highCoverageRegions, "HC", writer, "255,0,255")
+        regionsToBed(r.gaps, "Gap", writer, "0,0,0")
+        regionsToBed(r.unConfirmedRegions, "?", writer, "0,128,128")
+        regionsToBed(r.ambiguousRegions, "X", writer, "255,128,0")
+        regionsToBed(r.changeRegions, "X", writer, "255,0,0")
+        for ((region, outcome) <- r.reassemblyFixes) {
+          regionsToBed(List(region), outcome, writer, "0,128,0")
+        }
+      }
+    }
+    writer.close()
   }
 }
