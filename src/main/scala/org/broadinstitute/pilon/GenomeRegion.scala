@@ -22,6 +22,7 @@ import collection.mutable.Map
 import htsjdk.samtools.reference._
 import Utils._
 import java.io.PrintWriter
+import org.apache.commons.math3.distribution.PoissonDistribution
 
 object GenomeRegion {
   def baseString(b: Array[Byte]) = b map { _.toChar.toUpper } mkString ("")
@@ -37,6 +38,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   var pileUpRegion: PileUpRegion = null
   var minDepth = Pilon.minMinDepth
+  var maxDepth = 1000000000
 
   var meanReadLength = 0
 
@@ -80,13 +82,20 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   
   var changeMap = Map.empty[Int, (Symbol, PileUp)]
 
-  def addChange(loc: Int, kind: Symbol, pu: PileUp) = {
-    if (kind == 'amb) ambiguous(loc) = true
-    else changed(loc) = true
-    changeMap += (loc -> (kind, pu))
-  }
-  
+  def addChange(loc: Int, kind: Symbol, pu: PileUp) = changeMap += (loc -> (kind, pu))
+
   def changeList = changeMap.keys.toList.sorted
+
+  def highCoverage : Int = {
+    val cov = pileUpRegion.puCoverage
+    if (cov > 0) {
+      val poisson = new PoissonDistribution(pileUpRegion.coverage)
+      for (n <- 0 until 1000)
+        if (poisson.cumulativeProbability(n) > 0.9999999)
+          return n
+    }
+    return 1000
+  }
 
   lazy val physCoverageDist = new NormalDistribution(physCoverage, 2)
   lazy val coverageDist = new NormalDistribution(coverage, 2)
@@ -209,9 +218,11 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (Pilon.minDepth >= 1) Pilon.minDepth.toInt
       else (Pilon.minDepth * meanCoverage).round.toInt max Pilon.minMinDepth
     }
+    maxDepth = highCoverage
 
-    logln("Total Reads: " + nReads + ", Coverage: " + meanCoverage + ", minDepth: " + minDepth)
+    logln("Total Reads: " + nReads + ", Coverage: %.1f".format(meanCoverage) + ", minDepth: " + minDepth)
     //logln("Non Jump coverage: " + fragCoverageDist.mean + ", median: " + fragCoverageDist.median)
+    logln("High coverage: " + maxDepth)
 
     if (nReads == 0) {
       return
@@ -219,6 +230,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Pass 1: pull out values from pileups & call base changes
     val fixamb = Pilon.iupac || (Pilon.fixList contains 'amb)
+
 
     for (i <- 0 until size) {
       val pu = pileUpRegion(i)
@@ -231,7 +243,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       //val minDepth = meanCoverage * 25 / 100
       val loc = locus(i)
       coverage(i) = n.toInt
-      covered(i) = n >= minDepth && bc.calledQ >= Pilon.minQDepth
+      covered(i) = n >= minDepth && bc.calledQ >= Pilon.minQDepth && n <= maxDepth
       badCoverage(i) = pu.badPair
       physCoverage(i) = pu.physCov
       insertSize(i) = pu.insertSize
@@ -252,8 +264,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         } else if (b != r) {
           // for ambiguous bases, fix them if --fix fixamb or if original base
           // not one of the top two alternatives
-          if (homo) addChange(i, 'snp, pu)
-          else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
+          if (homo) {
+            addChange(i, 'snp, pu)
+            changed(i) = true
+          } else {
+            if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
+            ambiguous(i) = true
+          }
         }
         multi(i) = !homo && Pilon.strain && bc.altQ >= Pilon.minQDepth
       }
@@ -280,7 +297,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       for (i <- 0 until size) 
         covBefore(i) = pileUpRegion.pileups(i).depth.toInt
     val coverage = bam.process(this)
-    logln("coverage " + coverage.toString)
+    logln("coverage %.1f".format(coverage))
     if (bam.bamType != 'jumps)
       for (i <- 0 until size) 
         fragCoverage(i) += pileUpRegion.pileups(i).depth.toInt - covBefore(i)

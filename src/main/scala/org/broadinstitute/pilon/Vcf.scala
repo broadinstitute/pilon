@@ -36,6 +36,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       writer.println("##contig=<ID=" + c + ",length=" + s + ">")
     //writer.println("##FILTER=<ID=LowConf,Description=\"Low Confidence Call\">")
     writer.println("##FILTER=<ID=LowCov,Description=\"Low Coverage of good reads at location\">")
+    writer.println("##FILTER=<ID=HighCov,Description=\"Abnormally high Coverage of good reads at location\">")
     //writer.println("##FILTER=<ID=LowMQ,Description=\"Low mean mapping quality at location\">")
     writer.println("##FILTER=<ID=Amb,Description=\"Ambiguous evidence in haploid genome\">")
     writer.println("##FILTER=<ID=Del,Description=\"This base is in a deletion or change event from another record\">")
@@ -115,6 +116,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     }
     var filters = List[String]()
     if (depth < region.minDepth) filters ::= "LowCov"
+    else if (depth > region.maxDepth) filters ::= "HighCov"
     //if (!bc.highConfidence && !bc.indel) filters ::= "LowConf"
     //if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel && bc.homoIndel))
     if (!Pilon.diploid && callType == "0/1" && !(Pilon.strain && bc.altQ >= Pilon.minQDepth))

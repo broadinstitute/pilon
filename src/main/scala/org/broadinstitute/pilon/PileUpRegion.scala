@@ -32,7 +32,18 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   var readCount = 0
   val trustedFlank = Pilon.flank
 
-  def coverage = roundDiv(baseCount, size)
+  def coverage = baseCount.toDouble / size.toDouble //roundDiv(baseCount, size)
+  def puCoverage = {
+    var count = 0L
+    var n = 0
+    for (pu <- pileups) {
+      if (pu.count > 0) {
+        count += pu.count
+        n += 1
+      }
+    }
+    if (n > 0) count.toDouble / n.toDouble else 0
+  }
 
   def add(locus: Int, base: Char, qual: Int, mq: Int,
     pair: Boolean) = {
