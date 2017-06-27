@@ -139,15 +139,15 @@ class PileUp {
     val baseSum = qualSum.sums(baseIndex)
     val altBase = indexBase(altBaseIndex)
     val altBaseSum = qualSum.sums(altBaseIndex)
-    val (homo, score, cq, aq) = {
-      val total = qualSum.sum //+ insQual + delQual
+    val total = qualSum.sum //+ insQual + delQual
+    val (homo, score) = {
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
       val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
       //val homo = homoScore >= heteroScore
       val homo = total == 0 || pct(baseSum, total) > Pilon.callThreshold
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
-      (homo, score, Utils.roundDiv(qSum * baseSum, total), Utils.roundDiv(qSum * altBaseSum, total))
+      (homo, score)
     }
     val (insertion, deletion, indel, homoIndel) = {
       val (ins, homoIns) = insertCall
@@ -166,6 +166,9 @@ class PileUp {
     def called = (base != 'N') || indel
     def q = if (n > 0) score / n else 0
     def highConfidence = q >= 10
+
+    def calledQ = Utils.roundDiv(qSum * baseSum, total)
+    def altQ = Utils.roundDiv(qSum * altBaseSum, total)
 
     def callString(indelOk : Boolean = true) = {
       if (indelOk && isInsertion) insertion

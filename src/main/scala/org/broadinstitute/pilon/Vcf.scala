@@ -117,7 +117,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     if (depth < region.minDepth) filters ::= "LowCov"
     //if (!bc.highConfidence && !bc.indel) filters ::= "LowConf"
     //if (!Pilon.diploid && !bc.homo && !(indelOk && bc.indel && bc.homoIndel))
-    if (!Pilon.diploid && callType == "0/1" && !(Pilon.strain && bc.aq >= Pilon.minQDepth))
+    if (!Pilon.diploid && callType == "0/1" && !(Pilon.strain && bc.altQ >= Pilon.minQDepth))
       filters ::= "Amb"
     if (embedded) filters ::= "Del"
     if (filters.isEmpty) filters ::= "PASS"
@@ -146,8 +146,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       ";DC=" + pileUp.deletions +
       //";DF=" + pileUp.delPct +
       ";XC=" + pileUp.clips +
-      ";CQ=" + bc.cq +
-      ";AQ=" + bc.aq +
+      ";CQ=" + bc.calledQ +
+      ";AQ=" + bc.altQ +
     	";AC=" + ac +
     	";AF=" + ("%.2f".format(af))
 

@@ -231,7 +231,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       //val minDepth = meanCoverage * 25 / 100
       val loc = locus(i)
       coverage(i) = n.toInt
-      covered(i) = n >= minDepth && pu.qSum >= Pilon.minQDepth
+      covered(i) = n >= minDepth && bc.calledQ >= Pilon.minQDepth
       badCoverage(i) = pu.badPair
       physCoverage(i) = pu.physCov
       insertSize(i) = pu.insertSize
@@ -255,7 +255,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
           if (homo) addChange(i, 'snp, pu)
           else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
         }
-        multi(i) = !homo && Pilon.strain && bc.aq >= Pilon.minQDepth
+        multi(i) = !homo && Pilon.strain && bc.altQ >= Pilon.minQDepth
       }
     }
 
