@@ -148,8 +148,6 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
       ";DC=" + pileUp.deletions +
       //";DF=" + pileUp.delPct +
       ";XC=" + pileUp.clips +
-      ";CQ=" + bc.calledQ +
-      ";AQ=" + bc.altQ +
     	";AC=" + ac +
     	";AF=" + ("%.2f".format(af))
 

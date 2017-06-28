@@ -373,49 +373,56 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
 
-    logln("Multiple alleles: " + multi.count({x => x}))
+    if (Pilon.strain) {
+      val nMulti = multi count {x => x}
+      logln("Multiple allele bases: " + nMulti.toString + (if (nMulti > 0) " (1/" + (nCovered / nMulti) + ")" else ""))
+      val nAmbiguous = ambiguous count {x => x}
+      logln("Ambiguous Bases: " + nAmbiguous.toString + (if (nAmbiguous > 0) " (1/" + (nCovered / nAmbiguous) + ")" else ""))
+    }
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0 && !Pilon.strain) {
       for (d <- duplications) logln("Large collapsed region: " + d + " size " + d.size)
     }
-    
-    // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
-    // We can't change coords here, though, so no indels!
-    fixIssues(snpFixList)
 
-    // Try to fill gaps
-    if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
-      logln("# Attempting to fill gaps")
-      for (gap <- gaps) {
-        val filler = new GapFiller(this)
-        val (start, ref, patch) = filler.fillGap(gap)
-        if (start > 0) {
-          bigFixList ::= (start, ref, patch)
-          logFix(gap, start, ref, patch, gap.size, filler.tandemRepeat)
+    if (!Pilon.strain) {
+      // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!
+      // We can't change coords here, though, so no indels!
+      fixIssues(snpFixList)
+
+      // Try to fill gaps
+      if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
+        logln("# Attempting to fill gaps")
+        for (gap <- gaps) {
+          val filler = new GapFiller(this)
+          val (start, ref, patch) = filler.fillGap(gap)
+          if (start > 0) {
+            bigFixList ::= (start, ref, patch)
+            logFix(gap, start, ref, patch, gap.size, filler.tandemRepeat)
+          }
         }
       }
-    }
 
-    // Try to reassemble around possible contiguity breaks, but stay away from gaps
-    val breaks = possibleBreaks
-    if ((Pilon.fixList contains 'local) && !breaks.isEmpty) {
-      logln("# Attempting to fix local continuity breaks")
-      for (break <- breaks) {
-        val filler = new GapFiller(this)
-        val (start, ref, patch) = filler.fixBreak(break)
-        if (start > 0 && (ref.length max patch.length) > 10) {
-         	bigFixList ::= (start, ref, patch)
-         	logFix(break, start, ref, patch, 0, filler.tandemRepeat)
-        } else if (Pilon.verbose || start == 0) {
-          log ("# ")
-          logFix(break, start, ref, patch, 0, filler.tandemRepeat)
+      // Try to reassemble around possible contiguity breaks, but stay away from gaps
+      val breaks = possibleBreaks
+      if ((Pilon.fixList contains 'local) && !breaks.isEmpty) {
+        logln("# Attempting to fix local continuity breaks")
+        for (break <- breaks) {
+          val filler = new GapFiller(this)
+          val (start, ref, patch) = filler.fixBreak(break)
+          if (start > 0 && (ref.length max patch.length) > 10) {
+            bigFixList ::= (start, ref, patch)
+            logFix(break, start, ref, patch, 0, filler.tandemRepeat)
+          } else if (Pilon.verbose || start == 0) {
+            log("# ")
+            logFix(break, start, ref, patch, 0, filler.tandemRepeat)
+          }
         }
       }
-    }
 
-    // Apply the bigger fixes
-    fixIssues(smallFixList ++ bigFixList)
+      // Apply the bigger fixes
+      fixIssues(smallFixList ++ bigFixList)
+    }
   }
 
   val reassemblyFixes = Map.empty[Region, String]
