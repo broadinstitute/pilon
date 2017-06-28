@@ -120,8 +120,10 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
       }
-      println(r + " log:")
-      r.printLog
+      if (Pilon.threads > 1) {
+        println(r + " log:")
+        r.printLog
+      }
       println("Finished processing " + r)
     }
 

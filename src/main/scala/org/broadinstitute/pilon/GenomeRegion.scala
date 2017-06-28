@@ -356,6 +356,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
     
     // Report some stats
+
+
+
     val nCovered = covered count {x => x}
     val nConfirmed = confirmed count {x => x}
     val nonN = originalBases count {x => x != 'N'}
@@ -366,7 +369,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (Pilon.fixList contains 'snps) log("Corrected ") else log("Found ")
     if (Pilon.diploid) log((snps + amb) + " snps")
     else {
-      log(snps + " snps" + (if (Pilon.strain && snps > 0) " (1/" + (nCovered / snps) + ")" else "") + "; ")
+      log(snps + " snps (" + Utils.ppm(snps, nCovered) + " ppm); ")
       log(amb + " ambiguous bases")
     }
     if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
@@ -375,9 +378,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     if (Pilon.strain) {
       val nMulti = multi count {x => x}
-      logln("Multiple allele bases: " + nMulti.toString + (if (nMulti > 0) " (1/" + (nCovered / nMulti) + ")" else ""))
+      logln("Multiple allele bases: " + nMulti.toString + " (" + Utils.ppm(nMulti, nCovered) + " ppm)")
       val nAmbiguous = ambiguous count {x => x}
-      logln("Ambiguous Bases: " + nAmbiguous.toString + (if (nAmbiguous > 0) " (1/" + (nCovered / nAmbiguous) + ")" else ""))
+      logln("Ambiguous Bases: " + nAmbiguous.toString +  " (" + Utils.ppm(nAmbiguous, nCovered) + " ppm)")
     }
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
@@ -721,6 +724,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val regions = summaryRegions({ i: Int => copyNumber(i) > 1 }, 2000) 
     regions filter {_.size > 10000}
   }
+
+  // StrainGR features
+  def uncoveredRegions = summaryRegions({ i: Int => covered(i) }, 1000)
+  def lowIdentiyRegions = summaryRegions({ i: Int => covered(i) }, 1000)
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
     var regions = List[Region]()

@@ -23,4 +23,8 @@ object Utils {
   def roundDiv(n: Int, d: Int) = if (d > 0) (n + d/2) / d else 0
   def pct(n: Long, d: Long) = roundDiv(100 * n, d)
   def pct(n: Int, d: Int) = roundDiv(100 * n, d)
+  def ppm(numerator : Long, denominator: Long) = {
+    if (denominator > 0) roundDiv(numerator * 1000000L, denominator)
+    else 0
+  }
 }
