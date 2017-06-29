@@ -32,13 +32,14 @@ import htsjdk.samtools._
 
 class Tracks(val reference: GenomeFile) {
   def standardTracks = {
-    if (Pilon.strain) makeBedTrack("Strain.bed", "Strain Features")
-    else makeBedTrack("Pilon.bed", "Pilon")
+    //if (Pilon.strain) makeBedTrack("Strain.bed", "Strain Features")
+    //else makeBedTrack("Pilon.bed", "Pilon")
     changesTrack("Changes.wig")
     unconfirmedTrack("Unconfirmed.wig")
     //copyNumberTrack("CopyNumber.wig")
     coverageTrack("Coverage.wig")
     coverageClassTrack("CoverageClass.wig")
+    lowIdTrack("LowId.wig")
     //badCoverageTrack("BadCoverage.wig")
     pctBadTrack("PctBad.wig")
     //coverageTrackSD("CoverageSD.wig")
@@ -88,6 +89,12 @@ class Tracks(val reference: GenomeFile) {
         if (r.coverage(i) < r.minDepth) -1
         else if (r.coverage(i) > r.maxDepth) 1
         else 0 })
+  }
+
+  def lowIdTrack(file: String) = {
+    makeTrack(file, "Low Identity",
+      { (r: GenomeRegion, i: Int) => r.smoothedLowId(i)})
+
   }
 
   def fragCoverageTrack(file: String) = {

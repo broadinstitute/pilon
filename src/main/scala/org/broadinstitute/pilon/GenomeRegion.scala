@@ -381,6 +381,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       logln("Multiple allele bases: " + nMulti.toString + " (" + Utils.ppm(nMulti, nCovered) + " ppm)")
       val nAmbiguous = ambiguous count {x => x}
       logln("Ambiguous Bases: " + nAmbiguous.toString +  " (" + Utils.ppm(nAmbiguous, nCovered) + " ppm)")
+      logln("Low Identity Regions: " + lowIdentiyRegions)
+      logln("Uncovered Regions: " + uncoveredRegions)
     }
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
@@ -726,8 +728,16 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   // StrainGR features
-  def uncoveredRegions = summaryRegions({ i: Int => covered(i) }, 1000)
-  def lowIdentiyRegions = summaryRegions({ i: Int => covered(i) }, 1000)
+  def uncoveredRegions = summaryRegions({ i: Int => !covered(i) }) filter { r => r.size > 10000 }
+  def smoothedIdentity(window: Int) = {
+    val mismatch = new Array[Int](size)
+    for (i <- 0 until size) mismatch(i) = if (covered(i) && !confirmed(i)) window else 0
+    smooth(mismatch, window)
+  }
+  lazy val smoothedLowId = smoothedIdentity(1000)
+  def lowIdentiyRegions = {
+    summaryRegions({ i: Int => smoothedLowId(i) > 25 }, 5000) filter { r => r.size > 5000 }
+  }
 
   def summaryRegions(positionTest: (Int) => Boolean, slop: Int = 100) = {
     var regions = List[Region]()

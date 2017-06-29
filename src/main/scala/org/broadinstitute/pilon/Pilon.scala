@@ -197,7 +197,7 @@ object Pilon {
       case "--nonpf" :: tail =>
         nonPf = true
         optionParse(tail)
-      case "--strain" :: tail =>
+      case "--straingr" :: tail =>
         strain = true
         callThreshold = 90
         fixList = Set('snps, 'indels)
