@@ -72,7 +72,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
   def close = writer.close
 
   def writeRecord(region: GenomeRegion, index: Int,
-      embedded: Boolean = false, indelOk: Boolean = true): Unit = {
+      embedded: Boolean = false, indelOkArg: Boolean = true): Unit = {
+    val indelOk = indelOkArg && index > 0
     val locus = region.locus(index)
     val pileUp = region.pileUpRegion(index)
     val bc = pileUp.baseCall
