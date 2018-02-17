@@ -38,8 +38,6 @@ class Tracks(val reference: GenomeFile) {
     unconfirmedTrack("Unconfirmed.wig")
     //copyNumberTrack("CopyNumber.wig")
     coverageTrack("Coverage.wig")
-    coverageClassTrack("CoverageClass.wig")
-    lowIdTrack("LowId.wig")
     //badCoverageTrack("BadCoverage.wig")
     pctBadTrack("PctBad.wig")
     //coverageTrackSD("CoverageSD.wig")
@@ -56,6 +54,10 @@ class Tracks(val reference: GenomeFile) {
     //weightedMqTrack("WeightedMq.wig")
     gcTrack("GC.wig")
     //kmerCopyNumberTrack("KmerCopyNumber.wig")
+    // StrainGR tracks
+    coverageClassTrack("CoverageClass.wig")
+    multiTrack("Multi.wig")
+    lowIdTrack("LowId.wig")
   }
   
   def changesTrack(file: String) = {
@@ -81,20 +83,6 @@ class Tracks(val reference: GenomeFile) {
   def coverageTrack(file: String) = {
     makeTrack(file, "Coverage",
       { (r: GenomeRegion, i: Int) => r.coverage(i) })
-  }
-
-  def coverageClassTrack(file : String) = {
-    makeTrack(file, "Coverage",
-      { (r: GenomeRegion, i: Int) =>
-        if (r.coverage(i) < r.minDepth) -1
-        else if (r.coverage(i) > r.maxDepth) 1
-        else 0 })
-  }
-
-  def lowIdTrack(file: String) = {
-    makeTrack(file, "Low Identity",
-      { (r: GenomeRegion, i: Int) => r.smoothedLowId(i)})
-
   }
 
   def fragCoverageTrack(file: String) = {
@@ -184,6 +172,26 @@ class Tracks(val reference: GenomeFile) {
     makeTrack(file, "Clipped Alignments",
     { (r: GenomeRegion, i: Int) => r.clips(i) })
   }
+
+  // StrainGR tracks
+  def coverageClassTrack(file : String) = {
+    makeTrack(file, "Coverage",
+      { (r: GenomeRegion, i: Int) =>
+        if (r.coverage(i) < r.minDepth) -1
+        else if (r.coverage(i) > r.maxDepth) 1
+        else 0 })
+  }
+
+  def lowIdTrack(file: String) = {
+    makeTrack(file, "Low Identity",
+      { (r: GenomeRegion, i: Int) => r.smoothedLowId(i)})
+  }
+
+  def multiTrack(file: String) = {
+    makeTrack(file, "Multiple Alleles",
+      { (r: GenomeRegion, i: Int) => if (r.multi(i)) 1 else 0 })
+  }
+
 
   def makeTrack(fileName: String, name: String, func: (GenomeRegion, Int) => Int, options: String = "") = {
     val file = Pilon.outputFile(fileName)
