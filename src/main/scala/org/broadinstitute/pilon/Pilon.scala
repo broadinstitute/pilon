@@ -56,6 +56,7 @@ object Pilon {
   var multiClosure = false
   var nonPf = false
   var oldIndel = false
+  var ont = false
   var strays = true
   var threads = 1
   var trSafe = true
@@ -184,6 +185,9 @@ object Pilon {
         optionParse(tail)
       case "--oldindel" :: tail =>      // undocumented experimental option
         oldIndel = true
+        optionParse(tail)
+      case "--ont" :: tail =>
+        ont = true
         optionParse(tail)
       case "--output" :: value :: tail =>
         prefix = value

@@ -103,6 +103,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val bases = r.getReadBases
     val mq = r.getMappingQuality
     val paired = r.getReadPairedFlag
+    val ont = Pilon.ont && !paired
     val valid = (mq >= Pilon.minMq) && ((!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex)))
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
@@ -115,6 +116,14 @@ class PileUpRegion(name: String, start: Int, stop: Int)
 
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
+
+    def homoRun(loc: Int): Int = {
+      val baseAtLoc = refBases(loc)
+      for (i <- loc + 1 until refBases.length) {
+        if (refBases(i) != baseAtLoc) return i - loc
+      }
+      return refBases.length - loc
+    }
 
     val cigarElements = cigar.getCigarElements
 
@@ -134,12 +143,13 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           val istr = baseString(insertion)
           var iloc = locus
           var rloc = readOffset
-          if (valid && trusted(readOffset) && inRegion(iloc)) {
+          if (valid && trusted(readOffset) && inRegion(iloc) && !ont) {
             while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            pileups(index(iloc)).addInsertion(insertion, quals(readOffset), adjMq)
+            if (!ont || homoRun(iloc) < 5)
+              pileups(index(iloc)).addInsertion(insertion, quals(readOffset), adjMq)
           }
         case CigarOperator.D =>
           var dloc = locus
@@ -158,7 +168,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
+            if (!ont || homoRun(dloc - 1) < 5)
+              pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
           for (i <- 0 until len) {
