@@ -186,7 +186,7 @@ object Pilon {
       case "--oldindel" :: tail =>      // undocumented experimental option
         oldIndel = true
         optionParse(tail)
-      case "--ont" :: tail =>
+      case "--long" :: tail =>
         ont = true
         optionParse(tail)
       case "--output" :: value :: tail =>

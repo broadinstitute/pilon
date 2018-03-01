@@ -143,7 +143,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           val istr = baseString(insertion)
           var iloc = locus
           var rloc = readOffset
-          if (valid && trusted(readOffset) && inRegion(iloc) && !ont) {
+          if (valid && trusted(readOffset) && inRegion(iloc)) {
             while (iloc > 1 && refBases(iloc - 2) == insertion(len - 1)) {
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
