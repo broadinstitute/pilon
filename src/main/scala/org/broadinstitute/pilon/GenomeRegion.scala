@@ -311,27 +311,27 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (!Pilon.longread || nanoporeFilter(loc)) {
         kind match {
           case 'snp =>
-            if (fixSnps) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+            if (fixSnps) snpFixList ::= (loc, rBase.toString, cBase.toString)
             snps += 1
           case 'amb =>
-            if (fixSnps) {
+            if (fixSnps && !Pilon.longread) {
               if (Pilon.iupac) {
                 // we put these on the small fix list because iupac codes can mess up assembly
                 // flank anchor kmers
-                smallFixList ::= (locus(i), rBase.toString, Bases.toIUPAC(cBase, bc.altBase).toString)
+                smallFixList ::= (loc, rBase.toString, Bases.toIUPAC(cBase, bc.altBase).toString)
               } else {
-                snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+                snpFixList ::= (loc, rBase.toString, cBase.toString)
               }
+              amb += 1
             }
-            amb += 1
           case 'ins =>
             val insert = bc.insertion
-            if (fixIndels) smallFixList ::= (locus(i), "", insert)
+            if (fixIndels) smallFixList ::= (loc, "", insert)
             ins += 1
             insBases += insert.length
           case 'del =>
             val deletion = bc.deletion
-            if (fixIndels) smallFixList ::= (locus(i), deletion, "")
+            if (fixIndels) smallFixList ::= (loc, deletion, "")
             dels += 1
             delBases += deletion.length
         }
@@ -398,13 +398,24 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
 
-  def nanoporeFilter(loc: Int): Boolean = {
-    if (inRegion(loc-2) && inRegion(loc+2)) {
-      if (refBase(loc - 2) == 'C' && refBase(loc - 1) == 'C'
-        && refBase(loc + 1) == 'G' && refBase(loc + 2) == 'G')
-        return false
+  def homoRun(i0: Int): Int = {
+    val baseAtLoc = refBases(i0)
+    for (i <- i0 + 1 until refBases.length) {
+      if (refBases(i) != baseAtLoc) return i - i0
     }
-    return true
+    return refBases.length - i0
+  }
+
+  def nanoporeFilter(loc: Int): Boolean = {
+    if (homoRun(index(loc)) >= 4)
+      false
+    else if (inRegion(loc-2) && inRegion(loc+2)
+      && refBase(loc - 2) == 'C'
+      && refBase(loc - 1) == 'C'
+      && refBase(loc + 1) == 'G'
+      && refBase(loc + 2) == 'G')
+        false
+    else true
   }
 
   val reassemblyFixes = Map.empty[Region, String]
