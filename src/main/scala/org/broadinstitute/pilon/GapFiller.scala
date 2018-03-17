@@ -385,7 +385,7 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def recruitUnpaired(reg: Region) =
-    if (!Pilon.ont) recruitReadsOfType(reg, 'unpaired) else Nil
+    if (!Pilon.longread) recruitReadsOfType(reg, 'unpaired) else Nil
 
   def recruitLocalReads(reg: Region) = recruitFrags(reg) ++ recruitUnpaired(reg)
 

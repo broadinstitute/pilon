@@ -304,38 +304,41 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     var amb = 0
     for (i <- changeList) {
       val (kind, pu) = changeMap(i)
-      val rBase = refBase(locus(i))
+      val loc = locus(i)
+      val rBase = refBase(loc)
       val bc = pu.baseCall
       val cBase = bc.base
-      kind match {
-        case 'snp =>
-          if (fixSnps) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
-          snps += 1
-        case 'amb =>
-          if (fixSnps) {
-            if (Pilon.iupac) {
-              // we put these on the small fix list because iupac codes can mess up assembly
-              // flank anchor kmers
-              smallFixList ::= (locus(i), rBase.toString, Bases.toIUPAC(cBase, bc.altBase).toString)
-            } else {
-              snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+      if (!Pilon.longread || nanoporeFilter(loc)) {
+        kind match {
+          case 'snp =>
+            if (fixSnps) snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+            snps += 1
+          case 'amb =>
+            if (fixSnps) {
+              if (Pilon.iupac) {
+                // we put these on the small fix list because iupac codes can mess up assembly
+                // flank anchor kmers
+                smallFixList ::= (locus(i), rBase.toString, Bases.toIUPAC(cBase, bc.altBase).toString)
+              } else {
+                snpFixList ::= (locus(i), rBase.toString, cBase.toString)
+              }
             }
-          }
-          amb += 1
-        case 'ins =>
-          val insert = bc.insertion
-          if (fixIndels) smallFixList ::= (locus(i), "", insert)
-          ins += 1
-          insBases += insert.length
-        case 'del =>
-          val deletion = bc.deletion
-          if (fixIndels) smallFixList ::= (locus(i), deletion, "")
-          dels += 1
-          delBases += deletion.length
+            amb += 1
+          case 'ins =>
+            val insert = bc.insertion
+            if (fixIndels) smallFixList ::= (locus(i), "", insert)
+            ins += 1
+            insBases += insert.length
+          case 'del =>
+            val deletion = bc.deletion
+            if (fixIndels) smallFixList ::= (locus(i), deletion, "")
+            dels += 1
+            delBases += deletion.length
+        }
       }
       if (Pilon.verbose) logChange(i)
     }
-    
+
     // Report some stats
     val nConfirmed = confirmed count {x => x}
     val nonN = originalBases count {x => x != 'N'}
@@ -350,14 +353,14 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
-    
+
     // Report large collapsed regions (possible segmental duplication)
     val duplications = duplicationEvents
     if (duplications.size > 0) {
       for (d <- duplications) logln("Large collapsed region: " + d + " size " + d.size)
     }
-    
-    // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!  
+
+    // Apply SNP fixes prior to reassemblies...it helps by giving better anchor sequence!
     // We can't change coords here, though, so no indels!
     fixIssues(snpFixList)
 
@@ -393,6 +396,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Apply the bigger fixes
     fixIssues(smallFixList ++ bigFixList)
+  }
+
+  def nanoporeFilter(loc: Int): Boolean = {
+    if (inRegion(loc-2) && inRegion(loc+2)) {
+      if (refBase(loc - 2) == 'C' && refBase(loc - 1) == 'C'
+        && refBase(loc + 1) == 'G' && refBase(loc + 2) == 'G')
+        return false
+    }
+    return true
   }
 
   val reassemblyFixes = Map.empty[Region, String]

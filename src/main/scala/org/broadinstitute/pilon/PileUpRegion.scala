@@ -103,7 +103,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val bases = r.getReadBases
     val mq = r.getMappingQuality
     val paired = r.getReadPairedFlag
-    val ont = Pilon.ont && !paired
+    val longread = !paired && Pilon.longread
     val valid = (mq >= Pilon.minMq) && ((!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex)))
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
@@ -148,7 +148,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            if (!ont || homoRun(iloc) < 5)
+            if (!longread || homoRun(iloc) < 4)
               pileups(index(iloc)).addInsertion(insertion, quals(readOffset), adjMq)
           }
         case CigarOperator.D =>
@@ -168,7 +168,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            if (!ont || homoRun(dloc - 1) < 5)
+            if (!longread || homoRun(dloc - 1) < 4)
               pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>

@@ -56,17 +56,17 @@ object Pilon {
   var multiClosure = false
   var nonPf = false
   var oldIndel = false
-  var ont = false
+  var longread = false
   var strays = true
   var threads = 1
   var trSafe = true
 
   // Global computed data
   var novelContigs = List[String]()
-  
+
   // for logging to output files
   var commandArgs = Array[String]()
-  
+
   def main(args: Array[String]) {
     commandArgs = args
     println(Version.version)
@@ -86,7 +86,7 @@ object Pilon {
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
     strays &= (fixList contains 'gaps) || (fixList contains 'local) || (fixList contains 'scaffolds)
-    
+
     if (bamFiles.length == 0) {
       println(usage)
       sys.exit(0)
@@ -101,11 +101,11 @@ object Pilon {
     println("Fixing " + (fixList map {_.name} mkString(", ")))
     genome.processRegions(bamFiles)
 
-    if (tracks) { 
+    if (tracks) {
       val tracks = new Tracks(genome)
       tracks.standardTracks
     }
-    
+
   }
 
   def optionParse(list: List[String]) : Unit = {
@@ -187,7 +187,7 @@ object Pilon {
         oldIndel = true
         optionParse(tail)
       case "--long" :: tail =>
-        ont = true
+        longread = true
         optionParse(tail)
       case "--output" :: value :: tail =>
         prefix = value
