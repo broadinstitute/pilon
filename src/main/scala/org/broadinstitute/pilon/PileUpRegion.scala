@@ -116,14 +116,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
 
-    def homoRun(loc: Int): Int = {
-      val baseAtLoc = refBases(loc)
-      for (i <- loc + 1 until refBases.length) {
-        if (refBases(i) != baseAtLoc) return i - loc
-      }
-      return refBases.length - loc
-    }
-
     val cigarElements = cigar.getCigarElements
 
     // First count up number of clipped bases, so we can use to weight alignment
