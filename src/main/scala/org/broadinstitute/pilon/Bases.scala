@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 Broad Institute, Inc.
+ * Copyright (c) 2012-2018 Broad Institute, Inc.
  *
  * This file is part of Pilon.
  *
@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Pilon.  If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 package org.broadinstitute.pilon
