@@ -27,9 +27,6 @@ package org.broadinstitute.pilon
  */
 import java.io._
 
-import scala.collection.JavaConversions._
-import htsjdk.samtools._
-
 class Tracks(val reference: GenomeFile) {
   def standardTracks = {
     makeBedTrack("Pilon.bed", "Pilon")

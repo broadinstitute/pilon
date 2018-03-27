@@ -90,7 +90,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
   def validateRead(read: SAMRecord) = {
     (Pilon.nonPf || !read.getReadFailsVendorQualityCheckFlag) &&
       (Pilon.duplicates || !read.getDuplicateReadFlag) &&
-    !read.getNotPrimaryAlignmentFlag
+    !read.isSecondaryAlignment
   }
 
   

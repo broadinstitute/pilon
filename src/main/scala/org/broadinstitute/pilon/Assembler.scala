@@ -17,9 +17,7 @@
  */
 
 package org.broadinstitute.pilon
-import scala.annotation.tailrec
-import collection.JavaConversions._
-import collection.mutable.{ Map, HashMap, Set, HashSet }
+import collection.mutable.{ HashMap, HashSet }
 import htsjdk.samtools._
 
 object Assembler {

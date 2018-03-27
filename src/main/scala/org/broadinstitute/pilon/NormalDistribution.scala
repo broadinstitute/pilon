@@ -18,7 +18,6 @@
 
 package org.broadinstitute.pilon
 
-import collection.mutable.ArrayBuffer
 import math.pow
 
 // Calculates the moments of a sample distribution.

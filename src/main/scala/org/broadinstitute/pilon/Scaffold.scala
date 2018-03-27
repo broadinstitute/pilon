@@ -28,7 +28,7 @@ package org.broadinstitute.pilon
 
 
 import scala.collection.JavaConverters._
-import collection.mutable.{ Map, HashMap, Set, HashSet }
+import collection.mutable.{ Map, HashMap }
 import htsjdk.samtools._
 
 

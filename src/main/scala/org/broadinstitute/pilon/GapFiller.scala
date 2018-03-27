@@ -18,7 +18,7 @@
 
 package org.broadinstitute.pilon
 
-import collection.JavaConversions._
+
 import collection.mutable.Map
 import java.io.File
 import htsjdk.samtools._

@@ -279,16 +279,16 @@ object Pilon {
   
   // Ugly, but thank you http://stackoverflow.com/questions/17865823
   def setDefaultParallelism(numThreads: Int): Unit = {
-	val parPkgObj = scala.collection.parallel.`package`
-	val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
-		_.getName == "defaultTaskSupport"
-	}.get
+    val parPkgObj = scala.collection.parallel.`package`
+    val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
+      _.getName == "defaultTaskSupport"
+    }.get
 
-	defaultTaskSupportField.setAccessible(true)
-	defaultTaskSupportField.set(
-			parPkgObj, 
-			new scala.collection.parallel.ForkJoinTaskSupport(
-					new scala.concurrent.forkjoin.ForkJoinPool(numThreads)))
+    defaultTaskSupportField.setAccessible(true)
+    defaultTaskSupportField.set(
+      parPkgObj,
+      new scala.collection.parallel.ForkJoinTaskSupport(
+        new scala.concurrent.forkjoin.ForkJoinPool(numThreads)))
   }
   
   val usage = """
