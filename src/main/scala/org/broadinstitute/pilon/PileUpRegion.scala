@@ -18,7 +18,7 @@
 
 package org.broadinstitute.pilon
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import htsjdk.samtools._
 import Utils._
 
@@ -116,7 +116,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
 
-    val cigarElements = cigar.getCigarElements
+    val cigarElements = cigar.getCigarElements.asScala
 
     // First count up number of clipped bases, so we can use to weight alignment
     val clippedBases = (cigarElements map {e => if (e.getOperator == CigarOperator.S) e.getLength else 0}).sum
@@ -202,7 +202,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
 
   def addReads(reads: SAMRecordIterator, refBases: Array[Byte], printInterval: Int = 100000) = {
     var lastLoc = 0
-    for (r <- reads) {
+    for (r <- reads.asScala) {
       val loc = addRead(r, refBases)
       if (Pilon.verbose && printInterval > 0 && loc > lastLoc + printInterval) {
         lastLoc = printInterval * (loc / printInterval)

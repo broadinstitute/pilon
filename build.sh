@@ -11,6 +11,6 @@ sed -e "s/\(date.*=\).*/\\1 \"$commitdate\"/" \
     -e "s/\(sbt.*=\).*/\\1 \"$version\"/" \
     <$tmp >$f
 #sbt $* package
-sbt $* one-jar
-ln -sf `pwd`/target/scala-2.11/pilon_2.11-$version-one-jar.jar ~/lib/pilon/pilon-dev.jar
+sbt $* assembly
+ln -sf `pwd`/target/scala-2.12/pilon-assembly-$version.jar ~/lib/pilon/pilon-dev.jar
 mv $tmp $f

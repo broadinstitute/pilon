@@ -27,7 +27,7 @@ package org.broadinstitute.pilon
  */
 
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import collection.mutable.{ Map, HashMap, Set, HashSet }
 import htsjdk.samtools._
 
@@ -347,7 +347,7 @@ object Scaffold {
 
     val reader = bam.reader
     var eaList: List[EndAlignment] = Nil
-    for (read <- reader.iterator if (!read.getReadUnmappedFlag)) {
+    for (read <- reader.iterator.asScala if (!read.getReadUnmappedFlag)) {
       val contig = scaffolds(read.getReferenceIndex())
       val ca = new EndAlignment(read, contig)
       //println(ca)

@@ -20,7 +20,7 @@ package org.broadinstitute.pilon
 
 import collection.mutable.{HashMap,Map}
 import java.io.File
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import htsjdk.samtools._
 
 object BamFile {
@@ -51,7 +51,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
   def getSeqs = {
     // returns an array of sequence records indexed by bam seq index
     val r = reader
-    val seqs = r.getFileHeader.getSequenceDictionary.getSequences
+    val seqs = r.getFileHeader.getSequenceDictionary.getSequences.asScala
     r.close
     val seqArray = new Array[SAMSequenceRecord](seqs.length)
     for (s <- seqs) seqArray(s.getSequenceIndex) = s
@@ -82,7 +82,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
 
   def getUnaligned = {
     val r = reader
-    val reads = r.queryUnmapped.filter(validateRead(_)).toList
+    val reads = r.queryUnmapped.asScala.filter(validateRead(_)).toList
     r.close
     reads
   }
@@ -104,7 +104,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
     val r = reader
     val reads = r.queryOverlapping(region.name,
-      (region.start-10000) max 0, (region.stop+10000) min region.contig.length)
+      (region.start-10000) max 0, (region.stop+10000) min region.contig.length).asScala
     val readsBefore = pileUpRegion.readCount
     val baseCountBefore = pileUpRegion.baseCount
     val covBefore = pileUpRegion.coverage
@@ -282,7 +282,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
   
   def scan(seqsOfInterest: Set[String]) = {
     val r = reader
-    for (read <- r.iterator) {
+    for (read <- r.iterator.asScala) {
       if (!validateRead(read)) filtered += 1
       else if (read.getReadUnmappedFlag) unmapped += 1
       else {
@@ -326,8 +326,8 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
   
   def readsInRegion(region: Region) = {
     val r = reader
-    val reads = r.queryOverlapping(region.name, region.start, region.stop).filter(validateRead(_)).toList
-    r.close
+    val reads = r.queryOverlapping(region.name, region.start, region.stop).asScala.filter(validateRead(_)).toList
+    r.close()
     reads
   }
 
