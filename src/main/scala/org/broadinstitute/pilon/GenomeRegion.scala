@@ -132,6 +132,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   //val bams = Map.empty[Symbol, BamRegion]
   var bams = List[BamFile]()
+
   def bamsOfType(bamType: Symbol) = bams filter { _.bamType == bamType }
 
   def nanoporeBams = bamsOfType('unpaired) filter { _.subType == 'nanopore}
@@ -139,6 +140,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   def pacbioBams = bamsOfType('unpaired) filter { _.subType == 'pacbio }
 
   def fragBams = bamsOfType('frags)
+
+  def longReadOnly = Pilon.longread && fragBams.isEmpty
 
   def initializePileUps = {
     pileUpRegion = new PileUpRegion(name, start, stop)
@@ -315,7 +318,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val rBase = refBase(loc)
       val bc = pu.baseCall
       val cBase = bc.base
-      if (!Pilon.longread || nanoporeFilter(loc)) {
+      if (!longReadOnly || longReadChangeFilter(loc)) {
         kind match {
           case 'snp =>
             if (fixSnps) snpFixList ::= (loc, rBase.toString, cBase.toString)
@@ -413,10 +416,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     return refBases.length - i0
   }
 
-  def nanoporeFilter(loc: Int): Boolean = {
+  def longReadChangeFilter(loc: Int): Boolean = {
     if (homoRun(index(loc)) >= 4)
       false
-    else if (inRegion(loc-2) && inRegion(loc+2)
+    else if (Pilon.nanopore && inRegion(loc-2) && inRegion(loc+2)
       && refBase(loc - 2) == 'C'
       && refBase(loc - 1) == 'C'
       && refBase(loc + 1) == 'G'

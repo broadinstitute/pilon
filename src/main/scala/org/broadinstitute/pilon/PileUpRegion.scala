@@ -117,6 +117,22 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     def baseString(bases: Array[Byte]) = bases map { _.toChar } mkString ""
     def trusted(offset: Int) = offset >= trustedFlank && length - trustedFlank > offset
 
+    def homoRun(i0: Int): Int = {
+      val baseAtLoc = refBases(i0)
+      for (i <- i0 + 1 until refBases.length) {
+        if (refBases(i) != baseAtLoc) return i - i0
+      }
+      return refBases.length - i0
+    }
+
+    def nanoporeExclude(loc: Int) = {
+      inRegion(loc-2) && inRegion(loc+2) &&
+        refBases(loc - 2) == 'C' &&
+        refBases(loc - 1) == 'C' &&
+        refBases(loc + 1) == 'G' &&
+        refBases(loc + 2) == 'G'
+    }
+
     val cigarElements = cigar.getCigarElements.asScala
 
     // First count up number of clipped bases, so we can use to weight alignment
@@ -141,7 +157,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            pileups(index(iloc)).addInsertion(insertion, quals(readOffset), indelMq)
+            if (!(longRead && homoRun(iloc) >= 4))
+              pileups(index(iloc)).addInsertion(insertion, quals(readOffset), indelMq)
           }
         case CigarOperator.D =>
           var dloc = locus
@@ -160,7 +177,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), indelMq)
+            if (!(longRead && homoRun(dloc) >= 4))
+              pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), indelMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
           for (i <- 0 until len) {
@@ -170,7 +188,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               val base = bases(rOff).toChar
               val qual = quals(rOff)
               if (inRegion(locusPlus)) {
-                add(locusPlus, base, qual, adjMq, valid)
+                if (!(longRead && Pilon.nanopore && nanoporeExclude(locusPlus)))
+                  add(locusPlus, base, qual, adjMq, valid)
               }
             }
           }
