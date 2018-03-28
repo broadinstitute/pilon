@@ -99,7 +99,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
         pileups(i).insertSize /= pileups(i).physCov
   }
 
-  def addRead(r: SAMRecord, refBases: Array[Byte]) = {
+  def addRead(r: SAMRecord, refBases: Array[Byte], longRead: Boolean = false) = {
     val length = r.getReadLength
     val bases = r.getReadBases
     val mq = r.getMappingQuality
@@ -123,6 +123,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val clippedBases = (cigarElements map {e => if (e.getOperator == CigarOperator.S) e.getLength else 0}).sum
     // de-rate mq proportionally to fraction of bases clipped
     val adjMq = Utils.roundDiv(mq * (length - clippedBases), length)
+    val indelMq = if (longRead) (adjMq min 8) else adjMq
 
     // parse read alignment and add to pileups
     for (ele <- cigarElements) {
@@ -140,7 +141,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            pileups(index(iloc)).addInsertion(insertion, quals(readOffset), adjMq)
+            pileups(index(iloc)).addInsertion(insertion, quals(readOffset), indelMq)
           }
         case CigarOperator.D =>
           var dloc = locus
@@ -159,7 +160,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
+            pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), indelMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
           for (i <- 0 until len) {
@@ -199,17 +200,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
 
     readCount += 1
     physCovIncr(aStart, aEnd, insert, paired, valid)
-  }
-
-  def addReads(reads: SAMRecordIterator, refBases: Array[Byte], printInterval: Int = 100000) = {
-    var lastLoc = 0
-    for (r <- reads.asScala) {
-      val loc = addRead(r, refBases)
-      if (Pilon.verbose && printInterval > 0 && loc > lastLoc + printInterval) {
-        lastLoc = printInterval * (loc / printInterval)
-        print("..." + lastLoc)
-      }
-    }
   }
 
   def dump = {

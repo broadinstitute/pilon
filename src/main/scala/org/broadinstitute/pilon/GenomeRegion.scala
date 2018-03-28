@@ -134,6 +134,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   var bams = List[BamFile]()
   def bamsOfType(bamType: Symbol) = bams filter { _.bamType == bamType }
 
+  def nanoporeBams = bamsOfType('unpaired) filter { _.subType == 'nanopore}
+
+  def pacbioBams = bamsOfType('unpaired) filter { _.subType == 'pacbio }
+
+  def fragBams = bamsOfType('frags)
+
   def initializePileUps = {
     pileUpRegion = new PileUpRegion(name, start, stop)
   }

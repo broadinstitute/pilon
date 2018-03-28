@@ -31,7 +31,7 @@ object BamFile {
   val maxFragInsertSize = 700
 }
 
-class BamFile(val bamFile: File, var bamType: Symbol) {
+class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'none) {
   import BamFile._
   val path = bamFile.getCanonicalPath()
   var baseCount: Long = 0
@@ -96,13 +96,13 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
 
   
   def process(region: GenomeRegion, printInterval: Int = 100000) = {
-
     val pileUpRegion = region.pileUpRegion
 
     // Ugh. Is there a way for samtools to do the right thing here and get
     // the pairs for which only one end overlaps?  Adding 10k slop until
     // that's figured out.
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
+    val longRead = (bamType == 'unpaired) && (subType == 'nanopore || subType == 'pacbio)
     val r = reader
     val reads = r.queryOverlapping(region.name,
       (region.start-10000) max 0, (region.stop+10000) min region.contig.length).asScala
@@ -119,7 +119,7 @@ class BamFile(val bamFile: File, var bamType: Symbol) {
         print("..." + lastLoc)
       }
       if (validateRead(read)) {
-        val insertSize = pileUpRegion.addRead(read, region.contigBases)
+        val insertSize = pileUpRegion.addRead(read, region.contigBases, longRead)
         if (insertSize > huge) {
           //if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
         }

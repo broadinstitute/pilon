@@ -58,6 +58,8 @@ object Pilon {
   var nonPf = false
   var oldIndel = false
   var longread = false
+  var pacbio = false
+  var nanopore = false
   var strays = true
   var threads = 1
   var trSafe = true
@@ -184,11 +186,16 @@ object Pilon {
       case "--multiclosure" :: tail =>      // undocumented experimental option
         multiClosure = true
         optionParse(tail)
+      case "--nanopore" :: value :: tail =>
+        bamFiles ::= new BamFile(new File(value), 'unpaired, 'nanopore)
+        longread = true
+        nanopore = true
+        optionParse(tail)
+      case "--nonpf" :: tail =>
+        nonPf = true
+        optionParse(tail)
       case "--oldindel" :: tail =>      // undocumented experimental option
         oldIndel = true
-        optionParse(tail)
-      case "--long" :: tail =>
-        longread = true
         optionParse(tail)
       case "--output" :: value :: tail =>
         prefix = value
@@ -196,8 +203,10 @@ object Pilon {
       case "--outdir" :: value :: tail =>
         outdir = value
         optionParse(tail)
-      case "--nonpf" :: tail =>
-        nonPf = true
+      case "--pacbio" :: value :: tail =>
+        bamFiles ::= new BamFile(new File(value), 'unpaired, 'pacbio)
+        longread = true
+        pacbio = true
         optionParse(tail)
       case "--targets" :: value :: tail =>
         targets = value
