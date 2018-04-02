@@ -29,12 +29,22 @@ object BamFile {
   val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 10000), ('bam -> 10000))
   val minOrientationPct = 10
   val maxFragInsertSize = 700
+  // long read type codes
+  val notLongRead = 0
+  val nanoporeLongRead = 1
+  val pacbioLongRead = 2
 }
 
 class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'none) {
   import BamFile._
   val path = bamFile.getCanonicalPath()
   var baseCount: Long = 0
+
+  val longReadType = if (bamType == 'unpaired) {
+    if (subType == 'nanopore) nanoporeLongRead
+    else if (subType == 'pacbio) pacbioLongRead
+    else 0
+  } else 0
 
   def reader = {
     //val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
@@ -119,7 +129,7 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
         print("..." + lastLoc)
       }
       if (validateRead(read)) {
-        val insertSize = pileUpRegion.addRead(read, region.contigBases, longRead)
+        val insertSize = pileUpRegion.addRead(read, region.contigBases, longReadType)
         if (insertSize > huge) {
           //if (Pilon.debug) println("WARNING: huge insert " + insertSize + " " + read)
         }

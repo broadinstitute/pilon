@@ -99,7 +99,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
         pileups(i).insertSize /= pileups(i).physCov
   }
 
-  def addRead(r: SAMRecord, refBases: Array[Byte], longRead: Boolean = false) = {
+  def addRead(r: SAMRecord, refBases: Array[Byte], longRead: Int = 0) = {
     val length = r.getReadLength
     val bases = r.getReadBases
     val mq = r.getMappingQuality
@@ -139,7 +139,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     val clippedBases = (cigarElements map {e => if (e.getOperator == CigarOperator.S) e.getLength else 0}).sum
     // de-rate mq proportionally to fraction of bases clipped
     val adjMq = Utils.roundDiv(mq * (length - clippedBases), length)
-    val indelMq = if (longRead) (adjMq min 8) else adjMq
+    val indelMq = if (longRead > 0) (adjMq min 8) else adjMq
 
     // parse read alignment and add to pileups
     for (ele <- cigarElements) {
@@ -157,7 +157,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               iloc -= 1
               insertion = insertion.slice(len - 1, len) ++ insertion.slice(0, len - 1)
             }
-            if (!(longRead && homoRun(iloc) >= 4))
+            if (!(longRead > 0 && homoRun(iloc) >= 4))
               pileups(index(iloc)).addInsertion(insertion, quals(readOffset), indelMq)
           }
         case CigarOperator.D =>
@@ -177,7 +177,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            if (!(longRead && homoRun(dloc) >= 4))
+            if (!(longRead > 0 && homoRun(index(dloc)) >= 4))
               pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), indelMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
@@ -188,7 +188,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
               val base = bases(rOff).toChar
               val qual = quals(rOff)
               if (inRegion(locusPlus)) {
-                if (!(longRead && Pilon.nanopore && nanoporeExclude(locusPlus)))
+                if (!(longRead == BamFile.nanoporeLongRead && nanoporeExclude(index(locusPlus))))
                   add(locusPlus, base, qual, adjMq, valid)
               }
             }
