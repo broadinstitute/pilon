@@ -125,12 +125,12 @@ class PileUpRegion(name: String, start: Int, stop: Int)
       return refBases.length - i0
     }
 
-    def nanoporeExclude(loc: Int) = {
-      inRegion(loc-2) && inRegion(loc+2) &&
-        refBases(loc - 2) == 'C' &&
-        refBases(loc - 1) == 'C' &&
-        refBases(loc + 1) == 'G' &&
-        refBases(loc + 2) == 'G'
+    def nanoporeExclude(i0: Int) = {
+      inRegion(locus(i0-2)) && inRegion(locus(i0+2)) &&
+        refBases(i0 - 2) == 'C' &&
+        refBases(i0 - 1) == 'C' &&
+        refBases(i0 + 1) == 'G' &&
+        refBases(i0 + 2) == 'G'
     }
 
     val cigarElements = cigar.getCigarElements.asScala
