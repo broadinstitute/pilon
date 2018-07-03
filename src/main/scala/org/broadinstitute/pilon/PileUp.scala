@@ -181,12 +181,12 @@ class PileUp {
     }
 
     def insertCall = {
-      if (insertions > deletions) hetIndelCall(insertionList, insPct)
+      if (insertions > 2 && insertions > deletions) hetIndelCall(insertionList, insPct)
       else ("", true)
     }
 
     def deletionCall = {
-      if (deletions > insertions) hetIndelCall(deletionList, delPct)
+      if (deletions > 2 && deletions > insertions) hetIndelCall(deletionList, delPct)
       else ("", true)
     }
 
@@ -217,7 +217,7 @@ class PileUp {
         map(indelStr) = map.getOrElse(indelStr, 0) + 1
       }
       val winner = map.toSeq.sortBy({ _._2 }).last
-      if (winner._2 <= indelList.length / 2) return ("", true)
+      if (winner._2 < 2 || winner._2 <= indelList.length / 2) return ("", true)
       val winStr = winner._1
       if (winStr contains 'N') return ("", true)
       if (Pilon.oldIndel) {

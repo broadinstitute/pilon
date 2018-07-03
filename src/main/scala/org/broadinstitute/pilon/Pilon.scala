@@ -41,7 +41,7 @@ object Pilon {
   var debug = false
   // heuristics and control parameters
   var chunkSize = 10000000
-  var defaultQual: Byte = 15
+  var defaultQual: Byte = 10
   var diploid = false
   var duplicates = false
   var dumpReads = false
@@ -387,7 +387,7 @@ object Pilon {
               Print version string and exit.
          HEURISTICS:
            --defaultqual qual
-              Assumes bases are of this quality if quals are no present in input BAMs (default 15).
+              Assumes bases are of this quality if quals are no present in input BAMs (default 10).
            --flank nbases
               Controls how much of the well-aligned reads will be used; this many bases at each
               end of the good reads will be ignored (default 10).

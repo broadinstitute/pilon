@@ -225,13 +225,6 @@ class PileUpRegion(name: String, start: Int, stop: Int)
     for (i <- 0 to size - 1) println(locus(i) + ": " + pileups(i))
   }
 
-  def callRegion = {
-    for (i <- 0 until size) {
-      var bc = pileups(i).baseCall
-      if (bc.q < 20 && !bc.homo) println(locus(i) + ": bc=" + bc + " pu=" + pileups(i))
-    }
-  }
-
   def postProcess = {
     // To be called after all reads have been added to pileUps
     computePhysCov
