@@ -132,8 +132,8 @@ class PileUp {
   class BaseCall {
     val n = count
     val (baseIndex, altBaseIndex) = {
-      val order = qualSum.order
-      (order(0), order(1))
+      val order = if (qSum > 0) qualSum.order else baseCount.order
+        (order(0), order(1))
     }
     val base = if (n > 0) indexBase(baseIndex) else 'N'
     val baseSum = qualSum.sums(baseIndex)
@@ -144,7 +144,7 @@ class PileUp {
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
       val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
-      val homo = homoScore >= heteroScore
+      val homo = homoScore > 0 && homoScore >= heteroScore
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
       (homo, score)
     }

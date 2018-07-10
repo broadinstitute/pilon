@@ -46,6 +46,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   var ambiguous = new Array[Boolean](size)
   var changed = new Array[Boolean](size)
   var deleted = new Array[Boolean](size)
+  var excluded = new Array[Boolean](size)
   //var lowCoverage = new Array[Boolean](size)
   //var lowConfidence = new Array[Boolean](size)
 
@@ -213,6 +214,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val meanCoverage = pileUpRegion.coverage
     val nReads = pileUpRegion.readCount
 
+    if (longReadOnly) excludeMotifs()
+
     minDepth = {
       if (Pilon.minDepth >= 1) Pilon.minDepth.toInt
       else (Pilon.minDepth * meanCoverage).round.toInt max Pilon.minMinDepth
@@ -257,7 +260,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
             deleted(i + j) = true
             pileUpRegion(i + j).deletions += pu.deletions
           }
-        } else if (b != r) {
+        } else if (b != r && bc.score > 0) {
           // for ambiguous bases, fix them if --fix fixamb or if original base
           // not one of the top two alternatives
           if (homo) addChange(i, 'snp, pu)
@@ -318,7 +321,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val rBase = refBase(loc)
       val bc = pu.baseCall
       val cBase = bc.base
-      if (!longReadOnly || longReadChangeFilter(loc)) {
+      if (!excluded(i)) {
         kind match {
           case 'snp =>
             if (fixSnps) snpFixList ::= (loc, rBase.toString, cBase.toString)
@@ -375,7 +378,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(snpFixList)
 
     // Try to fill gaps
-    if ((Pilon.fixList contains 'gaps) && gaps.length > 0) {
+    if ((Pilon.fixList contains 'gaps) && gaps.nonEmpty) {
       logln("# Attempting to fill gaps")
       for (gap <- gaps) {
         val filler = new GapFiller(this)
@@ -389,7 +392,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Try to reassemble around possible contiguity breaks, but stay away from gaps
     val breaks = possibleBreaks
-    if ((Pilon.fixList contains 'local) && !breaks.isEmpty) {
+    if ((Pilon.fixList contains 'local) && breaks.nonEmpty) {
       logln("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
         val filler = new GapFiller(this)
@@ -408,23 +411,34 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(smallFixList ++ bigFixList)
   }
 
-  def homoRun(i0: Int): Int = {
-    val baseAtLoc = refBases(i0)
-    for (i <- i0 + 1 until refBases.length) {
-      if (refBases(i) != baseAtLoc) return i - i0
+  def homoRun(loc: Int): Int = {
+    val baseAtLoc = baseAt(loc)
+    for (i <- loc to stop) {
+      if (baseAt(i) != baseAtLoc) return i - loc
     }
-    return refBases.length - i0
+    return 1 + stop - loc
+  }
+
+  def nanoporeExclude(loc: Int) = {
+    inRegion(loc-2) && inRegion(loc+2) &&
+      baseAt(loc - 2) == 'C' &&
+      baseAt(loc - 1) == 'C' &&
+      baseAt(loc + 1) == 'G' &&
+      baseAt(loc + 2) == 'G'
+  }
+
+  def excludeMotifs() = {
+    val pb = pacbioBams.nonEmpty
+    val nano = nanoporeBams.nonEmpty
+    val lr = pb || nano
+
+    for (i <- 0 until size)
+      excluded(i) = homoRun(locus(i)) >= 4 || (nano && nanoporeExclude(locus(i)))
   }
 
   def longReadChangeFilter(loc: Int): Boolean = {
-    if (homoRun(index(loc)) >= 4)
-      false
-    else if (Pilon.nanopore && inRegion(loc-2) && inRegion(loc+2)
-      && refBase(loc - 2) == 'C'
-      && refBase(loc - 1) == 'C'
-      && refBase(loc + 1) == 'G'
-      && refBase(loc + 2) == 'G')
-        false
+    if (homoRun(index(loc)) >= 4) false
+    else if (Pilon.nanopore && nanoporeExclude(index(loc))) false
     else true
   }
 

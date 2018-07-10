@@ -177,7 +177,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
                   add(dloc + len, base, qual, adjMq, valid)
               }
             }
-            if (!(longRead > 0 && homoRun(index(dloc)) >= 4))
+            if (!(longRead > 0 && ((homoRun(index(dloc)) >= 4)
+              || (longRead == BamFile.nanoporeLongRead && nanoporeExclude(index(dloc))))))
               pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), indelMq)
           }
         case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
@@ -186,11 +187,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
             if (trusted(rOff)) {
               val locusPlus = locus + i
               val base = bases(rOff).toChar
-              val qual = quals(rOff)
-              if (inRegion(locusPlus)) {
-                if (!(longRead == BamFile.nanoporeLongRead && nanoporeExclude(index(locusPlus))))
-                  add(locusPlus, base, qual, adjMq, valid)
-              }
+              val qual = if (longRead == BamFile.nanoporeLongRead && nanoporeExclude(index(locusPlus))) 0 else quals(rOff)
+              add(locusPlus, base, qual, adjMq, valid)
             }
           }
         case CigarOperator.S =>
