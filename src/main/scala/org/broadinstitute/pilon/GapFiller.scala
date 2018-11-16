@@ -49,8 +49,8 @@ class GapFiller(val region: GenomeRegion) {
   def assembleAcrossBreak(break: Region, isGap: Boolean) = {
     // TODO: ugh, this is ugly and really wants to be re-written.
     //val reads = if (break.size < 100 && isGap) recruitLocalReads(break) else recruitReads(break)
-    val longReads = recruitLongReads(break)
-    if (Pilon.verbose) println("%d long reads".format(longReads.length))
+    //val longReads = recruitLongReads(break)
+    //if (Pilon.verbose) println("%d long reads".format(longReads.length))
     val reads = recruitReads(break)
     var (start, pathsFromLeft, pathsFromRight, stop, loop) = assembleIntoBreak(break, reads)
     if (Pilon.verbose) println("L=%d R=%d".format(pathsFromLeft.length, pathsFromRight.length))
@@ -400,7 +400,7 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def recruitReads(reg: Region) = {
-    recruitLocalReads(reg) ++ recruitJumps(reg) ++ recruitLongReads(reg)
+    recruitLocalReads(reg) ++ recruitJumps(reg) // ++ recruitLongReads(reg)
   }
 
   def writeBam(fileName: String, reads: List[SAMRecord]) {
