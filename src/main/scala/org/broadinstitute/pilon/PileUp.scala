@@ -144,7 +144,7 @@ class PileUp {
       val homoScore = baseSum - (total - baseSum)
       val halfTotal = total / 2
       val heteroScore = total - (halfTotal - baseSum).abs - (halfTotal - altBaseSum).abs
-      val homo = homoScore > 0 && homoScore >= heteroScore
+      val homo = /* homoScore > 0 && */ homoScore >= heteroScore
       val score = if (mqSum > 0) (homoScore - heteroScore).abs  * n / mqSum else 0
       (homo, score)
     }
