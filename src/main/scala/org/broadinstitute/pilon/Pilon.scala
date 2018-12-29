@@ -324,6 +324,10 @@ object Pilon {
            --bam any.bam
               A bam file of unknown type; Pilon will scan it and attempt to classify it as one
               of the above bam types.
+           --nanopore ont.bam
+              A bam file containing Oxford Nanopore read alignments. Experimental.
+           --pacbio pb.bam
+              A bam file containing Pacific Biosciences read alignments. Experimental.
          OUTPUTS:
            --output prefix
               Prefix for output files
