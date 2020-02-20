@@ -20,6 +20,7 @@
 package org.broadinstitute.pilon
 
 import java.io.File
+import scala.io.Source
 
 object Pilon {
   // types of fixing we know about
@@ -111,6 +112,12 @@ object Pilon {
 
   }
 
+  def addBamFile(filename: String, bamType: Symbol) {
+      for (line <- Source.fromFile(filename).getLines) {
+        bamFiles ::= new BamFile(new File(line), bamType)
+      }
+  }
+
   def optionParse(list: List[String]) : Unit = {
     list match {
       case Nil => Nil
@@ -124,6 +131,9 @@ object Pilon {
         sys.exit(0)
       case "--bam" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'bam)
+        optionParse(tail)
+      case "--bam-list" :: value :: tail =>
+        addBamFile(value, 'bam)
         optionParse(tail)
       case "--changes" :: tail =>
         changes = true
@@ -159,6 +169,9 @@ object Pilon {
       case "--frags" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'frags)
         optionParse(tail)
+      case "--frags-list" :: value :: tail =>
+        addBamFile(value, 'frags)
+        optionParse(tail)
       case "--gapmargin" :: value :: tail =>
         gapMargin = value.toInt
         optionParse(tail)
@@ -167,6 +180,9 @@ object Pilon {
         optionParse(tail)
       case "--jumps" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'jumps)
+        optionParse(tail)
+      case "--jumps-list" :: value :: tail =>
+        addBamFile(value, 'jumps)
         optionParse(tail)
       case "--K" :: value :: tail =>
         Assembler.K = value.toInt
@@ -222,6 +238,9 @@ object Pilon {
       //  optionParse(tail)
       case "--unpaired" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), 'unpaired)
+        optionParse(tail)
+      case "--unpaired-list" :: value :: tail =>
+        addBamFile(value, 'frags)
         optionParse(tail)
       case "--variant" :: tail =>
         // variant calling mode
@@ -315,19 +334,27 @@ object Pilon {
            --frags frags.bam
               A bam file consisting of fragment paired-end alignments, aligned to the --genome
               argument using bwa or bowtie2.  This argument may be specifed more than once.
+           --frags-list list.txt
+              A text file containing the paths to the fragment files one per line. This parameter 
+              can be used instead of specifying --frags multiple times.
            --jumps jumps.bam
               A bam file consisting of jump (mate pair) paired-end alignments, aligned to the
               --genome argument using bwa or bowtie2.  This argument may be specifed more than once.
+           --jumps-list list.txt
+              A text file containing the paths to the jump files one per line. This parameter 
+              can be used instead of specifying --jumps multiple times.
            --unpaired unpaired.bam
               A bam file consisting of unpaired alignments, aligned to the --genome argument 
               using bwa or bowtie2.  This argument may be specifed more than once.
+           --unpaired-list list.txt
+              A text file containing the paths to the unpaired files one per line. This parameter 
+              can be used instead of specifying --unpaired multiple times.
            --bam any.bam
               A bam file of unknown type; Pilon will scan it and attempt to classify it as one
               of the above bam types.
-           --nanopore ont.bam
-              A bam file containing Oxford Nanopore read alignments. Experimental.
-           --pacbio pb.bam
-              A bam file containing Pacific Biosciences read alignments. Experimental.
+           --bam-list list.txt
+              A text file containing the paths to the BAM files one per line. This parameter 
+              can be used instead of specifying --bam multiple times.
          OUTPUTS:
            --output prefix
               Prefix for output files
