@@ -2,11 +2,10 @@ name := "pilon"
 
 version := "1.23"
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.13"
 
 scalacOptions += "-deprecation"
 
 scalacOptions += "-feature"
 
-libraryDependencies += "commons-lang" % "commons-lang" % "2.6"
-
+libraryDependencies += "com.github.samtools" % "htsjdk" % "2.23.0"
