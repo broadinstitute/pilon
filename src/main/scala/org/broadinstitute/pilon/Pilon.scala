@@ -112,7 +112,6 @@ object Pilon {
 
   def optionParse(list: List[String]) : Unit = {
     list match {
-      case Nil => Nil
       case "--help" :: tail =>
         println(usage)
         print(help)
@@ -204,7 +203,6 @@ object Pilon {
         optionParse(tail)
       case "--pacbio" :: value :: tail =>
         bamFiles ::= new BamFile(new File(value), "unpaired", "pacbio")
-
         longread = true
         pacbio = true
         optionParse(tail)
@@ -245,6 +243,7 @@ object Pilon {
       case option :: tail =>
         println("Unknown option " + option)
         sys.exit(1)
+      case Nil =>
     }
   }
   

@@ -21,7 +21,7 @@ package org.broadinstitute.pilon
 
 import collection.mutable.{HashMap,Map}
 import java.io.File
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import htsjdk.samtools._
 
 object BamFile {
@@ -62,7 +62,7 @@ class BamFile(val bamFile: File, var bamType: String, val subType: String = "non
   def getSeqs = {
     // returns an array of sequence records indexed by bam seq index
     val r = reader
-    val seqs = r.getFileHeader.getSequenceDictionary.getSequences().asScala
+    val seqs = r.getFileHeader.getSequenceDictionary.getSequences.asScala
     r.close
     val seqArray = new Array[SAMSequenceRecord](seqs.length)
     for (s <- seqs) seqArray(s.getSequenceIndex) = s
@@ -75,7 +75,7 @@ class BamFile(val bamFile: File, var bamType: String, val subType: String = "non
   }
 
   def validateSeqs(seqsOfInterest: Set[String]) = {
-    require(!getSeqNames.intersect(seqsOfInterest).isEmpty, bamFile + " doesn't have sequence for any of " + seqsOfInterest.mkString(", "))
+    require(getSeqNames.intersect(seqsOfInterest).nonEmpty, bamFile.toString + " doesn't have sequence for any of " + seqsOfInterest.mkString(", "))
   }
 
 
@@ -319,7 +319,7 @@ class BamFile(val bamFile: File, var bamType: String, val subType: String = "non
     r.close
 
     val totalReads = mapped + unmapped + filtered
-    var summary = bamFile + ": %d reads, %d filtered, %d mapped, %d proper".format(totalReads, filtered, mapped, proper)
+    var summary = bamFile.toString + ": %d reads, %d filtered, %d mapped, %d proper".format(totalReads, filtered, mapped, proper)
     if (Pilon.strays) summary += ", " + strayMateMap.nStrays + " stray"
     val insertCount = insertStatsFR.count + insertStatsRF.count
     if (pctFR >= minOrientationPct)

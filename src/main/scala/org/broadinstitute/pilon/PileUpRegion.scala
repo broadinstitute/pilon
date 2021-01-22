@@ -19,7 +19,7 @@
 
 package org.broadinstitute.pilon
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import htsjdk.samtools._
 import Utils._
 
@@ -220,7 +220,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   }
 
   def dump = {
-    for (i <- 0 to size - 1) println(locus(i) + ": " + pileups(i))
+    for (i <- 0 to size - 1) println(s"${locus(i)}: ${pileups(i)}")
   }
 
   def postProcess = {

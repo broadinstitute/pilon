@@ -90,7 +90,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
         val p = pileUp.delPct
         //(rBase + bcString, rBase.toString, "1/1", depth - pileUp.deletions, pileUp.deletions)
         //(rBase + bcString, rBase.toString, callType, pileUp.mqSum - pileUp.delQual, pileUp.delQual)
-        (rBase + bcString, rBase.toString, callType, 100 - p, p)
+        (rBase.toString + bcString, rBase.toString, callType, 100 - p, p)
       } else if (indelOk && !embedded && bc.isInsertion) {
         loc -= 1
         val rBase = region.refBase(loc)
@@ -98,7 +98,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
         val p = pileUp.insPct
         //(rBase.toString, rBase + bcString, "1/1", depth - pileUp.insertions, pileUp.insertions)
         //(rBase.toString, rBase + bcString, callType, pileUp.mqSum - pileUp.insQual, pileUp.insQual)
-        (rBase.toString, rBase + bcString, callType, 100 - p, p)
+        (rBase.toString, rBase.toString + bcString, callType, 100 - p, p)
       } else if (bc.homo) {
         val rBase = region.refBase(loc)
         if (rBase == bc.base || bcString == "N")
@@ -178,8 +178,8 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
   def writeFixRecord(region: GenomeRegion, fix: GenomeRegion.Fix) = {
     val loc = fix._1 - 1
     val rBase = region.refBase(loc)
-    val ref = rBase + fix._2
-    val alt = rBase + fix._3
+    val ref = rBase.toString + fix._2
+    val alt = rBase.toString + fix._3
     val svlen = alt.length - ref.length
     val svend = loc + ref.length - 1
     val svtype = if (svlen < 0) "DEL" else "INS"
@@ -195,7 +195,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     var loc = dup.start - 1
     val rBase = region.refBase(loc)
     var line = region.name + tab + loc + tab + "." + tab
-    line += rBase + tab + "<DUP>" + tab + "." + tab + "PASS" + tab
+    line += rBase.toString + tab + "<DUP>" + tab + "." + tab + "PASS" + tab
     line += "SVTYPE=DUP;SVLEN=" + dup.size + ";END=" + dup.stop + ";IMPRECISE"
     line += tab + "GT" + tab + "./."
     writer.println(line)

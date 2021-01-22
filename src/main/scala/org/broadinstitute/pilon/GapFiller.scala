@@ -324,14 +324,14 @@ class GapFiller(val region: GenomeRegion) {
     assembler.addReads(reads)
     assembler.buildGraph
     val (forward, reverse, loop) = assembler.multiBridge(left, right)
-    if (Pilon.verbose && !loop.isEmpty)
+    if (Pilon.verbose && loop.nonEmpty)
       println(" loop: " + loop.length + " " + loop)
 
     var patches = Set[String]()
     for (f <- forward; r <- reverse) {
       val patch = properOverlap(f, r, GapFiller.k)
       // We should be very close in our closure estimation from alignments. Don't allow
-      if (!patch.isEmpty && (estimatedLength == 0 || (patch.length - 2 * breakRadius).abs < estimatedLengthSlop)) {
+      if (patch.nonEmpty && (estimatedLength == 0 || (patch.length - 2 * breakRadius).abs < estimatedLengthSlop)) {
         patches += patch
       }
     }
@@ -340,7 +340,7 @@ class GapFiller(val region: GenomeRegion) {
     }
     val lengths = patches.map(_.length).toSet
     if (Pilon.verbose)
-      println(patches.size + " patches; lengths " + lengths)
+      println(s"{$patches.size} patches; lengths $lengths")
 
     if (lengths.size == 1 && (estimatedLength == 0 || loop.isEmpty || (loop.length - estimatedLength).abs < estimatedLengthSlop)) {
       val patch = patches.head

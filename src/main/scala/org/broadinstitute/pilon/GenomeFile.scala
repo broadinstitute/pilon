@@ -111,7 +111,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       r.postProcess
       if ((Pilon.fixList contains "circles") &&
         /*(r.contig.length < 5000 && r.contig.length >= 1000) ||*/ (circles contains r.contig.getName)) {
-        if (Pilon.verbose) println(r + " might be a circle!")
+        if (Pilon.verbose) println(s"$r might be a circle!")
         r.closeCircle(circles.getOrElse(r.contig.getName, 0))
       }
       if (Pilon.vcf || !Pilon.fixList.intersect(Set("snps", "indels", "gaps", "local")).isEmpty) {
@@ -119,7 +119,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
       }
-      println(r + " log:")
+      println(s"$r log:")
       r.printLog()
       println("Finished processing " + r)
     }
