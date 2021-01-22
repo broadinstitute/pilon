@@ -71,7 +71,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     log(s + "\n")
   }
   
-  def printLog() = if (Pilon.threads > 1) print(logString)
+  def printLog() = print(logString)
   
 
   object ChangeKind extends Enumeration {
