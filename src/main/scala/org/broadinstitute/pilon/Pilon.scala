@@ -60,7 +60,6 @@ object Pilon {
   var pacbio = false
   var nanopore = false
   var strays = true
-  var threads = 1
   var trSafe = true
 
   // Global computed data
@@ -82,8 +81,6 @@ object Pilon {
         sys.exit(1)
       }
     }
-
-    //setDefaultParallelism(threads)
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
@@ -289,23 +286,8 @@ object Pilon {
     val filePath = if (Pilon.outdir == "") fileName else Pilon.outdir + "/" + fileName
     new File(filePath)
   }
-  
-  /* No longer works with scala 2.13
-  // Ugly, but thank you http://stackoverflow.com/questions/17865823
-  def setDefaultParallelism(numThreads: Int): Unit = {
-    val parPkgObj = scala.collection.parallel.`package`
-    val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
-      _.getName == "defaultTaskSupport"
-    }.get
 
-    defaultTaskSupportField.setAccessible(true)
-    defaultTaskSupportField.set(
-      parPkgObj,
-      new scala.collection.parallel.ForkJoinTaskSupport(
-        new scala.concurrent.forkjoin.ForkJoinPool(numThreads)))
-  }
-   */
-  
+
   val usage = """
     Usage: pilon --genome genome.fasta [--frags frags.bam] [--jumps jumps.bam] [--unpaired unpaired.bam]
                  [...other options...]

@@ -99,11 +99,6 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       Pilon.novelContigs = assembleNovel(bamFiles)    
 
     var chunks = regions.map(_._2).flatten
-    if (Pilon.threads > 1) {
-      // Do parallel processing randomly to even out load if all the 
-      // big chunks are early in the file
-      chunks = Random.shuffle(chunks)
-    }
     chunks foreach { r =>
       println("Processing " + r)
       r.initializePileUps

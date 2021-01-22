@@ -63,13 +63,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
   var logString = ""
 
-  // Hack alert...if we're running multithreaded, buffer our output for atomic
-  // write when we're done. Otherwise, we would rather see output as it happens.
   def log(s: String) = {
-    if (Pilon.threads > 1)
-      logString += s
-    else
-      print(s)
+    print(s)
   }
   
   def logln(s: String = "") = {
