@@ -84,7 +84,7 @@ object Pilon {
       }
     }
 
-    setDefaultParallelism(threads)
+    //setDefaultParallelism(threads)
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
@@ -212,7 +212,8 @@ object Pilon {
         targets = value
         optionParse(tail)
       case "--threads" :: value :: tail =>
-        threads = value.toInt
+        println("--threads argument no longer supported; ignoring!")
+        //threads = value.toInt
         optionParse(tail)
       case "--tracks" :: tail =>
         tracks = true
@@ -287,6 +288,7 @@ object Pilon {
     new File(filePath)
   }
   
+  /* No longer works with scala 2.13
   // Ugly, but thank you http://stackoverflow.com/questions/17865823
   def setDefaultParallelism(numThreads: Int): Unit = {
     val parPkgObj = scala.collection.parallel.`package`
@@ -300,6 +302,7 @@ object Pilon {
       new scala.collection.parallel.ForkJoinTaskSupport(
         new scala.concurrent.forkjoin.ForkJoinPool(numThreads)))
   }
+   */
   
   val usage = """
     Usage: pilon --genome genome.fasta [--frags frags.bam] [--jumps jumps.bam] [--unpaired unpaired.bam]
@@ -381,8 +384,6 @@ object Pilon {
               scaffold00001 and coordinates 10000-20000 of scaffold00002.
               If "targetlist" is the name of a file, each line will be treated as a target
               specification.
-           --threads
-              Degree of parallelism to use for certain processing (default 1). Experimental.
            --verbose
               More verbose output.
            --debug

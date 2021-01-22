@@ -88,9 +88,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     if (Pilon.strays || Pilon.fixList.contains('circles)) {
       println("Scanning BAMs")
-      // Scan BAMs in parallel
-      //bamFiles.filter({_.bamType != 'unpaired}).par.map(_.scan(contigsOfInterest))
-      bamFiles.par.map(_.scan(contigsOfInterest))
+      bamFiles.map(_.scan(contigsOfInterest))
     }
 
     val circles = Scaffold.findHgapCircles(bamFiles)
@@ -106,7 +104,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       // big chunks are early in the file
       chunks = Random.shuffle(chunks)
     }
-    chunks.par foreach { r =>
+    chunks foreach { r =>
       println("Processing " + r)
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
