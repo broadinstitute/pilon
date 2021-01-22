@@ -172,7 +172,7 @@ class PileUp {
       else base.toString //+ (if (!homo) "/" + altBase else "")
     }
 
-    def baseMatch(refBase: Char) {//
+    def baseMatch(refBase: Char)  = {//
       refBase == base	// TODO: handle IUPAC codes
     }
 

@@ -86,7 +86,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     bamFiles foreach {_.validateSeqs(contigsOfInterest)}
 
-    if (Pilon.strays || Pilon.fixList.contains('circles)) {
+    if (Pilon.strays || Pilon.fixList.contains("circles")) {
       println("Scanning BAMs")
       bamFiles.map(_.scan(contigsOfInterest))
     }
@@ -95,7 +95,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     // If assemble novel sequence up front, so that we can potentially place the
     // contigs into scaffolds when we process them.
-    if (Pilon.fixList contains 'novel)
+    if (Pilon.fixList contains "novel")
       Pilon.novelContigs = assembleNovel(bamFiles)    
 
     var chunks = regions.map(_._2).flatten
@@ -109,18 +109,18 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
       r.postProcess
-      if ((Pilon.fixList contains 'circles) &&
+      if ((Pilon.fixList contains "circles") &&
         /*(r.contig.length < 5000 && r.contig.length >= 1000) ||*/ (circles contains r.contig.getName)) {
         if (Pilon.verbose) println(r + " might be a circle!")
         r.closeCircle(circles.getOrElse(r.contig.getName, 0))
       }
-      if (Pilon.vcf || !Pilon.fixList.intersect(Set('snps, 'indels, 'gaps, 'local)).isEmpty) {
+      if (Pilon.vcf || !Pilon.fixList.intersect(Set("snps", "indels", "gaps", "local")).isEmpty) {
         r.identifyAndFixIssues
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
       }
       println(r + " log:")
-      r.printLog
+      r.printLog()
       println("Finished processing " + r)
     }
 
@@ -166,7 +166,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       }
     }
 
-    if (Pilon.fixList contains 'novel) {
+    if (Pilon.fixList contains "novel") {
       val novelContigs = Pilon.novelContigs
       for (n <- 0 until novelContigs.length) {
         val header = "pilon_novel_%03d".format(n + 1)
@@ -185,7 +185,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
     var totalBaseCount: Long = 0
     for ((t,files) <- bamTypes) {
       val typeBaseCount = files.map(_.baseCount).sum
-      println("Mean " + t.name + " coverage: " + roundDiv(typeBaseCount, genomeSize))
+      println("Mean " + t + " coverage: " + roundDiv(typeBaseCount, genomeSize))
       totalBaseCount += typeBaseCount
     }
     println("Mean total coverage: " + roundDiv(totalBaseCount, genomeSize))
@@ -202,16 +202,16 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       if (Pilon.verbose) print("..." + contig.getName)
     }
     //genomeGraph.buildGraph
-    if (Pilon.verbose) println
+    if (Pilon.verbose) println()
     val assembler = new Assembler()
-    bamFiles filter {_.bamType != 'jumps} foreach { bam =>
+    bamFiles filter {_.bamType != "jumps"} foreach { bam =>
       val reads = bam.getUnaligned
       print("..." + reads.length + " unmapped reads")
       assembler.addReads(reads)
     }
     print("...assembling contigs")
     val contigs = assembler.novel(genomeGraph)
-    println
+    println()
     val contigLengths = contigs map {_.length}
     println("Assembled %d novel contigs containing %d bases".format(contigs.length, contigLengths.sum))
     contigs
@@ -242,7 +242,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
   def parseTargetFile(fileName: String) = {
     try {
-      Source.fromFile(fileName).getLines.flatMap({parseTargetString(_)}).toList
+      Source.fromFile(fileName).getLines().flatMap({parseTargetString(_)}).toList
     } catch {
       case ioe: Exception => Nil
     }

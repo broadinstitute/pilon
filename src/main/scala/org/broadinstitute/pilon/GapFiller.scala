@@ -73,7 +73,7 @@ class GapFiller(val region: GenomeRegion) {
       else if (Pilon.debug) println("Gap closed but bad size: " + break + " " + closedLength)
     }
     if (solutionOK) solution
-    else if (isGap || ((Pilon.fixList contains 'breaks) && loop.length == 0)) {
+    else if (isGap || ((Pilon.fixList contains "breaks") && loop.length == 0)) {
       // build partial solution using consensus from each side, opening gap if necessary
       val fromRight = consensusFromRight(pathsFromRight)
       val fromLeft = consensusFromLeft(pathsFromLeft)
@@ -127,7 +127,7 @@ class GapFiller(val region: GenomeRegion) {
     assembler.addReads(reads)
     if (Pilon.dumpReads) writeBam(break.toString, reads)
     assembler.buildGraph
-    if (Pilon.fixList.contains('novel) && Pilon.novelContigs != Nil) {
+    if (Pilon.fixList.contains("novel") && Pilon.novelContigs != Nil) {
       assembler.addGraphSeqs(Pilon.novelContigs)
     } 
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
@@ -304,7 +304,7 @@ class GapFiller(val region: GenomeRegion) {
     if (estimatedLength == 0) {
       reads = recruitReads(region)
     } else {
-      val unpairedBams = region.bamsOfType('unpaired)
+      val unpairedBams = region.bamsOfType("unpaired")
       for (bam <- unpairedBams) {
         reads ++= bam.readsInRegion(leftFlank)
         reads ++= bam.readsInRegion(rightFlank)
@@ -358,7 +358,7 @@ class GapFiller(val region: GenomeRegion) {
 
   def breakRadius = {
     val minRadius = 3 * Assembler.K
-    val inserts = region.bamsOfType('frags) map {bam => bam.insertSizeMean /*+ bam.insertSizeSigma*/}
+    val inserts = region.bamsOfType("frags") map {bam => bam.insertSizeMean /*+ bam.insertSizeSigma*/}
     val insertMean = if (inserts.length > 0) (inserts.sum / inserts.length).round.toInt else 0
     minRadius max insertMean
   }
@@ -373,16 +373,16 @@ class GapFiller(val region: GenomeRegion) {
     reads
   }
 
-  def recruitReadsOfType(reg: Region, bamType: Symbol) = {
+  def recruitReadsOfType(reg: Region, bamType: String) = {
     recruitReadsFromBams(reg, region.bamsOfType(bamType))
   }
 
   //def recruitFrags(reg: Region) = mateMapOfType(reg, 'frags).values.toList
-  def recruitFrags(reg: Region) = recruitReadsOfType(reg, 'frags)
+  def recruitFrags(reg: Region) = recruitReadsOfType(reg, "frags")
 
   def recruitJumps(reg: Region) = {
     var reads = List[SAMRecord]()
-    for (b <- region.bamsOfType('jumps)) {
+    for (b <- region.bamsOfType("jumps")) {
       reads ++= b.recruitBadMates(reg)
     }
     if (Pilon.debug) 
@@ -391,19 +391,19 @@ class GapFiller(val region: GenomeRegion) {
   }
 
   def recruitUnpaired(reg: Region) =
-    if (!Pilon.longread) recruitReadsOfType(reg, 'unpaired) else Nil
+    if (!Pilon.longread) recruitReadsOfType(reg, "unpaired") else Nil
 
   def recruitLocalReads(reg: Region) = recruitFrags(reg) ++ recruitUnpaired(reg)
 
   def recruitLongReads(reg: Region) = {
-    recruitReadsFromBams(reg, region.bamsOfType('unpaired).filter(_.longReadType > 0))
+    recruitReadsFromBams(reg, region.bamsOfType("unpaired").filter(_.longReadType > 0))
   }
 
   def recruitReads(reg: Region) = {
     recruitLocalReads(reg) ++ recruitJumps(reg) // ++ recruitLongReads(reg)
   }
 
-  def writeBam(fileName: String, reads: List[SAMRecord]) {
+  def writeBam(fileName: String, reads: List[SAMRecord]) = {
     val file = new File(fileName + ".sam")
     val header = new SAMFileHeader()
     header.addSequence(new SAMSequenceRecord(region.contig.getName, region.contig.getBases.length))

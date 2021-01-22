@@ -78,10 +78,17 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   
   def printLog() = if (Pilon.threads > 1) print(logString)
   
-  var changeMap = Map.empty[Int, (Symbol, PileUp)]
 
-  def addChange(loc: Int, kind: Symbol, pu: PileUp) = {
-    if (kind == 'amb) ambiguous(loc) = true
+  object ChangeKind extends Enumeration {
+    type ChangeKind = Value
+    val SNP, INS, DEL, AMB = Value
+  }
+  import ChangeKind._
+
+  var changeMap = Map.empty[Int, (ChangeKind, PileUp)]
+
+  def addChange(loc: Int, kind: ChangeKind, pu: PileUp) = {
+    if (kind == AMB) ambiguous(loc) = true
     else changed(loc) = true
     changeMap += (loc -> (kind, pu))
   }
@@ -134,13 +141,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   //val bams = Map.empty[Symbol, BamRegion]
   var bams = List[BamFile]()
 
-  def bamsOfType(bamType: Symbol) = bams filter { _.bamType == bamType }
+  def bamsOfType(bamType: String) = bams filter { _.bamType == bamType }
 
-  def nanoporeBams = bamsOfType('unpaired) filter { _.subType == 'nanopore}
+  def nanoporeBams = bamsOfType("unpaired") filter { _.subType == "nanopore"}
 
-  def pacbioBams = bamsOfType('unpaired) filter { _.subType == 'pacbio }
+  def pacbioBams = bamsOfType("unpaired") filter { _.subType == "pacbio" }
 
-  def fragBams = bamsOfType('frags)
+  def fragBams = bamsOfType("frags")
 
   def longReadOnly = Pilon.longread && fragBams.isEmpty
 
@@ -230,7 +237,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //meanReadLength = pileUpRegion.meanReadLength
 
     // Pass 1: pull out values from pileups & call base changes
-    val fixamb = Pilon.iupac || (Pilon.fixList contains 'amb)
+    val fixamb = Pilon.iupac || (Pilon.fixList contains "amb")
 
     for (i <- 0 until size) {
       val pu = pileUpRegion(i)
@@ -253,9 +260,9 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       if (n >= minDepth && r != 'N' && !deleted(i) && bc.called) {
         if (homo && b == r && bc.highConfidence && !bc.indel)
           confirmed(i) = true
-        else if (bc.isInsertion && bc.homoIndel) addChange(i, 'ins, pu)
+        else if (bc.isInsertion && bc.homoIndel) addChange(i, INS, pu)
         else if (bc.isDeletion && bc.homoIndel) {
-          addChange(i, 'del, pu)
+          addChange(i, DEL, pu)
           for (j <- 1 until bc.deletion.length) {
             deleted(i + j) = true
             pileUpRegion(i + j).deletions += pu.deletions
@@ -263,8 +270,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
         } else if (b != r && bc.score > 0) {
           // for ambiguous bases, fix them if --fix fixamb or if original base
           // not one of the top two alternatives
-          if (homo) addChange(i, 'snp, pu)
-          else if (fixamb || bc.altBase != r) addChange(i, 'amb, pu)
+          if (homo) addChange(i, SNP, pu)
+          else if (fixamb || bc.altBase != r) addChange(i, AMB, pu)
         }
       }
     }
@@ -283,15 +290,15 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   }
 
   def processBam(bam: BamFile) = {
-    log(bam.bamType.name + " " + bam.bamFile + ": ")
+    log(bam.bamType + " " + bam.bamFile + ": ")
     // This is a real kludge...
     val covBefore = new Array[Int](size)
-    if (bam.bamType != 'jumps)
+    if (bam.bamType != "jumps")
       for (i <- 0 until size) 
         covBefore(i) = pileUpRegion.pileups(i).depth.toInt
     val coverage = bam.process(this)
     logln("coverage " + coverage.toString)
-    if (bam.bamType != 'jumps)
+    if (bam.bamType != "jumps")
       for (i <- 0 until size) 
         fragCoverage(i) += pileUpRegion.pileups(i).depth.toInt - covBefore(i)
     bams ::= bam
@@ -307,8 +314,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       logln("# IdentifyIssues: " + this)
       identifyIssueRegions
     }
-    val fixSnps = Pilon.fixList contains 'snps
-    val fixIndels = Pilon.fixList contains 'indels
+    val fixSnps = Pilon.fixList contains "snps"
+    val fixIndels = Pilon.fixList contains "indels"
     var snps = 0
     var ins = 0
     var dels = 0
@@ -323,10 +330,10 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       val cBase = bc.base
       if (!excluded(i)) {
         kind match {
-          case 'snp =>
+          case SNP =>
             if (fixSnps) snpFixList ::= (loc, rBase.toString, cBase.toString)
             snps += 1
-          case 'amb =>
+          case AMB =>
             if (fixSnps && !Pilon.longread) {
               if (Pilon.iupac) {
                 // we put these on the small fix list because iupac codes can mess up assembly
@@ -337,12 +344,12 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
               }
               amb += 1
             }
-          case 'ins =>
+          case INS =>
             val insert = bc.insertion
             if (fixIndels) smallFixList ::= (loc, "", insert)
             ins += 1
             insBases += insert.length
-          case 'del =>
+          case DEL =>
             val deletion = bc.deletion
             if (fixIndels) smallFixList ::= (loc, deletion, "")
             dels += 1
@@ -357,13 +364,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nonN = originalBases count {x => x != 'N'}
     logln("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
       (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
-    if (Pilon.fixList contains 'snps) log("Corrected ") else log("Found ")
+    if (Pilon.fixList contains "snps") log("Corrected ") else log("Found ")
     if (Pilon.diploid) log((snps + amb) + " snps")
     else {
       log(snps + " snps; ")
       log(amb + " ambiguous bases")
     }
-    if (Pilon.fixList contains 'indels) log("; corrected ") else log("; found ")
+    if (Pilon.fixList contains "indels") log("; corrected ") else log("; found ")
     log(ins + " small insertions totaling " + insBases + " bases")
     logln(", " + dels + " small deletions totaling " + delBases + " bases")
 
@@ -378,7 +385,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(snpFixList)
 
     // Try to fill gaps
-    if ((Pilon.fixList contains 'gaps) && gaps.nonEmpty) {
+    if ((Pilon.fixList contains "gaps") && gaps.nonEmpty) {
       logln("# Attempting to fill gaps")
       for (gap <- gaps) {
         val filler = new GapFiller(this)
@@ -392,7 +399,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Try to reassemble around possible contiguity breaks, but stay away from gaps
     val breaks = possibleBreaks
-    if ((Pilon.fixList contains 'local) && breaks.nonEmpty) {
+    if ((Pilon.fixList contains "local") && breaks.nonEmpty) {
       logln("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
         val filler = new GapFiller(this)
@@ -520,21 +527,21 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val rBase = refBase(locus(i))
     val cBase = pu.baseCall.base
     kind match {
-      case 'snp =>
-        log(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+      case SNP =>
+        log(name + " " + locus(i) + " snp " + rBase + " " + cBase)
         if (Pilon.debug) log(" " + pu)
         log(endLine)
-      case 'ins =>
-        log(name + " " + locus(i) + " " + kind.name + " " + "." + " " + pu.baseCall.insertion)
+      case INS =>
+        log(name + " " + locus(i) + " ins " + "." + " " + pu.baseCall.insertion)
         if (Pilon.debug) log(" " + pu)
         log(endLine)
-      case 'del =>
-        log(name + " " + locus(i) + " " + kind.name + " " + pu.baseCall.deletion + " " + ".")
+      case DEL =>
+        log(name + " " + locus(i) + " del " + pu.baseCall.deletion + " " + ".")
         if (Pilon.debug) log(" " + pu)
         log(endLine)
-      case 'amb =>
+      case AMB =>
         if (Pilon.verbose && rBase != cBase) {
-          log(name + " " + locus(i) + " " + kind.name + " " + rBase + " " + cBase)
+          log(name + " " + locus(i) + " amb " + rBase + " " + cBase)
           if (Pilon.debug) log(" " + pu)
           log(endLine)
         }
@@ -640,7 +647,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     }
   }
 
-  def writeChanges(changes: PrintWriter, newName: String = name, offset: Int = 0) {
+  def writeChanges(changes: PrintWriter, newName: String = name, offset: Int = 0)  = {
     val fixes = fixFixList(snpFixList ++ smallFixList ++ bigFixList)
     var delta = 0
     for (fix <- fixes) {

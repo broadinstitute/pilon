@@ -26,7 +26,7 @@ import htsjdk.samtools._
 
 object BamFile {
   val indexSuffix = ".bai"
-  val maxInsertSizes = Map(('frags -> 500), ('jumps -> 10000), ('unpaired -> 10000), ('bam -> 10000))
+  val maxInsertSizes = Map(("frags" -> 500), ("jumps" -> 10000), ("unpaired" -> 10000), ("bam" -> 10000))
   val minOrientationPct = 10
   val maxFragInsertSize = 700
   // long read type codes
@@ -35,14 +35,14 @@ object BamFile {
   val pacbioLongRead = 2
 }
 
-class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'none) {
+class BamFile(val bamFile: File, var bamType: String, val subType: String = "none") {
   import BamFile._
   val path = bamFile.getCanonicalPath()
   var baseCount: Long = 0
 
-  val longReadType = if (bamType == 'unpaired) {
-    if (subType == 'nanopore) nanoporeLongRead
-    else if (subType == 'pacbio) pacbioLongRead
+  val longReadType = if (bamType == "unpaired") {
+    if (subType == "nanopore") nanoporeLongRead
+    else if (subType == "pacbio") pacbioLongRead
     else 0
   } else 0
 
@@ -62,7 +62,7 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
   def getSeqs = {
     // returns an array of sequence records indexed by bam seq index
     val r = reader
-    val seqs = r.getFileHeader.getSequenceDictionary.getSequences.asScala
+    val seqs = r.getFileHeader.getSequenceDictionary.getSequences().asScala
     r.close
     val seqArray = new Array[SAMSequenceRecord](seqs.length)
     for (s <- seqs) seqArray(s.getSequenceIndex) = s
@@ -112,7 +112,8 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
     // the pairs for which only one end overlaps?  Adding 10k slop until
     // that's figured out.
     //pileUpRegion.addReads(bam.reader.queryOverlapping(name, start, stop))
-    val longRead = (bamType == 'unpaired) && (subType == 'nanopore || subType == 'pacbio)
+    val longRead = (bamType == "unpaired") && (subType == "nanopore" || subType == "pacbio")
+
     val r = reader
     val reads = r.queryOverlapping(region.name,
       (region.start-10000) max 0, (region.stop+10000) min region.contig.length).asScala
@@ -272,22 +273,22 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
     }
 
 
-    def nStrays = pairs.length
+    def nStrays = pairs().length
 
     def printDebug = println("mm: " + readMap1.size + "+" + readMap2.size + "=" + nStrays/2)
   }
   
   val strayMateMap = new MateMap()
 
-  def autoBam(): Symbol = {
+  def autoBam(): String = {
     val fr = pctFR
     val rf = pctRF
     val un = pctUnpaired
 
-    if (un >= fr && un >= rf) 'unpaired
+    if (un >= fr && un >= rf) "unpaired"
     else {
       val insertSize = if (rf > fr) insertStatsRF.mean else insertStatsFR.mean
-      if (insertSize >= maxFragInsertSize) 'jumps else 'frags
+      if (insertSize >= maxFragInsertSize) "jumps" else "frags"
     }
   }
   
@@ -328,9 +329,9 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
     if (pctUnpaired >= minOrientationPct)
       summary += ", Unpaired " + pctUnpaired + "% " + insertStatsUnpaired
     summary += ", max " + maxInsertSize
-    if (bamType == 'bam) {
-      bamType = autoBam
-      summary += " " + bamType.name
+    if (bamType == "bam") {
+      bamType = autoBam()
+      summary += " " + bamType
     }
     println(summary)
   }
@@ -346,7 +347,7 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
     val flanks = flankRegion(region)
     var reads = readsInRegion(flanks) 
     if (Pilon.debug) println("readsInRegion flanks: " + flanks + " " + reads.length + " reads")
-    if (Pilon.strays && bamType != 'unpaired) {
+    if (Pilon.strays && bamType != "unpaired") {
       val mm = new MateMap(reads)
       if (Pilon.debug) mm.printDebug
       reads ++= mm.findStrays
@@ -377,7 +378,7 @@ class BamFile(val bamFile: File, var bamType: Symbol, val subType: Symbol = 'non
     val frPct = pctFR
 
     var mates: List[SAMRecord] = Nil
-    for ((r1, r2) <- mateMap.pairs) {
+    for ((r1, r2) <- mateMap.pairs()) {
       if (!(r1.getReadUnmappedFlag || r1.getProperPairFlag)) {
         val rc = r1.getReadNegativeStrandFlag
         val start = r1.getAlignmentStart

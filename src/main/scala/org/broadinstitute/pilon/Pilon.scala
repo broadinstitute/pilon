@@ -22,9 +22,8 @@ package org.broadinstitute.pilon
 import java.io.File
 
 object Pilon {
-  // types of fixing we know about
-  val fixChoices = Set('snps, 'indels, 'gaps, 'local)
-  val experimentalFixChoices = Set('amb, 'breaks, 'circles, 'novel, 'scaffolds)
+  val fixChoices= Set("snps", "indels", "gaps", "local")
+  val experimentalFixChoices = Set("amb", "breaks", "circles", "novel", "scaffolds")
 
   // input parameters
   var bamFiles = List[BamFile]()
@@ -70,7 +69,7 @@ object Pilon {
   // for logging to output files
   var commandArgs = Array[String]()
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]) = {
     commandArgs = args
     println(Version.version)
     optionParse(args.toList)
@@ -88,7 +87,7 @@ object Pilon {
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
-    strays &= (fixList contains 'gaps) || (fixList contains 'local) || (fixList contains 'scaffolds)
+    strays &= (fixList contains "gaps") || (fixList contains "local") || (fixList contains "scaffolds")
 
     if (bamFiles.length == 0) {
       println(usage)
@@ -101,7 +100,7 @@ object Pilon {
     println("Genome: " + genomePath)
     val genome = new GenomeFile(new File(genomePath), targets)
 
-    println("Fixing " + (fixList map {_.name} mkString(", ")))
+    println("Fixing " + (fixList mkString(", ")))
     genome.processRegions(bamFiles)
 
     if (tracks) {
@@ -123,7 +122,7 @@ object Pilon {
         // println(Version.version)
         sys.exit(0)
       case "--bam" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'bam)
+        bamFiles ::= new BamFile(new File(value), "bam")
         optionParse(tail)
       case "--changes" :: tail =>
         changes = true
@@ -157,7 +156,7 @@ object Pilon {
         flank = value.toInt
         optionParse(tail)
       case "--frags" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'frags)
+        bamFiles ::= new BamFile(new File(value), "frags")
         optionParse(tail)
       case "--gapmargin" :: value :: tail =>
         gapMargin = value.toInt
@@ -166,7 +165,7 @@ object Pilon {
         genomePath = value
         optionParse(tail)
       case "--jumps" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'jumps)
+        bamFiles ::= new BamFile(new File(value), "jumps")
         optionParse(tail)
       case "--K" :: value :: tail =>
         Assembler.K = value.toInt
@@ -187,7 +186,7 @@ object Pilon {
         multiClosure = true
         optionParse(tail)
       case "--nanopore" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'unpaired, 'nanopore)
+        bamFiles ::= new BamFile(new File(value), "unpaired", "nanopore")
         longread = true
         nanopore = true
         optionParse(tail)
@@ -204,7 +203,8 @@ object Pilon {
         outdir = value
         optionParse(tail)
       case "--pacbio" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'unpaired, 'pacbio)
+        bamFiles ::= new BamFile(new File(value), "unpaired", "pacbio")
+
         longread = true
         pacbio = true
         optionParse(tail)
@@ -222,12 +222,12 @@ object Pilon {
       //  trSafe = true
       //  optionParse(tail)
       case "--unpaired" :: value :: tail =>
-        bamFiles ::= new BamFile(new File(value), 'unpaired)
+        bamFiles ::= new BamFile(new File(value), "unpaired")
         optionParse(tail)
       case "--variant" :: tail =>
         // variant calling mode
         vcf = true
-        fixList += 'breaks
+        fixList += "breaks"
         optionParse(tail)
         //multiClosure = true
       case "--vcf" :: tail =>
@@ -249,6 +249,9 @@ object Pilon {
   }
   
   def parseFixList(fix: String) = {
+    // types of fixing we know about
+    fixList = fixChoices
+
     val fixes = fix.split(",")
     if (fix(0) != '+' && fix(0) != '-') fixList = Set.empty
     for (f <- fixes) {
@@ -256,7 +259,7 @@ object Pilon {
       else if (f == "none") fixList = Set.empty
       else {
         val plusMinus = if (f(0) == '-') f(0) else '+'
-        val fsym = if (f(0) == plusMinus) Symbol(f.substring(1)) else Symbol(f)
+        val fsym = if (f(0) == plusMinus) f.substring(1) else f
         if (fixChoices contains fsym) {
           if (plusMinus == '+') fixList += fsym
           else fixList -= fsym
@@ -265,14 +268,14 @@ object Pilon {
           println("Warning: experimental fix option " + f)
           if (plusMinus == '+') fixList += fsym
           else fixList -= fsym
-        } else if (fsym == 'bases) {
+        } else if (fsym == "bases") {
           // for backward compatibility, 'bases applies to both 'snps and 'indels
           if (plusMinus == '+') {
-            fixList += 'snps
-            fixList += 'indels
+            fixList += "snps"
+            fixList += "indels"
           } else {
-            fixList -= 'snps
-            fixList -= 'indels
+            fixList -= "snps"
+            fixList -= "indels"
           }
         } else {
           println("Error: unknown fix option " + f)

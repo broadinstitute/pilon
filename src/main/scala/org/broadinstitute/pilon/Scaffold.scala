@@ -221,7 +221,7 @@ object Scaffold {
   }
 
   def analyzeStrays(bam: BamFile) = {
-    val mm = bam.strayMateMap.pairs
+    val mm = bam.strayMateMap.pairs()
     val sigma = bam.insertSizeSigma
     val scaffolds = bam.getSeqs
     val scaffoldSizes = scaffolds.map({_.getSequenceLength})
@@ -269,16 +269,16 @@ object Scaffold {
     }
   }
 
-  def analyze(bamFiles: List[BamFile]) {
+  def analyze(bamFiles: List[BamFile]) = {
     println("Analyze scaffolds")
-    for (bam <- bamFiles filter {_.bamType == 'jumps})
+    for (bam <- bamFiles filter {_.bamType == "jumps"})
       analyzeStrays(bam)
   }
 
 
   def findHgapCircles(bamFiles: List[BamFile]): Map[String, Int] = {
-    if (Pilon.fixList contains 'circles) {
-      val endAlignments = bamFiles filter {_.bamType == 'unpaired} flatMap findEndAlignments
+    if (Pilon.fixList contains "circles") {
+      val endAlignments = bamFiles filter {_.bamType == "unpaired"} flatMap findEndAlignments
       findCircles(endAlignments)
     } else return new HashMap()
   }
