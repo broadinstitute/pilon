@@ -25,6 +25,16 @@ object Pilon {
   val fixChoices= Set("snps", "indels", "gaps", "local")
   val experimentalFixChoices = Set("amb", "breaks", "circles", "novel", "scaffolds")
 
+  var fixSnps = false
+  var fixIndels = false
+  var fixGaps = false
+  var fixLocal = false
+  var fixAmb = false
+  var fixBreaks = false
+  var fixCircles = false
+  var fixNovel = false
+  var fixScaffolds = false
+
   // input parameters
   var bamFiles = List[BamFile]()
   var targets = ""
@@ -84,7 +94,7 @@ object Pilon {
 
     // Stray computation is expensive up front, so only turn it on
     // if we're doing local reassembly
-    strays &= (fixList contains "gaps") || (fixList contains "local") || (fixList contains "scaffolds")
+    strays &= fixGaps || fixLocal || fixScaffolds
 
     if (bamFiles.length == 0) {
       println(usage)
@@ -107,7 +117,7 @@ object Pilon {
 
   }
 
-  def optionParse(list: List[String]) : Unit = {
+  def optionParse(list: List[String]) : Unit  = {
     list match {
       case "--help" :: tail =>
         println(usage)
@@ -242,12 +252,19 @@ object Pilon {
         sys.exit(1)
       case Nil =>
     }
+    fixSnps = fixList contains "snps"
+    fixIndels = fixList contains "indels"
+    fixGaps = fixList contains "gaps"
+    fixLocal = fixList contains "local"
+    fixAmb = fixList contains "amb"
+    fixBreaks = fixList contains "breaks"
+    fixCircles = fixList contains "circles"
+    fixNovel = fixList contains "novel"
+    fixScaffolds = fixList contains "scaffolds"
   }
   
   def parseFixList(fix: String) = {
     // types of fixing we know about
-    fixList = fixChoices
-
     val fixes = fix.split(",")
     if (fix(0) != '+' && fix(0) != '-') fixList = Set.empty
     for (f <- fixes) {

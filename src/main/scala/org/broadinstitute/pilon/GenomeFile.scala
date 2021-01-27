@@ -86,7 +86,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     bamFiles foreach {_.validateSeqs(contigsOfInterest)}
 
-    if (Pilon.strays || Pilon.fixList.contains("circles")) {
+    if (Pilon.strays || Pilon.fixCircles) {
       println("Scanning BAMs")
       bamFiles.map(_.scan(contigsOfInterest))
     }
@@ -95,7 +95,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
 
     // If assemble novel sequence up front, so that we can potentially place the
     // contigs into scaffolds when we process them.
-    if (Pilon.fixList contains "novel")
+    if (Pilon.fixNovel)
       Pilon.novelContigs = assembleNovel(bamFiles)    
 
     var chunks = regions.map(_._2).flatten
@@ -104,12 +104,12 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       r.initializePileUps
       bamFiles foreach { r.processBam(_) }
       r.postProcess
-      if ((Pilon.fixList contains "circles") &&
+      if ((Pilon.fixCircles) &&
         /*(r.contig.length < 5000 && r.contig.length >= 1000) ||*/ (circles contains r.contig.getName)) {
         if (Pilon.verbose) println(s"$r might be a circle!")
         r.closeCircle(circles.getOrElse(r.contig.getName, 0))
       }
-      if (Pilon.vcf || !Pilon.fixList.intersect(Set("snps", "indels", "gaps", "local")).isEmpty) {
+      if (Pilon.vcf || Pilon.fixSnps || Pilon.fixIndels || Pilon.fixGaps || Pilon.fixLocal) {
         r.identifyAndFixIssues
         // If we don't need pileups for VCF later, free up the memory now!
         if (!Pilon.vcf) r.finalizePileUps
@@ -124,7 +124,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
                           new PrintWriter(new BufferedWriter(new FileWriter(changesFile)))
                         else null
     val fastaFile = Pilon.outputFile(".fasta")
-    val fastaWriter = if (!Pilon.fixList.isEmpty)
+    val fastaWriter = if (Pilon.fixSnps || Pilon.fixIndels || Pilon.fixGaps || Pilon.fixLocal || Pilon.fixNovel)
 	                      new PrintWriter(new BufferedWriter(new FileWriter(fastaFile)))
                       else null
 
@@ -153,7 +153,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         }
       }
       // Write the FASTA all at once rather than in chunks for formatting reasons
-      if (!Pilon.fixList.isEmpty) {
+      if (fastaWriter != null) {
         println("Writing updated " + newName + " to " + fastaFile)
         val fixedRegions = reg._2 map { _.bases }
         val bases = fixedRegions reduceLeft {_ ++ _} map {_.toChar} mkString ""
@@ -161,7 +161,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
       }
     }
 
-    if (Pilon.fixList contains "novel") {
+    if (Pilon.fixNovel) {
       val novelContigs = Pilon.novelContigs
       for (n <- 0 until novelContigs.length) {
         val header = "pilon_novel_%03d".format(n + 1)
@@ -169,7 +169,7 @@ class GenomeFile(val referenceFile: File, val targets : String = "") {
         writeFastaElement(fastaWriter, header, novelContigs(n))
       }
     }
-    if (!Pilon.fixList.isEmpty) fastaWriter.close
+    if (fastaWriter != null) fastaWriter.close
     if (Pilon.vcf) vcf.close
     if (Pilon.changes) changesWriter.close
     coverageSummary(bamFiles)

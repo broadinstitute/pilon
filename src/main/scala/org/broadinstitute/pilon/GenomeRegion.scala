@@ -232,7 +232,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     //meanReadLength = pileUpRegion.meanReadLength
 
     // Pass 1: pull out values from pileups & call base changes
-    val fixamb = Pilon.iupac || (Pilon.fixList contains "amb")
+    val fixamb = Pilon.iupac || Pilon.fixAmb
 
     for (i <- 0 until size) {
       val pu = pileUpRegion(i)
@@ -309,8 +309,8 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
       logln("# IdentifyIssues: " + this)
       identifyIssueRegions
     }
-    val fixSnps = Pilon.fixList contains "snps"
-    val fixIndels = Pilon.fixList contains "indels"
+    val fixSnps = Pilon.fixSnps
+    val fixIndels = Pilon.fixIndels
     var snps = 0
     var ins = 0
     var dels = 0
@@ -359,13 +359,13 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     val nonN = originalBases count {x => x != 'N'}
     logln("Confirmed " + nConfirmed + " of " + nonN + " bases (" +
       (nConfirmed * 100.0 / nonN).formatted("%.2f") + "%)")
-    if (Pilon.fixList contains "snps") log("Corrected ") else log("Found ")
+    if (Pilon.fixSnps) log("Corrected ") else log("Found ")
     if (Pilon.diploid) log(s"${snps+amb} snps")
     else {
       log(s"$snps snps; ")
       log(s"$amb ambiguous bases")
     }
-    if (Pilon.fixList contains "indels") log("; corrected ") else log("; found ")
+    if (Pilon.fixIndels) log("; corrected ") else log("; found ")
     log(s"$ins small insertions totaling $insBases bases")
     logln(s", $dels small deletions totaling $delBases bases")
 
@@ -380,7 +380,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
     fixIssues(snpFixList)
 
     // Try to fill gaps
-    if ((Pilon.fixList contains "gaps") && gaps.nonEmpty) {
+    if (Pilon.fixGaps && gaps.nonEmpty) {
       logln("# Attempting to fill gaps")
       for (gap <- gaps) {
         val filler = new GapFiller(this)
@@ -394,7 +394,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
 
     // Try to reassemble around possible contiguity breaks, but stay away from gaps
     val breaks = possibleBreaks
-    if ((Pilon.fixList contains "local") && breaks.nonEmpty) {
+    if (Pilon.fixLocal && breaks.nonEmpty) {
       logln("# Attempting to fix local continuity breaks")
       for (break <- breaks) {
         val filler = new GapFiller(this)

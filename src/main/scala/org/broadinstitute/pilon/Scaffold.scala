@@ -277,7 +277,7 @@ object Scaffold {
 
 
   def findHgapCircles(bamFiles: List[BamFile]): Map[String, Int] = {
-    if (Pilon.fixList contains "circles") {
+    if (Pilon.fixCircles) {
       val endAlignments = bamFiles filter {_.bamType == "unpaired"} flatMap findEndAlignments
       findCircles(endAlignments)
     } else return new HashMap()

@@ -73,7 +73,7 @@ class GapFiller(val region: GenomeRegion) {
       else if (Pilon.debug) println("Gap closed but bad size: " + break + " " + closedLength)
     }
     if (solutionOK) solution
-    else if (isGap || ((Pilon.fixList contains "breaks") && loop.length == 0)) {
+    else if (isGap || (Pilon.fixBreaks && loop.length == 0)) {
       // build partial solution using consensus from each side, opening gap if necessary
       val fromRight = consensusFromRight(pathsFromRight)
       val fromLeft = consensusFromLeft(pathsFromLeft)
@@ -127,13 +127,11 @@ class GapFiller(val region: GenomeRegion) {
     assembler.addReads(reads)
     if (Pilon.dumpReads) writeBam(break.toString, reads)
     assembler.buildGraph
-    if (Pilon.fixList.contains("novel") && Pilon.novelContigs != Nil) {
+    if (Pilon.fixNovel && Pilon.novelContigs != Nil) {
       assembler.addGraphSeqs(Pilon.novelContigs)
     } 
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
       
-    //if (Pilon.fixList contains 'novelbreaks) assembler.novel
-
     val startOffset = breakRadius
     var start = (break.start - startOffset) max region.start
     var stop = (break.stop + 1 + startOffset) min region.stop
