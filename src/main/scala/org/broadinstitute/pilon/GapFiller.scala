@@ -129,9 +129,9 @@ class GapFiller(val region: GenomeRegion) {
     assembler.buildGraph
     if (Pilon.fixNovel && Pilon.novelContigs != Nil) {
       assembler.addGraphSeqs(Pilon.novelContigs)
-    } 
+    }
     if (Pilon.debug) println("assembleIntoBreak: " + break + " " + assembler)
-      
+
     val startOffset = breakRadius
     var start = (break.start - startOffset) max region.start
     var stop = (break.stop + 1 + startOffset) min region.stop
@@ -167,22 +167,22 @@ class GapFiller(val region: GenomeRegion) {
         solutionSet += s
       }
     }
-    val solutions = solutionSet.toList sortWith { (a,b) => a._3.length - a._2.length > b._3.length - b._2.length }
-    var solutionLengths = Set[Int]()
-    solutions map {s => solutionLengths += s._3.length - s._2.length}
+
+    val solutions = solutionSet.toList sortWith { (a,b) => a._3.length + a._2.length < b._3.length + b._2.length }
+    var solutionLengths = solutionSet map {s => s._3.length - s._2.length}
 
     if (Pilon.debug) {
       println("breakJoins: " + solutions.length + " solutions; lengths " + solutionLengths)
       for (s <- solutions) println("  " + s)
     }
     if (solutionLengths.size == 1) {
-      if (Pilon.debug) println("...all solutions of same length, using first above")
+      if (Pilon.debug) println("...all solutions of same length, using smallest total change above")
       List(solutions.head)
     } else{
       solutions
     }
   }
-  
+
   def joinBreak(startArg: Int, forward: String, reverse: String, stopArg: Int) = {
     var start = startArg
     var stop = stopArg
@@ -201,13 +201,13 @@ class GapFiller(val region: GenomeRegion) {
     if (patch != "") {
     	val solution = trimPatch(start, patch, stop)
     	start = solution._1
-    	
+
     	if (solution._2 == solution._3) {
     	  if (Pilon.debug) println("...no change")
     	  solution
     	} else {
     	  if (Pilon.debug)
-    	    println("...start=" + start + " ref=(" + solution._2.length + ")" + solution._2 
+    	    println("...start=" + start + " ref=(" + solution._2.length + ")" + solution._2
     	    		+ " new=(" + solution._3.length + ")" + solution._3)
     	  solution
     	}
@@ -216,7 +216,7 @@ class GapFiller(val region: GenomeRegion) {
     	noSolution
     }
   }
-  
+
   def properOverlap(left: String, right: String, minOverlap: Int): String = {
 
     def substrMatch(a: String, aOffset: Int, b: String, bOffset: Int, len: Int): Boolean = {
@@ -360,7 +360,7 @@ class GapFiller(val region: GenomeRegion) {
     val insertMean = if (inserts.length > 0) (inserts.sum / inserts.length).round.toInt else 0
     minRadius max insertMean
   }
-    
+
   def recruitReadsFromBams(reg: Region, bams: List[BamFile]) = {
     var reads = List[SAMRecord]()
     for (b <- bams) {
@@ -383,7 +383,7 @@ class GapFiller(val region: GenomeRegion) {
     for (b <- region.bamsOfType("jumps")) {
       reads ++= b.recruitBadMates(reg)
     }
-    if (Pilon.debug) 
+    if (Pilon.debug)
       println("# Recruiting jump bad mates: count=" + reads.length)
     reads
   }
