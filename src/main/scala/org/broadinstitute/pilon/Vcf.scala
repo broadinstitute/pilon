@@ -62,7 +62,7 @@ class Vcf(val file: File, val contigsWithSizes: List[(String, Int)] = Nil) {
     writer.println("##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description=\"Imprecise change from local reassembly (ALT contains Ns)\">")
     writer.println("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">")
     writer.println("##FORMAT=<ID=AD,Number=.,Type=String,Description=\"Allelic depths for the ref and alt alleles in the order listed\">")
-    writer.println("##FORMAT=<ID=DP,Number=1,Type=String,Description=\"Approximate read depth; some reads may have been filtered\">")
+    writer.println("##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth; some reads may have been filtered\">")
     writer.println("##ALT=<ID=DUP,Description=\"Possible segmental duplication\">")
     writer.println("#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE")
   }
