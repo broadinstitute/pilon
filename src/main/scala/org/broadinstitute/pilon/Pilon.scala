@@ -318,13 +318,13 @@ object Pilon {
               for the bam alignments.  At least one of --frags or --jumps must also be given.
            --frags frags.bam
               A bam file consisting of fragment paired-end alignments, aligned to the --genome
-              argument using bwa or bowtie2.  This argument may be specifed more than once.
+              argument using bwa or bowtie2.  This argument may be specified more than once.
            --jumps jumps.bam
               A bam file consisting of jump (mate pair) paired-end alignments, aligned to the
-              --genome argument using bwa or bowtie2.  This argument may be specifed more than once.
+              --genome argument using bwa or bowtie2.  This argument may be specified more than once.
            --unpaired unpaired.bam
               A bam file consisting of unpaired alignments, aligned to the --genome argument 
-              using bwa or bowtie2.  This argument may be specifed more than once.
+              using bwa or bowtie2.  This argument may be specified more than once.
            --bam any.bam
               A bam file of unknown type; Pilon will scan it and attempt to classify it as one
               of the above bam types.
@@ -405,7 +405,7 @@ object Pilon {
               Variants (snps and indels) will only be called if there is coverage of good pairs
               at this depth or more; if this value is >= 1, it is an absolute depth, if it is a
               fraction < 1, then minimum depth is computed by multiplying this value by the mean
-              coverage for the region, with a minumum value of 5 (default 0.1: min depth to call 
+              coverage for the region, with a minimum value of 5 (default 0.1: min depth to call 
               is 10% of mean coverage or 5, whichever is greater).
            --mingap
               Minimum size for unclosed gaps (default 10)

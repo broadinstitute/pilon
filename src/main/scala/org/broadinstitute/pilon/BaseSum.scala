@@ -55,8 +55,8 @@ class BaseSum {
   }
   
   def order = {
-    val indicies = List(0,1,2,3).toArray
-    indicies.sortWith({(a,b) => sums(a) > sums(b)})
+    val indices = List(0,1,2,3).toArray
+    indices.sortWith({(a,b) => sums(a) > sums(b)})
   }
   
   def /(divisor : Int) = {
