@@ -50,7 +50,7 @@ class GenomeRegion(val contig: ReferenceSequence, start: Int, stop: Int)
   //var lowCoverage = new Array[Boolean](size)
   //var lowConfidence = new Array[Boolean](size)
 
-  // sumary stats
+  // summary stats
   val badCoverage = new Array[Int](size)
   val clips = new Array[Int](size)
   val copyNumber = new Array[Short](size)

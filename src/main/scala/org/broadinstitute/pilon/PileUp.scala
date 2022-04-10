@@ -228,7 +228,7 @@ class PileUp {
           ("", true)
       } else {
         // new heuristics to call heterozygous indels
-        // the mean pct of reads containing a het indel of a given legnth is something like this:
+        // the mean pct of reads containing a het indel of a given length is something like this:
         val middle = (45 - winStr.length) max 10
         // we define the low het cutoff as half that:
         val low = middle / 2
